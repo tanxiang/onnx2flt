@@ -1,7 +1,4 @@
 function(configure_onnx)
-    if (TARGET onnx)
-        return()
-    endif()
     message(STATUS "Configuring onnx...")
     set(ONNX_BUILD_MAIN_LIB ON)
     add_subdirectory(${PROJECT_SOURCE_DIR}/onnx)

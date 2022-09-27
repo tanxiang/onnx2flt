@@ -8,6 +8,7 @@ find_package(FlatBuffers REQUIRED)
 find_package(protobuf REQUIRED)
 
 add_executable(onnx2flt main.cc)
+configure_onnx()
 
 target_link_libraries(onnx2flt
     flatbuffers
