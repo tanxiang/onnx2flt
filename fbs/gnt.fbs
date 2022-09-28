@@ -7,35 +7,6 @@ struct versionInfo{
 
 enum DataType:byte { Float, Int, QuantAsymm, QuantSymm, QuantSymmPerChannel}
 enum FuseCode:byte { None, Relu, Relu1, Relu6 }
-enum LayerType:byte {
-    CONV_2D,
-    AVERAGE_POOL_2D,
-    MAX_POOL_2D,
-    RELU,
-    SOFTMAX,
-    FULLY_CONNECTED,
-    ADD,
-    CONCATENATION,
-    DEPTHWISE_CONV_2D,
-    BATCH_TO_SPACE_ND,
-    SPACE_TO_BATCH_ND,
-    STRIDED_SLICE,
-    MUL,
-    DEQUANTIZE,
-    LOCAL_RESPONSE_NORMALIZATION,
-    TANH,
-    FLOOR,
-    LOGISTIC,
-    PRELU,
-    POW,
-    NEG,
-    MINIMUM,
-    MAXIMUM,
-    LOG,
-    ABS,
-    EXP,
-    SUB,
-    }
 
 table Tensor {
             name:string;
