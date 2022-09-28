@@ -4,8 +4,9 @@ project(onnx2flt)
 
 include(cmake/onnx.cmake)
 
-find_package(FlatBuffers REQUIRED)
 find_package(protobuf REQUIRED)
+
+add_subdirectory(fbs)
 
 add_executable(onnx2flt main.cc)
 configure_onnx()

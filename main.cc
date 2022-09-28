@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <sstream>
+#include "fbs/gnt_generated.h"
 
 void usage(const std::string &filename)
 {
@@ -27,6 +28,17 @@ int main(int argc, char *argv[])
     ss << ifs.rdbuf();
     // FIXME: Handle the return value
     model_proto.ParseFromString(ss.str());
-    std::cout<<"model_proto.ir_version = "<<model_proto.ir_version()<<std::endl;
+    std::cout << "model_proto.ir_version = " << model_proto.ir_version() << std::endl;
+
+    if (model_proto.has_graph())
+    {
+        auto graph = model_proto.graph();
+
+        for (const auto &tensor : model_proto.graph().initializer())
+        {
+            
+        }
+    }
+
     return 0;
 }
