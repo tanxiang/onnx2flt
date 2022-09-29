@@ -46,23 +46,15 @@ int main(int argc, char *argv[])
             switch (tensor.data_type())
             {
             case onnx::TensorProto_DataType_FLOAT:
-            {
                 break;
-            }
             case onnx::TensorProto_DataType_FLOAT16:
-            {
                 break;
-            }
             case onnx::TensorProto_DataType_INT32:
-            {
                 break;
-            }
             case onnx::TensorProto_DataType_INT16:
                 break;
-            
             case onnx::TensorProto_DataType_INT8:
                 break;
-            
             case onnx::TensorProto_DataType_INT64:
                 break;
             default:
@@ -72,8 +64,10 @@ int main(int argc, char *argv[])
         }
         for (const auto &node : model_proto.graph().node())
         {
-            node.has_name();
-            node.name();
+            if (node.has_name())
+                std::cout << "node.name() = " << node.name() << '\n';
+            else
+                std::cout << &node << " no name\n";
             node.has_op_type();
             node.op_type();
         }
