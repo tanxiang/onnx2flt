@@ -9,7 +9,7 @@ enum DataType:byte { Float, Int, QuantAsymm, QuantSymm, QuantSymmPerChannel}
 enum FuseCode:byte { None, Relu, Relu1, Relu6 }
 
 table Tensor {
-            name:string;
+            name:string(required);
             type:DataType;
             raw_data: [ubyte];
             dim: [ushort];
@@ -109,7 +109,7 @@ table ADD {
 
 
 table CONCATENATION {
-    input: [string];
+    input: [string](required);
     output: string(required);
     name: string;
     axis: int;

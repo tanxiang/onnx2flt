@@ -453,7 +453,7 @@ struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
+           VerifyOffsetRequired(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyField<int8_t>(verifier, VT_TYPE, 1) &&
            VerifyOffset(verifier, VT_RAW_DATA) &&
@@ -487,6 +487,7 @@ struct TensorBuilder {
   flatbuffers::Offset<Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<Tensor>(end);
+    fbb_.Required(o, Tensor::VT_NAME);
     return o;
   }
 };
@@ -1706,7 +1707,7 @@ struct CONCATENATION FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_INPUT) &&
+           VerifyOffsetRequired(verifier, VT_INPUT) &&
            verifier.VerifyVector(input()) &&
            verifier.VerifyVectorOfStrings(input()) &&
            VerifyOffsetRequired(verifier, VT_OUTPUT) &&
@@ -1741,6 +1742,7 @@ struct CONCATENATIONBuilder {
   flatbuffers::Offset<CONCATENATION> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<CONCATENATION>(end);
+    fbb_.Required(o, CONCATENATION::VT_INPUT);
     fbb_.Required(o, CONCATENATION::VT_OUTPUT);
     return o;
   }
