@@ -33,10 +33,49 @@ int main(int argc, char *argv[])
     if (model_proto.has_graph())
     {
         auto graph = model_proto.graph();
+        for (const auto &input : graph.input())
+        {
+            if (input.has_name())
+                std::cout << "input.name() " << input.name() << '\n';
+            else
+                std::cout << "noname input graph\n";
+        }
 
         for (const auto &tensor : model_proto.graph().initializer())
         {
+            switch (tensor.data_type())
+            {
+            case onnx::TensorProto_DataType_FLOAT:
+            {
+                break;
+            }
+            case onnx::TensorProto_DataType_FLOAT16:
+            {
+                break;
+            }
+            case onnx::TensorProto_DataType_INT32:
+            {
+                break;
+            }
+            case onnx::TensorProto_DataType_INT16:
+                break;
             
+            case onnx::TensorProto_DataType_INT8:
+                break;
+            
+            case onnx::TensorProto_DataType_INT64:
+                break;
+            default:
+                std::cout << "onnx::TensorProto_DataType " << tensor.data_type() << " not support\n";
+                return -1;
+            };
+        }
+        for (const auto &node : model_proto.graph().node())
+        {
+            node.has_name();
+            node.name();
+            node.has_op_type();
+            node.op_type();
         }
     }
 
