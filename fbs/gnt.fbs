@@ -2,7 +2,7 @@ namespace nn;
 
 struct versionInfo{
         codeversion:ulong;
-        dataversion:ulong;
+        dataversion:long;
 }
 
 enum DataType:byte { Float, Int, QuantAsymm, QuantSymm, QuantSymmPerChannel}
@@ -16,7 +16,7 @@ table Tensor {
 }
 
 table QuantInfo {
-    name: string;
+    name: string(required);
     type: DataType;
     dim: ushort;
     scales: [float32];
@@ -28,10 +28,14 @@ table Input {
     dim: [ushort];
 }
 
-table CONV_2D {
-    input: string(required);
-    output: string(required);
+table Link{
+    input: [string](required);
+    output: [string](required);
     name: string;
+}
+
+table CONV_2D {
+    link:Link (required);
     weight: string;
     bias: string;
     padding_left: int;
@@ -48,9 +52,7 @@ table CONV_2D {
 }
 
 table AVERAGE_POOL_2D {
-    input:string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     padding_left: int;
     padding_right: int;
     padding_top: int;
@@ -64,9 +66,7 @@ table AVERAGE_POOL_2D {
 
 
 table MAX_POOL_2D {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     padding_left: int;
     padding_right: int;
     padding_top: int;
@@ -79,46 +79,34 @@ table MAX_POOL_2D {
 }
 
 table RELU {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table SOFTMAX {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     beta: float;
 }
 
 table FULLY_CONNECTED {
-    input:string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     weight: string;
     bias: string;
     fuse_code: FuseCode;
 }
 
 table ADD {
-    input:  [string](required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     fuse_code: FuseCode;
 }
 
 
 table CONCATENATION {
-    input: [string](required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     axis: int;
 }
 
 table DEPTHWISE_CONV_2D {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     weight: string;
     bias: string;
     padding_left: int;
@@ -132,24 +120,18 @@ table DEPTHWISE_CONV_2D {
 }
 
 table BATCH_TO_SPACE_ND {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     block_sizes: [int];
 }
 
 table SPACE_TO_BATCH_ND {
-    input:  string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     block_sizes: [int];
     pads: [int];
 }
 
 table STRIDED_SLICE {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     starts: [int];
     ends: [int];
     strides: [int];
@@ -159,22 +141,16 @@ table STRIDED_SLICE {
 }
 
 table MUL {
-    input:[string](required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     fuse_code: FuseCode;
 }
 
 table DEQUANTIZE {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table LOCAL_RESPONSE_NORMALIZATION {
-    input:string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     radius: int;
     bias: float;
     alpha: float;
@@ -182,77 +158,53 @@ table LOCAL_RESPONSE_NORMALIZATION {
 }
 
 table TANH {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table FLOOR {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table LOGISTIC {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table PRELU {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     alpha: string;
 }
 
 table POW {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     exp: string;
 }
 
 table NEG {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table MINIMUM {
-    input: [string](required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table MAXIMUM {
-    input: [string](required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table LOG {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table ABS {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table EXP {
-    input: string(required);
-    output: string(required);
-    name: string;
+    link:Link (required);
 }
 
 table SUB {
-    input: [string](required);
-    output: string(required);
-    name: string;
+    link:Link (required);
     fuse_code: FuseCode;
 }
 
@@ -264,8 +216,8 @@ PRELU,POW,NEG,MINIMUM,MAXIMUM,LOG,ABS,EXP,SUB
 }
 
 table Graph {
-        version:versionInfo;
-        node:[Layer];
+    version:versionInfo;
+    node:[Layer];
     initializers:[Tensor];
     inputs:[Input];
     quant_infos:[QuantInfo];

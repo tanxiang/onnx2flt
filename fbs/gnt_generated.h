@@ -26,6 +26,9 @@ struct QuantInfoBuilder;
 struct Input;
 struct InputBuilder;
 
+struct Link;
+struct LinkBuilder;
+
 struct CONV_2D;
 struct CONV_2DBuilder;
 
@@ -411,21 +414,21 @@ bool VerifyLayerVector(flatbuffers::Verifier &verifier, const flatbuffers::Vecto
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) versionInfo FLATBUFFERS_FINAL_CLASS {
  private:
   uint64_t codeversion_;
-  uint64_t dataversion_;
+  int64_t dataversion_;
 
  public:
   versionInfo()
       : codeversion_(0),
         dataversion_(0) {
   }
-  versionInfo(uint64_t _codeversion, uint64_t _dataversion)
+  versionInfo(uint64_t _codeversion, int64_t _dataversion)
       : codeversion_(flatbuffers::EndianScalar(_codeversion)),
         dataversion_(flatbuffers::EndianScalar(_dataversion)) {
   }
   uint64_t codeversion() const {
     return flatbuffers::EndianScalar(codeversion_);
   }
-  uint64_t dataversion() const {
+  int64_t dataversion() const {
     return flatbuffers::EndianScalar(dataversion_);
   }
 };
@@ -549,7 +552,7 @@ struct QuantInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
+           VerifyOffsetRequired(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyField<int8_t>(verifier, VT_TYPE, 1) &&
            VerifyField<uint16_t>(verifier, VT_DIM, 2) &&
@@ -586,6 +589,7 @@ struct QuantInfoBuilder {
   flatbuffers::Offset<QuantInfo> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<QuantInfo>(end);
+    fbb_.Required(o, QuantInfo::VT_NAME);
     return o;
   }
 };
@@ -689,33 +693,108 @@ inline flatbuffers::Offset<Input> CreateInputDirect(
       dim__);
 }
 
-struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef CONV_2DBuilder Builder;
+struct Link FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LinkBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INPUT = 4,
     VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_WEIGHT = 10,
-    VT_BIAS = 12,
-    VT_PADDING_LEFT = 14,
-    VT_PADDING_RIGHT = 16,
-    VT_PADDING_TOP = 18,
-    VT_PADDING_BOTTOM = 20,
-    VT_STRIDE_X = 22,
-    VT_STRIDE_Y = 24,
-    VT_FUSE_CODE = 26,
-    VT_NCHW = 28,
-    VT_DILATION_X = 30,
-    VT_DILATION_Y = 32
+    VT_NAME = 8
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *input() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_INPUT);
   }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *output() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_OUTPUT);
   }
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_INPUT) &&
+           verifier.VerifyVector(input()) &&
+           verifier.VerifyVectorOfStrings(input()) &&
+           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
+           verifier.VerifyVector(output()) &&
+           verifier.VerifyVectorOfStrings(output()) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           verifier.EndTable();
+  }
+};
+
+struct LinkBuilder {
+  typedef Link Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_input(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input) {
+    fbb_.AddOffset(Link::VT_INPUT, input);
+  }
+  void add_output(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> output) {
+    fbb_.AddOffset(Link::VT_OUTPUT, output);
+  }
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Link::VT_NAME, name);
+  }
+  explicit LinkBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Link> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Link>(end);
+    fbb_.Required(o, Link::VT_INPUT);
+    fbb_.Required(o, Link::VT_OUTPUT);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Link> CreateLink(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> output = 0,
+    flatbuffers::Offset<flatbuffers::String> name = 0) {
+  LinkBuilder builder_(_fbb);
+  builder_.add_name(name);
+  builder_.add_output(output);
+  builder_.add_input(input);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Link> CreateLinkDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *input = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *output = nullptr,
+    const char *name = nullptr) {
+  auto input__ = input ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*input) : 0;
+  auto output__ = output ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*output) : 0;
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return nn::CreateLink(
+      _fbb,
+      input__,
+      output__,
+      name__);
+}
+
+struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef CONV_2DBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_LINK = 4,
+    VT_WEIGHT = 6,
+    VT_BIAS = 8,
+    VT_PADDING_LEFT = 10,
+    VT_PADDING_RIGHT = 12,
+    VT_PADDING_TOP = 14,
+    VT_PADDING_BOTTOM = 16,
+    VT_STRIDE_X = 18,
+    VT_STRIDE_Y = 20,
+    VT_FUSE_CODE = 22,
+    VT_NCHW = 24,
+    VT_DILATION_X = 26,
+    VT_DILATION_Y = 28
+  };
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   const flatbuffers::String *weight() const {
     return GetPointer<const flatbuffers::String *>(VT_WEIGHT);
@@ -755,12 +834,8 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_WEIGHT) &&
            verifier.VerifyString(weight()) &&
            VerifyOffset(verifier, VT_BIAS) &&
@@ -783,14 +858,8 @@ struct CONV_2DBuilder {
   typedef CONV_2D Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(CONV_2D::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(CONV_2D::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(CONV_2D::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(CONV_2D::VT_LINK, link);
   }
   void add_weight(flatbuffers::Offset<flatbuffers::String> weight) {
     fbb_.AddOffset(CONV_2D::VT_WEIGHT, weight);
@@ -835,17 +904,14 @@ struct CONV_2DBuilder {
   flatbuffers::Offset<CONV_2D> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<CONV_2D>(end);
-    fbb_.Required(o, CONV_2D::VT_INPUT);
-    fbb_.Required(o, CONV_2D::VT_OUTPUT);
+    fbb_.Required(o, CONV_2D::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::String> weight = 0,
     flatbuffers::Offset<flatbuffers::String> bias = 0,
     int32_t padding_left = 0,
@@ -869,9 +935,7 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
   builder_.add_padding_left(padding_left);
   builder_.add_bias(bias);
   builder_.add_weight(weight);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   builder_.add_nchw(nchw);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
@@ -879,9 +943,7 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
 
 inline flatbuffers::Offset<CONV_2D> CreateCONV_2DDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
+    flatbuffers::Offset<nn::Link> link = 0,
     const char *weight = nullptr,
     const char *bias = nullptr,
     int32_t padding_left = 0,
@@ -894,16 +956,11 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2DDirect(
     bool nchw = false,
     int32_t dilation_x = 0,
     int32_t dilation_y = 0) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto weight__ = weight ? _fbb.CreateString(weight) : 0;
   auto bias__ = bias ? _fbb.CreateString(bias) : 0;
   return nn::CreateCONV_2D(
       _fbb,
-      input__,
-      output__,
-      name__,
+      link,
       weight__,
       bias__,
       padding_left,
@@ -921,27 +978,19 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2DDirect(
 struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AVERAGE_POOL_2DBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_PADDING_LEFT = 10,
-    VT_PADDING_RIGHT = 12,
-    VT_PADDING_TOP = 14,
-    VT_PADDING_BOTTOM = 16,
-    VT_STRIDE_X = 18,
-    VT_STRIDE_Y = 20,
-    VT_KERNEL_WIDTH = 22,
-    VT_KERNEL_HEIGHT = 24,
-    VT_FUSE_CODE = 26
+    VT_LINK = 4,
+    VT_PADDING_LEFT = 6,
+    VT_PADDING_RIGHT = 8,
+    VT_PADDING_TOP = 10,
+    VT_PADDING_BOTTOM = 12,
+    VT_STRIDE_X = 14,
+    VT_STRIDE_Y = 16,
+    VT_KERNEL_WIDTH = 18,
+    VT_KERNEL_HEIGHT = 20,
+    VT_FUSE_CODE = 22
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   int32_t padding_left() const {
     return GetField<int32_t>(VT_PADDING_LEFT, 0);
@@ -972,12 +1021,8 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyField<int32_t>(verifier, VT_PADDING_LEFT, 4) &&
            VerifyField<int32_t>(verifier, VT_PADDING_RIGHT, 4) &&
            VerifyField<int32_t>(verifier, VT_PADDING_TOP, 4) &&
@@ -995,14 +1040,8 @@ struct AVERAGE_POOL_2DBuilder {
   typedef AVERAGE_POOL_2D Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(AVERAGE_POOL_2D::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(AVERAGE_POOL_2D::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(AVERAGE_POOL_2D::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(AVERAGE_POOL_2D::VT_LINK, link);
   }
   void add_padding_left(int32_t padding_left) {
     fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_PADDING_LEFT, padding_left, 0);
@@ -1038,17 +1077,14 @@ struct AVERAGE_POOL_2DBuilder {
   flatbuffers::Offset<AVERAGE_POOL_2D> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<AVERAGE_POOL_2D>(end);
-    fbb_.Required(o, AVERAGE_POOL_2D::VT_INPUT);
-    fbb_.Required(o, AVERAGE_POOL_2D::VT_OUTPUT);
+    fbb_.Required(o, AVERAGE_POOL_2D::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     int32_t padding_left = 0,
     int32_t padding_right = 0,
     int32_t padding_top = 0,
@@ -1067,70 +1103,27 @@ inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
   builder_.add_padding_top(padding_top);
   builder_.add_padding_right(padding_right);
   builder_.add_padding_left(padding_left);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2DDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
-    int32_t padding_left = 0,
-    int32_t padding_right = 0,
-    int32_t padding_top = 0,
-    int32_t padding_bottom = 0,
-    int32_t stride_x = 0,
-    int32_t stride_y = 0,
-    int32_t kernel_width = 0,
-    int32_t kernel_height = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateAVERAGE_POOL_2D(
-      _fbb,
-      input__,
-      output__,
-      name__,
-      padding_left,
-      padding_right,
-      padding_top,
-      padding_bottom,
-      stride_x,
-      stride_y,
-      kernel_width,
-      kernel_height,
-      fuse_code);
 }
 
 struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MAX_POOL_2DBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_PADDING_LEFT = 10,
-    VT_PADDING_RIGHT = 12,
-    VT_PADDING_TOP = 14,
-    VT_PADDING_BOTTOM = 16,
-    VT_STRIDE_X = 18,
-    VT_STRIDE_Y = 20,
-    VT_KERNEL_WIDTH = 22,
-    VT_KERNEL_HEIGHT = 24,
-    VT_FUSE_CODE = 26
+    VT_LINK = 4,
+    VT_PADDING_LEFT = 6,
+    VT_PADDING_RIGHT = 8,
+    VT_PADDING_TOP = 10,
+    VT_PADDING_BOTTOM = 12,
+    VT_STRIDE_X = 14,
+    VT_STRIDE_Y = 16,
+    VT_KERNEL_WIDTH = 18,
+    VT_KERNEL_HEIGHT = 20,
+    VT_FUSE_CODE = 22
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   int32_t padding_left() const {
     return GetField<int32_t>(VT_PADDING_LEFT, 0);
@@ -1161,12 +1154,8 @@ struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyField<int32_t>(verifier, VT_PADDING_LEFT, 4) &&
            VerifyField<int32_t>(verifier, VT_PADDING_RIGHT, 4) &&
            VerifyField<int32_t>(verifier, VT_PADDING_TOP, 4) &&
@@ -1184,14 +1173,8 @@ struct MAX_POOL_2DBuilder {
   typedef MAX_POOL_2D Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(MAX_POOL_2D::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(MAX_POOL_2D::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(MAX_POOL_2D::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(MAX_POOL_2D::VT_LINK, link);
   }
   void add_padding_left(int32_t padding_left) {
     fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_PADDING_LEFT, padding_left, 0);
@@ -1227,17 +1210,14 @@ struct MAX_POOL_2DBuilder {
   flatbuffers::Offset<MAX_POOL_2D> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<MAX_POOL_2D>(end);
-    fbb_.Required(o, MAX_POOL_2D::VT_INPUT);
-    fbb_.Required(o, MAX_POOL_2D::VT_OUTPUT);
+    fbb_.Required(o, MAX_POOL_2D::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     int32_t padding_left = 0,
     int32_t padding_right = 0,
     int32_t padding_top = 0,
@@ -1256,70 +1236,23 @@ inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2D(
   builder_.add_padding_top(padding_top);
   builder_.add_padding_right(padding_right);
   builder_.add_padding_left(padding_left);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2DDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
-    int32_t padding_left = 0,
-    int32_t padding_right = 0,
-    int32_t padding_top = 0,
-    int32_t padding_bottom = 0,
-    int32_t stride_x = 0,
-    int32_t stride_y = 0,
-    int32_t kernel_width = 0,
-    int32_t kernel_height = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateMAX_POOL_2D(
-      _fbb,
-      input__,
-      output__,
-      name__,
-      padding_left,
-      padding_right,
-      padding_top,
-      padding_bottom,
-      stride_x,
-      stride_y,
-      kernel_width,
-      kernel_height,
-      fuse_code);
 }
 
 struct RELU FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef RELUBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -1328,14 +1261,8 @@ struct RELUBuilder {
   typedef RELU Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(RELU::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(RELU::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(RELU::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(RELU::VT_LINK, link);
   }
   explicit RELUBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1344,67 +1271,35 @@ struct RELUBuilder {
   flatbuffers::Offset<RELU> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<RELU>(end);
-    fbb_.Required(o, RELU::VT_INPUT);
-    fbb_.Required(o, RELU::VT_OUTPUT);
+    fbb_.Required(o, RELU::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<RELU> CreateRELU(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   RELUBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<RELU> CreateRELUDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateRELU(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct SOFTMAX FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SOFTMAXBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_BETA = 10
+    VT_LINK = 4,
+    VT_BETA = 6
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   float beta() const {
     return GetField<float>(VT_BETA, 0.0f);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyField<float>(verifier, VT_BETA, 4) &&
            verifier.EndTable();
   }
@@ -1414,14 +1309,8 @@ struct SOFTMAXBuilder {
   typedef SOFTMAX Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(SOFTMAX::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(SOFTMAX::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(SOFTMAX::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(SOFTMAX::VT_LINK, link);
   }
   void add_beta(float beta) {
     fbb_.AddElement<float>(SOFTMAX::VT_BETA, beta, 0.0f);
@@ -1433,61 +1322,31 @@ struct SOFTMAXBuilder {
   flatbuffers::Offset<SOFTMAX> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SOFTMAX>(end);
-    fbb_.Required(o, SOFTMAX::VT_INPUT);
-    fbb_.Required(o, SOFTMAX::VT_OUTPUT);
+    fbb_.Required(o, SOFTMAX::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<SOFTMAX> CreateSOFTMAX(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     float beta = 0.0f) {
   SOFTMAXBuilder builder_(_fbb);
   builder_.add_beta(beta);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<SOFTMAX> CreateSOFTMAXDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
-    float beta = 0.0f) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateSOFTMAX(
-      _fbb,
-      input__,
-      output__,
-      name__,
-      beta);
 }
 
 struct FULLY_CONNECTED FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef FULLY_CONNECTEDBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_WEIGHT = 10,
-    VT_BIAS = 12,
-    VT_FUSE_CODE = 14
+    VT_LINK = 4,
+    VT_WEIGHT = 6,
+    VT_BIAS = 8,
+    VT_FUSE_CODE = 10
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   const flatbuffers::String *weight() const {
     return GetPointer<const flatbuffers::String *>(VT_WEIGHT);
@@ -1500,12 +1359,8 @@ struct FULLY_CONNECTED FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_WEIGHT) &&
            verifier.VerifyString(weight()) &&
            VerifyOffset(verifier, VT_BIAS) &&
@@ -1519,14 +1374,8 @@ struct FULLY_CONNECTEDBuilder {
   typedef FULLY_CONNECTED Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(FULLY_CONNECTED::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(FULLY_CONNECTED::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(FULLY_CONNECTED::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(FULLY_CONNECTED::VT_LINK, link);
   }
   void add_weight(flatbuffers::Offset<flatbuffers::String> weight) {
     fbb_.AddOffset(FULLY_CONNECTED::VT_WEIGHT, weight);
@@ -1544,48 +1393,36 @@ struct FULLY_CONNECTEDBuilder {
   flatbuffers::Offset<FULLY_CONNECTED> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<FULLY_CONNECTED>(end);
-    fbb_.Required(o, FULLY_CONNECTED::VT_INPUT);
-    fbb_.Required(o, FULLY_CONNECTED::VT_OUTPUT);
+    fbb_.Required(o, FULLY_CONNECTED::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTED(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::String> weight = 0,
     flatbuffers::Offset<flatbuffers::String> bias = 0,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
   FULLY_CONNECTEDBuilder builder_(_fbb);
   builder_.add_bias(bias);
   builder_.add_weight(weight);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTEDDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
+    flatbuffers::Offset<nn::Link> link = 0,
     const char *weight = nullptr,
     const char *bias = nullptr,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto weight__ = weight ? _fbb.CreateString(weight) : 0;
   auto bias__ = bias ? _fbb.CreateString(bias) : 0;
   return nn::CreateFULLY_CONNECTED(
       _fbb,
-      input__,
-      output__,
-      name__,
+      link,
       weight__,
       bias__,
       fuse_code);
@@ -1594,32 +1431,19 @@ inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTEDDirect(
 struct ADD FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ADDBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_FUSE_CODE = 10
+    VT_LINK = 4,
+    VT_FUSE_CODE = 6
   };
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *input() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   nn::FuseCode fuse_code() const {
     return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyVector(input()) &&
-           verifier.VerifyVectorOfStrings(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
@@ -1629,14 +1453,8 @@ struct ADDBuilder {
   typedef ADD Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input) {
-    fbb_.AddOffset(ADD::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(ADD::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(ADD::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(ADD::VT_LINK, link);
   }
   void add_fuse_code(nn::FuseCode fuse_code) {
     fbb_.AddElement<int8_t>(ADD::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
@@ -1648,72 +1466,37 @@ struct ADDBuilder {
   flatbuffers::Offset<ADD> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<ADD>(end);
-    fbb_.Required(o, ADD::VT_INPUT);
-    fbb_.Required(o, ADD::VT_OUTPUT);
+    fbb_.Required(o, ADD::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<ADD> CreateADD(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
   ADDBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<ADD> CreateADDDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
-  auto input__ = input ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateADD(
-      _fbb,
-      input__,
-      output__,
-      name__,
-      fuse_code);
 }
 
 struct CONCATENATION FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef CONCATENATIONBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_AXIS = 10
+    VT_LINK = 4,
+    VT_AXIS = 6
   };
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *input() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   int32_t axis() const {
     return GetField<int32_t>(VT_AXIS, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyVector(input()) &&
-           verifier.VerifyVectorOfStrings(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyField<int32_t>(verifier, VT_AXIS, 4) &&
            verifier.EndTable();
   }
@@ -1723,14 +1506,8 @@ struct CONCATENATIONBuilder {
   typedef CONCATENATION Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input) {
-    fbb_.AddOffset(CONCATENATION::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(CONCATENATION::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(CONCATENATION::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(CONCATENATION::VT_LINK, link);
   }
   void add_axis(int32_t axis) {
     fbb_.AddElement<int32_t>(CONCATENATION::VT_AXIS, axis, 0);
@@ -1742,68 +1519,38 @@ struct CONCATENATIONBuilder {
   flatbuffers::Offset<CONCATENATION> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<CONCATENATION>(end);
-    fbb_.Required(o, CONCATENATION::VT_INPUT);
-    fbb_.Required(o, CONCATENATION::VT_OUTPUT);
+    fbb_.Required(o, CONCATENATION::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<CONCATENATION> CreateCONCATENATION(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     int32_t axis = 0) {
   CONCATENATIONBuilder builder_(_fbb);
   builder_.add_axis(axis);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<CONCATENATION> CreateCONCATENATIONDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
-    int32_t axis = 0) {
-  auto input__ = input ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateCONCATENATION(
-      _fbb,
-      input__,
-      output__,
-      name__,
-      axis);
 }
 
 struct DEPTHWISE_CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef DEPTHWISE_CONV_2DBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_WEIGHT = 10,
-    VT_BIAS = 12,
-    VT_PADDING_LEFT = 14,
-    VT_PADDING_RIGHT = 16,
-    VT_PADDING_TOP = 18,
-    VT_PADDING_BOTTOM = 20,
-    VT_STRIDE_X = 22,
-    VT_STRIDE_Y = 24,
-    VT_DEPTH_MULTIPLIER = 26,
-    VT_FUSE_CODE = 28
+    VT_LINK = 4,
+    VT_WEIGHT = 6,
+    VT_BIAS = 8,
+    VT_PADDING_LEFT = 10,
+    VT_PADDING_RIGHT = 12,
+    VT_PADDING_TOP = 14,
+    VT_PADDING_BOTTOM = 16,
+    VT_STRIDE_X = 18,
+    VT_STRIDE_Y = 20,
+    VT_DEPTH_MULTIPLIER = 22,
+    VT_FUSE_CODE = 24
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   const flatbuffers::String *weight() const {
     return GetPointer<const flatbuffers::String *>(VT_WEIGHT);
@@ -1837,12 +1584,8 @@ struct DEPTHWISE_CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_WEIGHT) &&
            verifier.VerifyString(weight()) &&
            VerifyOffset(verifier, VT_BIAS) &&
@@ -1863,14 +1606,8 @@ struct DEPTHWISE_CONV_2DBuilder {
   typedef DEPTHWISE_CONV_2D Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(DEPTHWISE_CONV_2D::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(DEPTHWISE_CONV_2D::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(DEPTHWISE_CONV_2D::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(DEPTHWISE_CONV_2D::VT_LINK, link);
   }
   void add_weight(flatbuffers::Offset<flatbuffers::String> weight) {
     fbb_.AddOffset(DEPTHWISE_CONV_2D::VT_WEIGHT, weight);
@@ -1909,17 +1646,14 @@ struct DEPTHWISE_CONV_2DBuilder {
   flatbuffers::Offset<DEPTHWISE_CONV_2D> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DEPTHWISE_CONV_2D>(end);
-    fbb_.Required(o, DEPTHWISE_CONV_2D::VT_INPUT);
-    fbb_.Required(o, DEPTHWISE_CONV_2D::VT_OUTPUT);
+    fbb_.Required(o, DEPTHWISE_CONV_2D::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::String> weight = 0,
     flatbuffers::Offset<flatbuffers::String> bias = 0,
     int32_t padding_left = 0,
@@ -1940,18 +1674,14 @@ inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2D(
   builder_.add_padding_left(padding_left);
   builder_.add_bias(bias);
   builder_.add_weight(weight);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2DDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
+    flatbuffers::Offset<nn::Link> link = 0,
     const char *weight = nullptr,
     const char *bias = nullptr,
     int32_t padding_left = 0,
@@ -1962,16 +1692,11 @@ inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2DDirect(
     int32_t stride_y = 0,
     int32_t depth_multiplier = 0,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto weight__ = weight ? _fbb.CreateString(weight) : 0;
   auto bias__ = bias ? _fbb.CreateString(bias) : 0;
   return nn::CreateDEPTHWISE_CONV_2D(
       _fbb,
-      input__,
-      output__,
-      name__,
+      link,
       weight__,
       bias__,
       padding_left,
@@ -1987,31 +1712,19 @@ inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2DDirect(
 struct BATCH_TO_SPACE_ND FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef BATCH_TO_SPACE_NDBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_BLOCK_SIZES = 10
+    VT_LINK = 4,
+    VT_BLOCK_SIZES = 6
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   const flatbuffers::Vector<int32_t> *block_sizes() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_BLOCK_SIZES);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_BLOCK_SIZES) &&
            verifier.VerifyVector(block_sizes()) &&
            verifier.EndTable();
@@ -2022,14 +1735,8 @@ struct BATCH_TO_SPACE_NDBuilder {
   typedef BATCH_TO_SPACE_ND Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(BATCH_TO_SPACE_ND::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(BATCH_TO_SPACE_ND::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(BATCH_TO_SPACE_ND::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(BATCH_TO_SPACE_ND::VT_LINK, link);
   }
   void add_block_sizes(flatbuffers::Offset<flatbuffers::Vector<int32_t>> block_sizes) {
     fbb_.AddOffset(BATCH_TO_SPACE_ND::VT_BLOCK_SIZES, block_sizes);
@@ -2041,61 +1748,41 @@ struct BATCH_TO_SPACE_NDBuilder {
   flatbuffers::Offset<BATCH_TO_SPACE_ND> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<BATCH_TO_SPACE_ND>(end);
-    fbb_.Required(o, BATCH_TO_SPACE_ND::VT_INPUT);
-    fbb_.Required(o, BATCH_TO_SPACE_ND::VT_OUTPUT);
+    fbb_.Required(o, BATCH_TO_SPACE_ND::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<BATCH_TO_SPACE_ND> CreateBATCH_TO_SPACE_ND(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> block_sizes = 0) {
   BATCH_TO_SPACE_NDBuilder builder_(_fbb);
   builder_.add_block_sizes(block_sizes);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<BATCH_TO_SPACE_ND> CreateBATCH_TO_SPACE_NDDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
+    flatbuffers::Offset<nn::Link> link = 0,
     const std::vector<int32_t> *block_sizes = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto block_sizes__ = block_sizes ? _fbb.CreateVector<int32_t>(*block_sizes) : 0;
   return nn::CreateBATCH_TO_SPACE_ND(
       _fbb,
-      input__,
-      output__,
-      name__,
+      link,
       block_sizes__);
 }
 
 struct SPACE_TO_BATCH_ND FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SPACE_TO_BATCH_NDBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_BLOCK_SIZES = 10,
-    VT_PADS = 12
+    VT_LINK = 4,
+    VT_BLOCK_SIZES = 6,
+    VT_PADS = 8
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   const flatbuffers::Vector<int32_t> *block_sizes() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_BLOCK_SIZES);
@@ -2105,12 +1792,8 @@ struct SPACE_TO_BATCH_ND FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_BLOCK_SIZES) &&
            verifier.VerifyVector(block_sizes()) &&
            VerifyOffset(verifier, VT_PADS) &&
@@ -2123,14 +1806,8 @@ struct SPACE_TO_BATCH_NDBuilder {
   typedef SPACE_TO_BATCH_ND Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(SPACE_TO_BATCH_ND::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(SPACE_TO_BATCH_ND::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(SPACE_TO_BATCH_ND::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(SPACE_TO_BATCH_ND::VT_LINK, link);
   }
   void add_block_sizes(flatbuffers::Offset<flatbuffers::Vector<int32_t>> block_sizes) {
     fbb_.AddOffset(SPACE_TO_BATCH_ND::VT_BLOCK_SIZES, block_sizes);
@@ -2145,45 +1822,33 @@ struct SPACE_TO_BATCH_NDBuilder {
   flatbuffers::Offset<SPACE_TO_BATCH_ND> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SPACE_TO_BATCH_ND>(end);
-    fbb_.Required(o, SPACE_TO_BATCH_ND::VT_INPUT);
-    fbb_.Required(o, SPACE_TO_BATCH_ND::VT_OUTPUT);
+    fbb_.Required(o, SPACE_TO_BATCH_ND::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<SPACE_TO_BATCH_ND> CreateSPACE_TO_BATCH_ND(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> block_sizes = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> pads = 0) {
   SPACE_TO_BATCH_NDBuilder builder_(_fbb);
   builder_.add_pads(pads);
   builder_.add_block_sizes(block_sizes);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<SPACE_TO_BATCH_ND> CreateSPACE_TO_BATCH_NDDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
+    flatbuffers::Offset<nn::Link> link = 0,
     const std::vector<int32_t> *block_sizes = nullptr,
     const std::vector<int32_t> *pads = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto block_sizes__ = block_sizes ? _fbb.CreateVector<int32_t>(*block_sizes) : 0;
   auto pads__ = pads ? _fbb.CreateVector<int32_t>(*pads) : 0;
   return nn::CreateSPACE_TO_BATCH_ND(
       _fbb,
-      input__,
-      output__,
-      name__,
+      link,
       block_sizes__,
       pads__);
 }
@@ -2191,24 +1856,16 @@ inline flatbuffers::Offset<SPACE_TO_BATCH_ND> CreateSPACE_TO_BATCH_NDDirect(
 struct STRIDED_SLICE FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef STRIDED_SLICEBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_STARTS = 10,
-    VT_ENDS = 12,
-    VT_STRIDES = 14,
-    VT_BEGIN_MASK = 16,
-    VT_END_MASK = 18,
-    VT_SHRINK_AXIS_MASK = 20
+    VT_LINK = 4,
+    VT_STARTS = 6,
+    VT_ENDS = 8,
+    VT_STRIDES = 10,
+    VT_BEGIN_MASK = 12,
+    VT_END_MASK = 14,
+    VT_SHRINK_AXIS_MASK = 16
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   const flatbuffers::Vector<int32_t> *starts() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_STARTS);
@@ -2230,12 +1887,8 @@ struct STRIDED_SLICE FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_STARTS) &&
            verifier.VerifyVector(starts()) &&
            VerifyOffset(verifier, VT_ENDS) &&
@@ -2253,14 +1906,8 @@ struct STRIDED_SLICEBuilder {
   typedef STRIDED_SLICE Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(STRIDED_SLICE::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(STRIDED_SLICE::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(STRIDED_SLICE::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(STRIDED_SLICE::VT_LINK, link);
   }
   void add_starts(flatbuffers::Offset<flatbuffers::Vector<int32_t>> starts) {
     fbb_.AddOffset(STRIDED_SLICE::VT_STARTS, starts);
@@ -2287,17 +1934,14 @@ struct STRIDED_SLICEBuilder {
   flatbuffers::Offset<STRIDED_SLICE> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<STRIDED_SLICE>(end);
-    fbb_.Required(o, STRIDED_SLICE::VT_INPUT);
-    fbb_.Required(o, STRIDED_SLICE::VT_OUTPUT);
+    fbb_.Required(o, STRIDED_SLICE::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<STRIDED_SLICE> CreateSTRIDED_SLICE(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> starts = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> ends = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> strides = 0,
@@ -2311,34 +1955,25 @@ inline flatbuffers::Offset<STRIDED_SLICE> CreateSTRIDED_SLICE(
   builder_.add_strides(strides);
   builder_.add_ends(ends);
   builder_.add_starts(starts);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<STRIDED_SLICE> CreateSTRIDED_SLICEDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
+    flatbuffers::Offset<nn::Link> link = 0,
     const std::vector<int32_t> *starts = nullptr,
     const std::vector<int32_t> *ends = nullptr,
     const std::vector<int32_t> *strides = nullptr,
     int32_t begin_mask = 0,
     int32_t end_mask = 0,
     int32_t shrink_axis_mask = 0) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto starts__ = starts ? _fbb.CreateVector<int32_t>(*starts) : 0;
   auto ends__ = ends ? _fbb.CreateVector<int32_t>(*ends) : 0;
   auto strides__ = strides ? _fbb.CreateVector<int32_t>(*strides) : 0;
   return nn::CreateSTRIDED_SLICE(
       _fbb,
-      input__,
-      output__,
-      name__,
+      link,
       starts__,
       ends__,
       strides__,
@@ -2350,32 +1985,19 @@ inline flatbuffers::Offset<STRIDED_SLICE> CreateSTRIDED_SLICEDirect(
 struct MUL FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MULBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_FUSE_CODE = 10
+    VT_LINK = 4,
+    VT_FUSE_CODE = 6
   };
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *input() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   nn::FuseCode fuse_code() const {
     return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyVector(input()) &&
-           verifier.VerifyVectorOfStrings(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
@@ -2385,14 +2007,8 @@ struct MULBuilder {
   typedef MUL Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input) {
-    fbb_.AddOffset(MUL::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(MUL::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(MUL::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(MUL::VT_LINK, link);
   }
   void add_fuse_code(nn::FuseCode fuse_code) {
     fbb_.AddElement<int8_t>(MUL::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
@@ -2404,67 +2020,33 @@ struct MULBuilder {
   flatbuffers::Offset<MUL> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<MUL>(end);
-    fbb_.Required(o, MUL::VT_INPUT);
-    fbb_.Required(o, MUL::VT_OUTPUT);
+    fbb_.Required(o, MUL::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<MUL> CreateMUL(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
   MULBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<MUL> CreateMULDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
-  auto input__ = input ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateMUL(
-      _fbb,
-      input__,
-      output__,
-      name__,
-      fuse_code);
 }
 
 struct DEQUANTIZE FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef DEQUANTIZEBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -2473,14 +2055,8 @@ struct DEQUANTIZEBuilder {
   typedef DEQUANTIZE Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(DEQUANTIZE::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(DEQUANTIZE::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(DEQUANTIZE::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(DEQUANTIZE::VT_LINK, link);
   }
   explicit DEQUANTIZEBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2489,58 +2065,30 @@ struct DEQUANTIZEBuilder {
   flatbuffers::Offset<DEQUANTIZE> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<DEQUANTIZE>(end);
-    fbb_.Required(o, DEQUANTIZE::VT_INPUT);
-    fbb_.Required(o, DEQUANTIZE::VT_OUTPUT);
+    fbb_.Required(o, DEQUANTIZE::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<DEQUANTIZE> CreateDEQUANTIZE(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   DEQUANTIZEBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<DEQUANTIZE> CreateDEQUANTIZEDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateDEQUANTIZE(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct LOCAL_RESPONSE_NORMALIZATION FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LOCAL_RESPONSE_NORMALIZATIONBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_RADIUS = 10,
-    VT_BIAS = 12,
-    VT_ALPHA = 14,
-    VT_BETA = 16
+    VT_LINK = 4,
+    VT_RADIUS = 6,
+    VT_BIAS = 8,
+    VT_ALPHA = 10,
+    VT_BETA = 12
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   int32_t radius() const {
     return GetField<int32_t>(VT_RADIUS, 0);
@@ -2556,12 +2104,8 @@ struct LOCAL_RESPONSE_NORMALIZATION FLATBUFFERS_FINAL_CLASS : private flatbuffer
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyField<int32_t>(verifier, VT_RADIUS, 4) &&
            VerifyField<float>(verifier, VT_BIAS, 4) &&
            VerifyField<float>(verifier, VT_ALPHA, 4) &&
@@ -2574,14 +2118,8 @@ struct LOCAL_RESPONSE_NORMALIZATIONBuilder {
   typedef LOCAL_RESPONSE_NORMALIZATION Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(LOCAL_RESPONSE_NORMALIZATION::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(LOCAL_RESPONSE_NORMALIZATION::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(LOCAL_RESPONSE_NORMALIZATION::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(LOCAL_RESPONSE_NORMALIZATION::VT_LINK, link);
   }
   void add_radius(int32_t radius) {
     fbb_.AddElement<int32_t>(LOCAL_RESPONSE_NORMALIZATION::VT_RADIUS, radius, 0);
@@ -2602,17 +2140,14 @@ struct LOCAL_RESPONSE_NORMALIZATIONBuilder {
   flatbuffers::Offset<LOCAL_RESPONSE_NORMALIZATION> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LOCAL_RESPONSE_NORMALIZATION>(end);
-    fbb_.Required(o, LOCAL_RESPONSE_NORMALIZATION::VT_INPUT);
-    fbb_.Required(o, LOCAL_RESPONSE_NORMALIZATION::VT_OUTPUT);
+    fbb_.Required(o, LOCAL_RESPONSE_NORMALIZATION::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<LOCAL_RESPONSE_NORMALIZATION> CreateLOCAL_RESPONSE_NORMALIZATION(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     int32_t radius = 0,
     float bias = 0.0f,
     float alpha = 0.0f,
@@ -2622,59 +2157,22 @@ inline flatbuffers::Offset<LOCAL_RESPONSE_NORMALIZATION> CreateLOCAL_RESPONSE_NO
   builder_.add_alpha(alpha);
   builder_.add_bias(bias);
   builder_.add_radius(radius);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<LOCAL_RESPONSE_NORMALIZATION> CreateLOCAL_RESPONSE_NORMALIZATIONDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
-    int32_t radius = 0,
-    float bias = 0.0f,
-    float alpha = 0.0f,
-    float beta = 0.0f) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateLOCAL_RESPONSE_NORMALIZATION(
-      _fbb,
-      input__,
-      output__,
-      name__,
-      radius,
-      bias,
-      alpha,
-      beta);
 }
 
 struct TANH FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef TANHBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -2683,14 +2181,8 @@ struct TANHBuilder {
   typedef TANH Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(TANH::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(TANH::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(TANH::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(TANH::VT_LINK, link);
   }
   explicit TANHBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2699,63 +2191,31 @@ struct TANHBuilder {
   flatbuffers::Offset<TANH> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<TANH>(end);
-    fbb_.Required(o, TANH::VT_INPUT);
-    fbb_.Required(o, TANH::VT_OUTPUT);
+    fbb_.Required(o, TANH::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<TANH> CreateTANH(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   TANHBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<TANH> CreateTANHDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateTANH(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct FLOOR FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef FLOORBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -2764,14 +2224,8 @@ struct FLOORBuilder {
   typedef FLOOR Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(FLOOR::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(FLOOR::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(FLOOR::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(FLOOR::VT_LINK, link);
   }
   explicit FLOORBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2780,63 +2234,31 @@ struct FLOORBuilder {
   flatbuffers::Offset<FLOOR> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<FLOOR>(end);
-    fbb_.Required(o, FLOOR::VT_INPUT);
-    fbb_.Required(o, FLOOR::VT_OUTPUT);
+    fbb_.Required(o, FLOOR::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<FLOOR> CreateFLOOR(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   FLOORBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<FLOOR> CreateFLOORDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateFLOOR(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct LOGISTIC FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LOGISTICBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -2845,14 +2267,8 @@ struct LOGISTICBuilder {
   typedef LOGISTIC Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(LOGISTIC::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(LOGISTIC::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(LOGISTIC::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(LOGISTIC::VT_LINK, link);
   }
   explicit LOGISTICBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2861,67 +2277,35 @@ struct LOGISTICBuilder {
   flatbuffers::Offset<LOGISTIC> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LOGISTIC>(end);
-    fbb_.Required(o, LOGISTIC::VT_INPUT);
-    fbb_.Required(o, LOGISTIC::VT_OUTPUT);
+    fbb_.Required(o, LOGISTIC::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<LOGISTIC> CreateLOGISTIC(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   LOGISTICBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<LOGISTIC> CreateLOGISTICDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateLOGISTIC(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct PRELU FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef PRELUBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_ALPHA = 10
+    VT_LINK = 4,
+    VT_ALPHA = 6
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   const flatbuffers::String *alpha() const {
     return GetPointer<const flatbuffers::String *>(VT_ALPHA);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_ALPHA) &&
            verifier.VerifyString(alpha()) &&
            verifier.EndTable();
@@ -2932,14 +2316,8 @@ struct PRELUBuilder {
   typedef PRELU Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(PRELU::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(PRELU::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(PRELU::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(PRELU::VT_LINK, link);
   }
   void add_alpha(flatbuffers::Offset<flatbuffers::String> alpha) {
     fbb_.AddOffset(PRELU::VT_ALPHA, alpha);
@@ -2951,72 +2329,48 @@ struct PRELUBuilder {
   flatbuffers::Offset<PRELU> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<PRELU>(end);
-    fbb_.Required(o, PRELU::VT_INPUT);
-    fbb_.Required(o, PRELU::VT_OUTPUT);
+    fbb_.Required(o, PRELU::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<PRELU> CreatePRELU(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::String> alpha = 0) {
   PRELUBuilder builder_(_fbb);
   builder_.add_alpha(alpha);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<PRELU> CreatePRELUDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
+    flatbuffers::Offset<nn::Link> link = 0,
     const char *alpha = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto alpha__ = alpha ? _fbb.CreateString(alpha) : 0;
   return nn::CreatePRELU(
       _fbb,
-      input__,
-      output__,
-      name__,
+      link,
       alpha__);
 }
 
 struct POW FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef POWBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_EXP = 10
+    VT_LINK = 4,
+    VT_EXP = 6
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   const flatbuffers::String *exp() const {
     return GetPointer<const flatbuffers::String *>(VT_EXP);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_EXP) &&
            verifier.VerifyString(exp()) &&
            verifier.EndTable();
@@ -3027,14 +2381,8 @@ struct POWBuilder {
   typedef POW Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(POW::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(POW::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(POW::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(POW::VT_LINK, link);
   }
   void add_exp(flatbuffers::Offset<flatbuffers::String> exp) {
     fbb_.AddOffset(POW::VT_EXP, exp);
@@ -3046,68 +2394,44 @@ struct POWBuilder {
   flatbuffers::Offset<POW> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<POW>(end);
-    fbb_.Required(o, POW::VT_INPUT);
-    fbb_.Required(o, POW::VT_OUTPUT);
+    fbb_.Required(o, POW::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<POW> CreatePOW(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::String> exp = 0) {
   POWBuilder builder_(_fbb);
   builder_.add_exp(exp);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<POW> CreatePOWDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
+    flatbuffers::Offset<nn::Link> link = 0,
     const char *exp = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto exp__ = exp ? _fbb.CreateString(exp) : 0;
   return nn::CreatePOW(
       _fbb,
-      input__,
-      output__,
-      name__,
+      link,
       exp__);
 }
 
 struct NEG FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef NEGBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -3116,14 +2440,8 @@ struct NEGBuilder {
   typedef NEG Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(NEG::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(NEG::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(NEG::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(NEG::VT_LINK, link);
   }
   explicit NEGBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -3132,64 +2450,31 @@ struct NEGBuilder {
   flatbuffers::Offset<NEG> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<NEG>(end);
-    fbb_.Required(o, NEG::VT_INPUT);
-    fbb_.Required(o, NEG::VT_OUTPUT);
+    fbb_.Required(o, NEG::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<NEG> CreateNEG(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   NEGBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<NEG> CreateNEGDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateNEG(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct MINIMUM FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MINIMUMBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *input() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyVector(input()) &&
-           verifier.VerifyVectorOfStrings(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -3198,14 +2483,8 @@ struct MINIMUMBuilder {
   typedef MINIMUM Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input) {
-    fbb_.AddOffset(MINIMUM::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(MINIMUM::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(MINIMUM::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(MINIMUM::VT_LINK, link);
   }
   explicit MINIMUMBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -3214,64 +2493,31 @@ struct MINIMUMBuilder {
   flatbuffers::Offset<MINIMUM> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<MINIMUM>(end);
-    fbb_.Required(o, MINIMUM::VT_INPUT);
-    fbb_.Required(o, MINIMUM::VT_OUTPUT);
+    fbb_.Required(o, MINIMUM::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<MINIMUM> CreateMINIMUM(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   MINIMUMBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<MINIMUM> CreateMINIMUMDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateMINIMUM(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct MAXIMUM FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MAXIMUMBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *input() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyVector(input()) &&
-           verifier.VerifyVectorOfStrings(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -3280,14 +2526,8 @@ struct MAXIMUMBuilder {
   typedef MAXIMUM Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input) {
-    fbb_.AddOffset(MAXIMUM::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(MAXIMUM::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(MAXIMUM::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(MAXIMUM::VT_LINK, link);
   }
   explicit MAXIMUMBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -3296,63 +2536,31 @@ struct MAXIMUMBuilder {
   flatbuffers::Offset<MAXIMUM> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<MAXIMUM>(end);
-    fbb_.Required(o, MAXIMUM::VT_INPUT);
-    fbb_.Required(o, MAXIMUM::VT_OUTPUT);
+    fbb_.Required(o, MAXIMUM::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<MAXIMUM> CreateMAXIMUM(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   MAXIMUMBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<MAXIMUM> CreateMAXIMUMDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateMAXIMUM(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct LOG FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LOGBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -3361,14 +2569,8 @@ struct LOGBuilder {
   typedef LOG Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(LOG::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(LOG::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(LOG::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(LOG::VT_LINK, link);
   }
   explicit LOGBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -3377,63 +2579,31 @@ struct LOGBuilder {
   flatbuffers::Offset<LOG> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<LOG>(end);
-    fbb_.Required(o, LOG::VT_INPUT);
-    fbb_.Required(o, LOG::VT_OUTPUT);
+    fbb_.Required(o, LOG::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<LOG> CreateLOG(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   LOGBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<LOG> CreateLOGDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateLOG(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct ABS FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ABSBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -3442,14 +2612,8 @@ struct ABSBuilder {
   typedef ABS Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(ABS::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(ABS::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(ABS::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(ABS::VT_LINK, link);
   }
   explicit ABSBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -3458,63 +2622,31 @@ struct ABSBuilder {
   flatbuffers::Offset<ABS> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<ABS>(end);
-    fbb_.Required(o, ABS::VT_INPUT);
-    fbb_.Required(o, ABS::VT_OUTPUT);
+    fbb_.Required(o, ABS::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<ABS> CreateABS(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   ABSBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<ABS> CreateABSDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateABS(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct EXP FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef EXPBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_LINK = 4
   };
-  const flatbuffers::String *input() const {
-    return GetPointer<const flatbuffers::String *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyString(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            verifier.EndTable();
   }
 };
@@ -3523,14 +2655,8 @@ struct EXPBuilder {
   typedef EXP Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::String> input) {
-    fbb_.AddOffset(EXP::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(EXP::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(EXP::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(EXP::VT_LINK, link);
   }
   explicit EXPBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -3539,68 +2665,35 @@ struct EXPBuilder {
   flatbuffers::Offset<EXP> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<EXP>(end);
-    fbb_.Required(o, EXP::VT_INPUT);
-    fbb_.Required(o, EXP::VT_OUTPUT);
+    fbb_.Required(o, EXP::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<EXP> CreateEXP(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   EXPBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<EXP> CreateEXPDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateString(input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateEXP(
-      _fbb,
-      input__,
-      output__,
-      name__);
 }
 
 struct SUB FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SUBBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8,
-    VT_FUSE_CODE = 10
+    VT_LINK = 4,
+    VT_FUSE_CODE = 6
   };
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *input() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_INPUT);
-  }
-  const flatbuffers::String *output() const {
-    return GetPointer<const flatbuffers::String *>(VT_OUTPUT);
-  }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
   }
   nn::FuseCode fuse_code() const {
     return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_INPUT) &&
-           verifier.VerifyVector(input()) &&
-           verifier.VerifyVectorOfStrings(input()) &&
-           VerifyOffsetRequired(verifier, VT_OUTPUT) &&
-           verifier.VerifyString(output()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
@@ -3610,14 +2703,8 @@ struct SUBBuilder {
   typedef SUB Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input) {
-    fbb_.AddOffset(SUB::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::String> output) {
-    fbb_.AddOffset(SUB::VT_OUTPUT, output);
-  }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(SUB::VT_NAME, name);
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(SUB::VT_LINK, link);
   }
   void add_fuse_code(nn::FuseCode fuse_code) {
     fbb_.AddElement<int8_t>(SUB::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
@@ -3629,41 +2716,19 @@ struct SUBBuilder {
   flatbuffers::Offset<SUB> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<SUB>(end);
-    fbb_.Required(o, SUB::VT_INPUT);
-    fbb_.Required(o, SUB::VT_OUTPUT);
+    fbb_.Required(o, SUB::VT_LINK);
     return o;
   }
 };
 
 inline flatbuffers::Offset<SUB> CreateSUB(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> input = 0,
-    flatbuffers::Offset<flatbuffers::String> output = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<nn::Link> link = 0,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
   SUBBuilder builder_(_fbb);
-  builder_.add_name(name);
-  builder_.add_output(output);
-  builder_.add_input(input);
+  builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<SUB> CreateSUBDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *input = nullptr,
-    const char *output = nullptr,
-    const char *name = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
-  auto input__ = input ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*input) : 0;
-  auto output__ = output ? _fbb.CreateString(output) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nn::CreateSUB(
-      _fbb,
-      input__,
-      output__,
-      name__,
-      fuse_code);
 }
 
 struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

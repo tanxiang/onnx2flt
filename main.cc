@@ -6,11 +6,16 @@
 #include <map>
 #include <sstream>
 #include "fbs/gnt_generated.h"
+#include <vector>
 
 void usage(const std::string &filename)
 {
     std::cout << "Usage: " << filename
               << " onnx_model output_filename [table_file]" << std::endl;
+}
+
+auto getNodeLink(const onnx::NodeProto &node,flatbuffers::FlatBufferBuilder &flatbuffers){
+
 }
 
 int main(int argc, char *argv[])
@@ -20,7 +25,6 @@ int main(int argc, char *argv[])
         usage(argv[0]);
         return -1;
     }
-    const std::string table_file = argc == 4 ? argv[3] : "";
 
     onnx::ModelProto model_proto;
     std::ifstream ifs(argv[1], std::ios::in | std::ios::binary);
@@ -30,8 +34,11 @@ int main(int argc, char *argv[])
     model_proto.ParseFromString(ss.str());
     std::cout << "model_proto.ir_version = " << model_proto.ir_version() << std::endl;
 
+    std::map<std::string,std::function<void(flatbuffers::FlatBufferBuilder &,const onnx::NodeProto&)>> mapOpFunc{};
+
     if (model_proto.has_graph())
     {
+        flatbuffers::FlatBufferBuilder flatbuffers;
         auto graph = model_proto.graph();
         for (const auto &input : graph.input())
         {
@@ -62,15 +69,44 @@ int main(int argc, char *argv[])
                 return -1;
             };
         }
+
+        for (const auto &tensor : model_proto.graph().sparse_initializer())
+        {
+            std::cout << "graph().sparse_initializer() " <<&tensor;
+        }
         for (const auto &node : model_proto.graph().node())
         {
+            std::vector<flatbuffers::Offset<flatbuffers::String>> flatInputs{};
+            for (const auto &nodeInput:node.input()){
+                flatInputs.emplace_back(flatbuffers.CreateString(nodeInput));
+            }
+            std::vector<flatbuffers::Offset<flatbuffers::String>> flatOutputs{};
+            for (const auto &nodeOutput:node.output()){
+                flatOutputs.emplace_back(flatbuffers.CreateString(nodeOutput));
+            }
+            flatbuffers::Offset<nn::Link> flatLink;
             if (node.has_name())
-                std::cout << "node.name() = " << node.name() << '\n';
+                flatLink = nn::CreateLink(flatbuffers,flatbuffers.CreateVector(flatInputs),flatbuffers.CreateVector(flatOutputs),flatbuffers.CreateString(node.name()));
             else
-                std::cout << &node << " no name\n";
-            node.has_op_type();
+                flatLink = nn::CreateLink(flatbuffers,flatbuffers.CreateVector(flatInputs),flatbuffers.CreateVector(flatOutputs));
+
+            
             node.op_type();
+            auto opItr = mapOpFunc.find(node.op_type());
+            if(opItr!= mapOpFunc.end()){
+                opItr->second.operator()(flatbuffers,node);
+            }
+            else{
+                std::cout<<"error:"<<node.op_type()<<" is not support!\n";
+            }
         }
+
+        nn::versionInfo version{FLATBUFFERS_VERSION_MAJOR*10000+FLATBUFFERS_VERSION_MINOR*100+FLATBUFFERS_VERSION_REVISION,model_proto.ir_version()};
+        auto flatbuffersGraph = nn::CreateGraph(flatbuffers,&version);
+        flatbuffers.Finish(flatbuffersGraph);
+        std::ofstream outputfile{argv[2]};
+        outputfile.write(reinterpret_cast<char*>(flatbuffers.GetBufferPointer()),flatbuffers.GetSize());
+
     }
 
     return 0;
