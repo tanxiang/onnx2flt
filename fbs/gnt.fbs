@@ -1,18 +1,18 @@
 namespace nn;
 
 struct versionInfo{
-        codeversion:ulong;
-        dataversion:long;
+    codeversion:ulong;
+    dataversion:long;
 }
 
 enum DataType:byte { Float, Int, QuantAsymm, QuantSymm, QuantSymmPerChannel}
 enum FuseCode:byte { None, Relu, Relu1, Relu6 }
 
 table Tensor {
-            name:string(required);
-            type:DataType;
-            raw_data: [ubyte];
-            dim: [ushort];
+    name:string(required);
+    type:DataType;
+    raw_data: [ubyte];
+    dim: [ushort];
 }
 
 table QuantInfo {
