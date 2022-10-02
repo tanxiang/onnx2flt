@@ -54,6 +54,48 @@ int main(int argc, char *argv[]) {
   mapOpFunc.emplace("Conv", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                                const onnx::NodeProto &) { ; });
 
+  mapOpFunc.emplace("Relu", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Concat", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("MaxPool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Softmax", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Dropout", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("GlobalAveragePool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Clip", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Add", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Shape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Gather", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Unsqueeze", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+                               
+  mapOpFunc.emplace("Reshape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Gemm", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+                               
+  mapOpFunc.emplace("Constant", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &) { ; });
+                               
   if (model_proto.has_graph()) {
     flatbuffers::FlatBufferBuilder flatbuffers;
     auto graph = model_proto.graph();
@@ -79,7 +121,7 @@ int main(int argc, char *argv[]) {
       case onnx::TensorProto_DataType_INT64:
         break;
       default:
-        std::cout << "onnx::TensorProto_DataType " << tensor.data_type()
+        std::cerr << "onnx::TensorProto_DataType " << tensor.data_type()
                   << " not support\n";
         return -1;
       };
@@ -94,7 +136,7 @@ int main(int argc, char *argv[]) {
       if (opItr != mapOpFunc.end()) {
         opItr->second.operator()(flatbuffers, node);
       } else {
-        std::cout << "error:" << node.op_type() << " is not support!\n";
+        std::cerr << "error: " << node.op_type() << " is not support!\n";
       }
     }
 
