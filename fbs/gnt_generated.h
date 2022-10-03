@@ -29,6 +29,14 @@ struct InputBuilder;
 struct Link;
 struct LinkBuilder;
 
+struct Pads;
+
+struct Stride;
+
+struct Dilation;
+
+struct KernelShape;
+
 struct CONV_2D;
 struct CONV_2DBuilder;
 
@@ -434,6 +442,110 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) versionInfo FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(versionInfo, 16);
 
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Pads FLATBUFFERS_FINAL_CLASS {
+ private:
+  int32_t left_;
+  int32_t right_;
+  int32_t top_;
+  int32_t bottom_;
+
+ public:
+  Pads()
+      : left_(0),
+        right_(0),
+        top_(0),
+        bottom_(0) {
+  }
+  Pads(int32_t _left, int32_t _right, int32_t _top, int32_t _bottom)
+      : left_(flatbuffers::EndianScalar(_left)),
+        right_(flatbuffers::EndianScalar(_right)),
+        top_(flatbuffers::EndianScalar(_top)),
+        bottom_(flatbuffers::EndianScalar(_bottom)) {
+  }
+  int32_t left() const {
+    return flatbuffers::EndianScalar(left_);
+  }
+  int32_t right() const {
+    return flatbuffers::EndianScalar(right_);
+  }
+  int32_t top() const {
+    return flatbuffers::EndianScalar(top_);
+  }
+  int32_t bottom() const {
+    return flatbuffers::EndianScalar(bottom_);
+  }
+};
+FLATBUFFERS_STRUCT_END(Pads, 16);
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Stride FLATBUFFERS_FINAL_CLASS {
+ private:
+  int32_t x_;
+  int32_t y_;
+
+ public:
+  Stride()
+      : x_(0),
+        y_(0) {
+  }
+  Stride(int32_t _x, int32_t _y)
+      : x_(flatbuffers::EndianScalar(_x)),
+        y_(flatbuffers::EndianScalar(_y)) {
+  }
+  int32_t x() const {
+    return flatbuffers::EndianScalar(x_);
+  }
+  int32_t y() const {
+    return flatbuffers::EndianScalar(y_);
+  }
+};
+FLATBUFFERS_STRUCT_END(Stride, 8);
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Dilation FLATBUFFERS_FINAL_CLASS {
+ private:
+  int32_t x_;
+  int32_t y_;
+
+ public:
+  Dilation()
+      : x_(0),
+        y_(0) {
+  }
+  Dilation(int32_t _x, int32_t _y)
+      : x_(flatbuffers::EndianScalar(_x)),
+        y_(flatbuffers::EndianScalar(_y)) {
+  }
+  int32_t x() const {
+    return flatbuffers::EndianScalar(x_);
+  }
+  int32_t y() const {
+    return flatbuffers::EndianScalar(y_);
+  }
+};
+FLATBUFFERS_STRUCT_END(Dilation, 8);
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) KernelShape FLATBUFFERS_FINAL_CLASS {
+ private:
+  int32_t width_;
+  int32_t height_;
+
+ public:
+  KernelShape()
+      : width_(0),
+        height_(0) {
+  }
+  KernelShape(int32_t _width, int32_t _height)
+      : width_(flatbuffers::EndianScalar(_width)),
+        height_(flatbuffers::EndianScalar(_height)) {
+  }
+  int32_t width() const {
+    return flatbuffers::EndianScalar(width_);
+  }
+  int32_t height() const {
+    return flatbuffers::EndianScalar(height_);
+  }
+};
+FLATBUFFERS_STRUCT_END(KernelShape, 8);
+
 struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef TensorBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -782,16 +894,10 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LINK = 4,
     VT_WEIGHT = 6,
     VT_BIAS = 8,
-    VT_PADDING_LEFT = 10,
-    VT_PADDING_RIGHT = 12,
-    VT_PADDING_TOP = 14,
-    VT_PADDING_BOTTOM = 16,
-    VT_STRIDE_X = 18,
-    VT_STRIDE_Y = 20,
-    VT_FUSE_CODE = 22,
-    VT_NCHW = 24,
-    VT_DILATION_X = 26,
-    VT_DILATION_Y = 28
+    VT_PADDING = 10,
+    VT_STRIDE = 12,
+    VT_FUSE_CODE = 14,
+    VT_DILATION = 16
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -802,35 +908,17 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *bias() const {
     return GetPointer<const flatbuffers::String *>(VT_BIAS);
   }
-  int32_t padding_left() const {
-    return GetField<int32_t>(VT_PADDING_LEFT, 0);
+  const nn::Pads *padding() const {
+    return GetStruct<const nn::Pads *>(VT_PADDING);
   }
-  int32_t padding_right() const {
-    return GetField<int32_t>(VT_PADDING_RIGHT, 0);
-  }
-  int32_t padding_top() const {
-    return GetField<int32_t>(VT_PADDING_TOP, 0);
-  }
-  int32_t padding_bottom() const {
-    return GetField<int32_t>(VT_PADDING_BOTTOM, 0);
-  }
-  int32_t stride_x() const {
-    return GetField<int32_t>(VT_STRIDE_X, 0);
-  }
-  int32_t stride_y() const {
-    return GetField<int32_t>(VT_STRIDE_Y, 0);
+  const nn::Stride *stride() const {
+    return GetStruct<const nn::Stride *>(VT_STRIDE);
   }
   nn::FuseCode fuse_code() const {
     return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
   }
-  bool nchw() const {
-    return GetField<uint8_t>(VT_NCHW, 0) != 0;
-  }
-  int32_t dilation_x() const {
-    return GetField<int32_t>(VT_DILATION_X, 0);
-  }
-  int32_t dilation_y() const {
-    return GetField<int32_t>(VT_DILATION_Y, 0);
+  const nn::Dilation *dilation() const {
+    return GetStruct<const nn::Dilation *>(VT_DILATION);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -840,16 +928,10 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(weight()) &&
            VerifyOffset(verifier, VT_BIAS) &&
            verifier.VerifyString(bias()) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_LEFT, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_RIGHT, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_TOP, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_BOTTOM, 4) &&
-           VerifyField<int32_t>(verifier, VT_STRIDE_X, 4) &&
-           VerifyField<int32_t>(verifier, VT_STRIDE_Y, 4) &&
+           VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
+           VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
-           VerifyField<uint8_t>(verifier, VT_NCHW, 1) &&
-           VerifyField<int32_t>(verifier, VT_DILATION_X, 4) &&
-           VerifyField<int32_t>(verifier, VT_DILATION_Y, 4) &&
+           VerifyField<nn::Dilation>(verifier, VT_DILATION, 4) &&
            verifier.EndTable();
   }
 };
@@ -867,35 +949,17 @@ struct CONV_2DBuilder {
   void add_bias(flatbuffers::Offset<flatbuffers::String> bias) {
     fbb_.AddOffset(CONV_2D::VT_BIAS, bias);
   }
-  void add_padding_left(int32_t padding_left) {
-    fbb_.AddElement<int32_t>(CONV_2D::VT_PADDING_LEFT, padding_left, 0);
+  void add_padding(const nn::Pads *padding) {
+    fbb_.AddStruct(CONV_2D::VT_PADDING, padding);
   }
-  void add_padding_right(int32_t padding_right) {
-    fbb_.AddElement<int32_t>(CONV_2D::VT_PADDING_RIGHT, padding_right, 0);
-  }
-  void add_padding_top(int32_t padding_top) {
-    fbb_.AddElement<int32_t>(CONV_2D::VT_PADDING_TOP, padding_top, 0);
-  }
-  void add_padding_bottom(int32_t padding_bottom) {
-    fbb_.AddElement<int32_t>(CONV_2D::VT_PADDING_BOTTOM, padding_bottom, 0);
-  }
-  void add_stride_x(int32_t stride_x) {
-    fbb_.AddElement<int32_t>(CONV_2D::VT_STRIDE_X, stride_x, 0);
-  }
-  void add_stride_y(int32_t stride_y) {
-    fbb_.AddElement<int32_t>(CONV_2D::VT_STRIDE_Y, stride_y, 0);
+  void add_stride(const nn::Stride *stride) {
+    fbb_.AddStruct(CONV_2D::VT_STRIDE, stride);
   }
   void add_fuse_code(nn::FuseCode fuse_code) {
     fbb_.AddElement<int8_t>(CONV_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
   }
-  void add_nchw(bool nchw) {
-    fbb_.AddElement<uint8_t>(CONV_2D::VT_NCHW, static_cast<uint8_t>(nchw), 0);
-  }
-  void add_dilation_x(int32_t dilation_x) {
-    fbb_.AddElement<int32_t>(CONV_2D::VT_DILATION_X, dilation_x, 0);
-  }
-  void add_dilation_y(int32_t dilation_y) {
-    fbb_.AddElement<int32_t>(CONV_2D::VT_DILATION_Y, dilation_y, 0);
+  void add_dilation(const nn::Dilation *dilation) {
+    fbb_.AddStruct(CONV_2D::VT_DILATION, dilation);
   }
   explicit CONV_2DBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -914,29 +978,17 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::String> weight = 0,
     flatbuffers::Offset<flatbuffers::String> bias = 0,
-    int32_t padding_left = 0,
-    int32_t padding_right = 0,
-    int32_t padding_top = 0,
-    int32_t padding_bottom = 0,
-    int32_t stride_x = 0,
-    int32_t stride_y = 0,
+    const nn::Pads *padding = nullptr,
+    const nn::Stride *stride = nullptr,
     nn::FuseCode fuse_code = nn::FuseCode_None,
-    bool nchw = false,
-    int32_t dilation_x = 0,
-    int32_t dilation_y = 0) {
+    const nn::Dilation *dilation = nullptr) {
   CONV_2DBuilder builder_(_fbb);
-  builder_.add_dilation_y(dilation_y);
-  builder_.add_dilation_x(dilation_x);
-  builder_.add_stride_y(stride_y);
-  builder_.add_stride_x(stride_x);
-  builder_.add_padding_bottom(padding_bottom);
-  builder_.add_padding_top(padding_top);
-  builder_.add_padding_right(padding_right);
-  builder_.add_padding_left(padding_left);
+  builder_.add_dilation(dilation);
+  builder_.add_stride(stride);
+  builder_.add_padding(padding);
   builder_.add_bias(bias);
   builder_.add_weight(weight);
   builder_.add_link(link);
-  builder_.add_nchw(nchw);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
@@ -946,16 +998,10 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2DDirect(
     flatbuffers::Offset<nn::Link> link = 0,
     const char *weight = nullptr,
     const char *bias = nullptr,
-    int32_t padding_left = 0,
-    int32_t padding_right = 0,
-    int32_t padding_top = 0,
-    int32_t padding_bottom = 0,
-    int32_t stride_x = 0,
-    int32_t stride_y = 0,
+    const nn::Pads *padding = nullptr,
+    const nn::Stride *stride = nullptr,
     nn::FuseCode fuse_code = nn::FuseCode_None,
-    bool nchw = false,
-    int32_t dilation_x = 0,
-    int32_t dilation_y = 0) {
+    const nn::Dilation *dilation = nullptr) {
   auto weight__ = weight ? _fbb.CreateString(weight) : 0;
   auto bias__ = bias ? _fbb.CreateString(bias) : 0;
   return nn::CreateCONV_2D(
@@ -963,58 +1009,32 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2DDirect(
       link,
       weight__,
       bias__,
-      padding_left,
-      padding_right,
-      padding_top,
-      padding_bottom,
-      stride_x,
-      stride_y,
+      padding,
+      stride,
       fuse_code,
-      nchw,
-      dilation_x,
-      dilation_y);
+      dilation);
 }
 
 struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AVERAGE_POOL_2DBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_PADDING_LEFT = 6,
-    VT_PADDING_RIGHT = 8,
-    VT_PADDING_TOP = 10,
-    VT_PADDING_BOTTOM = 12,
-    VT_STRIDE_X = 14,
-    VT_STRIDE_Y = 16,
-    VT_KERNEL_WIDTH = 18,
-    VT_KERNEL_HEIGHT = 20,
-    VT_FUSE_CODE = 22
+    VT_PADDING = 6,
+    VT_STRIDE = 8,
+    VT_KERNEL_SHAPE = 10,
+    VT_FUSE_CODE = 12
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
   }
-  int32_t padding_left() const {
-    return GetField<int32_t>(VT_PADDING_LEFT, 0);
+  const nn::Pads *padding() const {
+    return GetStruct<const nn::Pads *>(VT_PADDING);
   }
-  int32_t padding_right() const {
-    return GetField<int32_t>(VT_PADDING_RIGHT, 0);
+  const nn::Stride *stride() const {
+    return GetStruct<const nn::Stride *>(VT_STRIDE);
   }
-  int32_t padding_top() const {
-    return GetField<int32_t>(VT_PADDING_TOP, 0);
-  }
-  int32_t padding_bottom() const {
-    return GetField<int32_t>(VT_PADDING_BOTTOM, 0);
-  }
-  int32_t stride_x() const {
-    return GetField<int32_t>(VT_STRIDE_X, 0);
-  }
-  int32_t stride_y() const {
-    return GetField<int32_t>(VT_STRIDE_Y, 0);
-  }
-  int32_t kernel_width() const {
-    return GetField<int32_t>(VT_KERNEL_WIDTH, 0);
-  }
-  int32_t kernel_height() const {
-    return GetField<int32_t>(VT_KERNEL_HEIGHT, 0);
+  const nn::KernelShape *kernel_shape() const {
+    return GetStruct<const nn::KernelShape *>(VT_KERNEL_SHAPE);
   }
   nn::FuseCode fuse_code() const {
     return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
@@ -1023,14 +1043,9 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_LEFT, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_RIGHT, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_TOP, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_BOTTOM, 4) &&
-           VerifyField<int32_t>(verifier, VT_STRIDE_X, 4) &&
-           VerifyField<int32_t>(verifier, VT_STRIDE_Y, 4) &&
-           VerifyField<int32_t>(verifier, VT_KERNEL_WIDTH, 4) &&
-           VerifyField<int32_t>(verifier, VT_KERNEL_HEIGHT, 4) &&
+           VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
+           VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
+           VerifyField<nn::KernelShape>(verifier, VT_KERNEL_SHAPE, 4) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
@@ -1043,29 +1058,14 @@ struct AVERAGE_POOL_2DBuilder {
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(AVERAGE_POOL_2D::VT_LINK, link);
   }
-  void add_padding_left(int32_t padding_left) {
-    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_PADDING_LEFT, padding_left, 0);
+  void add_padding(const nn::Pads *padding) {
+    fbb_.AddStruct(AVERAGE_POOL_2D::VT_PADDING, padding);
   }
-  void add_padding_right(int32_t padding_right) {
-    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_PADDING_RIGHT, padding_right, 0);
+  void add_stride(const nn::Stride *stride) {
+    fbb_.AddStruct(AVERAGE_POOL_2D::VT_STRIDE, stride);
   }
-  void add_padding_top(int32_t padding_top) {
-    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_PADDING_TOP, padding_top, 0);
-  }
-  void add_padding_bottom(int32_t padding_bottom) {
-    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_PADDING_BOTTOM, padding_bottom, 0);
-  }
-  void add_stride_x(int32_t stride_x) {
-    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_STRIDE_X, stride_x, 0);
-  }
-  void add_stride_y(int32_t stride_y) {
-    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_STRIDE_Y, stride_y, 0);
-  }
-  void add_kernel_width(int32_t kernel_width) {
-    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_KERNEL_WIDTH, kernel_width, 0);
-  }
-  void add_kernel_height(int32_t kernel_height) {
-    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_KERNEL_HEIGHT, kernel_height, 0);
+  void add_kernel_shape(const nn::KernelShape *kernel_shape) {
+    fbb_.AddStruct(AVERAGE_POOL_2D::VT_KERNEL_SHAPE, kernel_shape);
   }
   void add_fuse_code(nn::FuseCode fuse_code) {
     fbb_.AddElement<int8_t>(AVERAGE_POOL_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
@@ -1085,24 +1085,14 @@ struct AVERAGE_POOL_2DBuilder {
 inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    int32_t padding_left = 0,
-    int32_t padding_right = 0,
-    int32_t padding_top = 0,
-    int32_t padding_bottom = 0,
-    int32_t stride_x = 0,
-    int32_t stride_y = 0,
-    int32_t kernel_width = 0,
-    int32_t kernel_height = 0,
+    const nn::Pads *padding = nullptr,
+    const nn::Stride *stride = nullptr,
+    const nn::KernelShape *kernel_shape = nullptr,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
   AVERAGE_POOL_2DBuilder builder_(_fbb);
-  builder_.add_kernel_height(kernel_height);
-  builder_.add_kernel_width(kernel_width);
-  builder_.add_stride_y(stride_y);
-  builder_.add_stride_x(stride_x);
-  builder_.add_padding_bottom(padding_bottom);
-  builder_.add_padding_top(padding_top);
-  builder_.add_padding_right(padding_right);
-  builder_.add_padding_left(padding_left);
+  builder_.add_kernel_shape(kernel_shape);
+  builder_.add_stride(stride);
+  builder_.add_padding(padding);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
@@ -1112,42 +1102,22 @@ struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MAX_POOL_2DBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_PADDING_LEFT = 6,
-    VT_PADDING_RIGHT = 8,
-    VT_PADDING_TOP = 10,
-    VT_PADDING_BOTTOM = 12,
-    VT_STRIDE_X = 14,
-    VT_STRIDE_Y = 16,
-    VT_KERNEL_WIDTH = 18,
-    VT_KERNEL_HEIGHT = 20,
-    VT_FUSE_CODE = 22
+    VT_PADDING = 6,
+    VT_STRIDE = 8,
+    VT_KERNEL_SHAPE = 10,
+    VT_FUSE_CODE = 12
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
   }
-  int32_t padding_left() const {
-    return GetField<int32_t>(VT_PADDING_LEFT, 0);
+  const nn::Pads *padding() const {
+    return GetStruct<const nn::Pads *>(VT_PADDING);
   }
-  int32_t padding_right() const {
-    return GetField<int32_t>(VT_PADDING_RIGHT, 0);
+  const nn::Stride *stride() const {
+    return GetStruct<const nn::Stride *>(VT_STRIDE);
   }
-  int32_t padding_top() const {
-    return GetField<int32_t>(VT_PADDING_TOP, 0);
-  }
-  int32_t padding_bottom() const {
-    return GetField<int32_t>(VT_PADDING_BOTTOM, 0);
-  }
-  int32_t stride_x() const {
-    return GetField<int32_t>(VT_STRIDE_X, 0);
-  }
-  int32_t stride_y() const {
-    return GetField<int32_t>(VT_STRIDE_Y, 0);
-  }
-  int32_t kernel_width() const {
-    return GetField<int32_t>(VT_KERNEL_WIDTH, 0);
-  }
-  int32_t kernel_height() const {
-    return GetField<int32_t>(VT_KERNEL_HEIGHT, 0);
+  const nn::KernelShape *kernel_shape() const {
+    return GetStruct<const nn::KernelShape *>(VT_KERNEL_SHAPE);
   }
   nn::FuseCode fuse_code() const {
     return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
@@ -1156,14 +1126,9 @@ struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_LEFT, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_RIGHT, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_TOP, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_BOTTOM, 4) &&
-           VerifyField<int32_t>(verifier, VT_STRIDE_X, 4) &&
-           VerifyField<int32_t>(verifier, VT_STRIDE_Y, 4) &&
-           VerifyField<int32_t>(verifier, VT_KERNEL_WIDTH, 4) &&
-           VerifyField<int32_t>(verifier, VT_KERNEL_HEIGHT, 4) &&
+           VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
+           VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
+           VerifyField<nn::KernelShape>(verifier, VT_KERNEL_SHAPE, 4) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
@@ -1176,29 +1141,14 @@ struct MAX_POOL_2DBuilder {
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(MAX_POOL_2D::VT_LINK, link);
   }
-  void add_padding_left(int32_t padding_left) {
-    fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_PADDING_LEFT, padding_left, 0);
+  void add_padding(const nn::Pads *padding) {
+    fbb_.AddStruct(MAX_POOL_2D::VT_PADDING, padding);
   }
-  void add_padding_right(int32_t padding_right) {
-    fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_PADDING_RIGHT, padding_right, 0);
+  void add_stride(const nn::Stride *stride) {
+    fbb_.AddStruct(MAX_POOL_2D::VT_STRIDE, stride);
   }
-  void add_padding_top(int32_t padding_top) {
-    fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_PADDING_TOP, padding_top, 0);
-  }
-  void add_padding_bottom(int32_t padding_bottom) {
-    fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_PADDING_BOTTOM, padding_bottom, 0);
-  }
-  void add_stride_x(int32_t stride_x) {
-    fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_STRIDE_X, stride_x, 0);
-  }
-  void add_stride_y(int32_t stride_y) {
-    fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_STRIDE_Y, stride_y, 0);
-  }
-  void add_kernel_width(int32_t kernel_width) {
-    fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_KERNEL_WIDTH, kernel_width, 0);
-  }
-  void add_kernel_height(int32_t kernel_height) {
-    fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_KERNEL_HEIGHT, kernel_height, 0);
+  void add_kernel_shape(const nn::KernelShape *kernel_shape) {
+    fbb_.AddStruct(MAX_POOL_2D::VT_KERNEL_SHAPE, kernel_shape);
   }
   void add_fuse_code(nn::FuseCode fuse_code) {
     fbb_.AddElement<int8_t>(MAX_POOL_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
@@ -1218,24 +1168,14 @@ struct MAX_POOL_2DBuilder {
 inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    int32_t padding_left = 0,
-    int32_t padding_right = 0,
-    int32_t padding_top = 0,
-    int32_t padding_bottom = 0,
-    int32_t stride_x = 0,
-    int32_t stride_y = 0,
-    int32_t kernel_width = 0,
-    int32_t kernel_height = 0,
+    const nn::Pads *padding = nullptr,
+    const nn::Stride *stride = nullptr,
+    const nn::KernelShape *kernel_shape = nullptr,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
   MAX_POOL_2DBuilder builder_(_fbb);
-  builder_.add_kernel_height(kernel_height);
-  builder_.add_kernel_width(kernel_width);
-  builder_.add_stride_y(stride_y);
-  builder_.add_stride_x(stride_x);
-  builder_.add_padding_bottom(padding_bottom);
-  builder_.add_padding_top(padding_top);
-  builder_.add_padding_right(padding_right);
-  builder_.add_padding_left(padding_left);
+  builder_.add_kernel_shape(kernel_shape);
+  builder_.add_stride(stride);
+  builder_.add_padding(padding);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
@@ -1341,18 +1281,10 @@ struct FULLY_CONNECTED FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef FULLY_CONNECTEDBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_WEIGHT = 6,
-    VT_BIAS = 8,
-    VT_FUSE_CODE = 10
+    VT_FUSE_CODE = 6
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
-  }
-  const flatbuffers::String *weight() const {
-    return GetPointer<const flatbuffers::String *>(VT_WEIGHT);
-  }
-  const flatbuffers::String *bias() const {
-    return GetPointer<const flatbuffers::String *>(VT_BIAS);
   }
   nn::FuseCode fuse_code() const {
     return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
@@ -1361,10 +1293,6 @@ struct FULLY_CONNECTED FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
-           VerifyOffset(verifier, VT_WEIGHT) &&
-           verifier.VerifyString(weight()) &&
-           VerifyOffset(verifier, VT_BIAS) &&
-           verifier.VerifyString(bias()) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
@@ -1376,12 +1304,6 @@ struct FULLY_CONNECTEDBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(FULLY_CONNECTED::VT_LINK, link);
-  }
-  void add_weight(flatbuffers::Offset<flatbuffers::String> weight) {
-    fbb_.AddOffset(FULLY_CONNECTED::VT_WEIGHT, weight);
-  }
-  void add_bias(flatbuffers::Offset<flatbuffers::String> bias) {
-    fbb_.AddOffset(FULLY_CONNECTED::VT_BIAS, bias);
   }
   void add_fuse_code(nn::FuseCode fuse_code) {
     fbb_.AddElement<int8_t>(FULLY_CONNECTED::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
@@ -1401,31 +1323,11 @@ struct FULLY_CONNECTEDBuilder {
 inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTED(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    flatbuffers::Offset<flatbuffers::String> weight = 0,
-    flatbuffers::Offset<flatbuffers::String> bias = 0,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
   FULLY_CONNECTEDBuilder builder_(_fbb);
-  builder_.add_bias(bias);
-  builder_.add_weight(weight);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTEDDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0,
-    const char *weight = nullptr,
-    const char *bias = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
-  auto weight__ = weight ? _fbb.CreateString(weight) : 0;
-  auto bias__ = bias ? _fbb.CreateString(bias) : 0;
-  return nn::CreateFULLY_CONNECTED(
-      _fbb,
-      link,
-      weight__,
-      bias__,
-      fuse_code);
 }
 
 struct ADD FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1538,43 +1440,19 @@ struct DEPTHWISE_CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef DEPTHWISE_CONV_2DBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_WEIGHT = 6,
-    VT_BIAS = 8,
-    VT_PADDING_LEFT = 10,
-    VT_PADDING_RIGHT = 12,
-    VT_PADDING_TOP = 14,
-    VT_PADDING_BOTTOM = 16,
-    VT_STRIDE_X = 18,
-    VT_STRIDE_Y = 20,
-    VT_DEPTH_MULTIPLIER = 22,
-    VT_FUSE_CODE = 24
+    VT_PADDING = 6,
+    VT_STRIDE = 8,
+    VT_DEPTH_MULTIPLIER = 10,
+    VT_FUSE_CODE = 12
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
   }
-  const flatbuffers::String *weight() const {
-    return GetPointer<const flatbuffers::String *>(VT_WEIGHT);
+  const nn::Pads *padding() const {
+    return GetStruct<const nn::Pads *>(VT_PADDING);
   }
-  const flatbuffers::String *bias() const {
-    return GetPointer<const flatbuffers::String *>(VT_BIAS);
-  }
-  int32_t padding_left() const {
-    return GetField<int32_t>(VT_PADDING_LEFT, 0);
-  }
-  int32_t padding_right() const {
-    return GetField<int32_t>(VT_PADDING_RIGHT, 0);
-  }
-  int32_t padding_top() const {
-    return GetField<int32_t>(VT_PADDING_TOP, 0);
-  }
-  int32_t padding_bottom() const {
-    return GetField<int32_t>(VT_PADDING_BOTTOM, 0);
-  }
-  int32_t stride_x() const {
-    return GetField<int32_t>(VT_STRIDE_X, 0);
-  }
-  int32_t stride_y() const {
-    return GetField<int32_t>(VT_STRIDE_Y, 0);
+  const nn::Stride *stride() const {
+    return GetStruct<const nn::Stride *>(VT_STRIDE);
   }
   int32_t depth_multiplier() const {
     return GetField<int32_t>(VT_DEPTH_MULTIPLIER, 0);
@@ -1586,16 +1464,8 @@ struct DEPTHWISE_CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
-           VerifyOffset(verifier, VT_WEIGHT) &&
-           verifier.VerifyString(weight()) &&
-           VerifyOffset(verifier, VT_BIAS) &&
-           verifier.VerifyString(bias()) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_LEFT, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_RIGHT, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_TOP, 4) &&
-           VerifyField<int32_t>(verifier, VT_PADDING_BOTTOM, 4) &&
-           VerifyField<int32_t>(verifier, VT_STRIDE_X, 4) &&
-           VerifyField<int32_t>(verifier, VT_STRIDE_Y, 4) &&
+           VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
+           VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<int32_t>(verifier, VT_DEPTH_MULTIPLIER, 4) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
@@ -1609,29 +1479,11 @@ struct DEPTHWISE_CONV_2DBuilder {
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(DEPTHWISE_CONV_2D::VT_LINK, link);
   }
-  void add_weight(flatbuffers::Offset<flatbuffers::String> weight) {
-    fbb_.AddOffset(DEPTHWISE_CONV_2D::VT_WEIGHT, weight);
+  void add_padding(const nn::Pads *padding) {
+    fbb_.AddStruct(DEPTHWISE_CONV_2D::VT_PADDING, padding);
   }
-  void add_bias(flatbuffers::Offset<flatbuffers::String> bias) {
-    fbb_.AddOffset(DEPTHWISE_CONV_2D::VT_BIAS, bias);
-  }
-  void add_padding_left(int32_t padding_left) {
-    fbb_.AddElement<int32_t>(DEPTHWISE_CONV_2D::VT_PADDING_LEFT, padding_left, 0);
-  }
-  void add_padding_right(int32_t padding_right) {
-    fbb_.AddElement<int32_t>(DEPTHWISE_CONV_2D::VT_PADDING_RIGHT, padding_right, 0);
-  }
-  void add_padding_top(int32_t padding_top) {
-    fbb_.AddElement<int32_t>(DEPTHWISE_CONV_2D::VT_PADDING_TOP, padding_top, 0);
-  }
-  void add_padding_bottom(int32_t padding_bottom) {
-    fbb_.AddElement<int32_t>(DEPTHWISE_CONV_2D::VT_PADDING_BOTTOM, padding_bottom, 0);
-  }
-  void add_stride_x(int32_t stride_x) {
-    fbb_.AddElement<int32_t>(DEPTHWISE_CONV_2D::VT_STRIDE_X, stride_x, 0);
-  }
-  void add_stride_y(int32_t stride_y) {
-    fbb_.AddElement<int32_t>(DEPTHWISE_CONV_2D::VT_STRIDE_Y, stride_y, 0);
+  void add_stride(const nn::Stride *stride) {
+    fbb_.AddStruct(DEPTHWISE_CONV_2D::VT_STRIDE, stride);
   }
   void add_depth_multiplier(int32_t depth_multiplier) {
     fbb_.AddElement<int32_t>(DEPTHWISE_CONV_2D::VT_DEPTH_MULTIPLIER, depth_multiplier, 0);
@@ -1654,59 +1506,17 @@ struct DEPTHWISE_CONV_2DBuilder {
 inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    flatbuffers::Offset<flatbuffers::String> weight = 0,
-    flatbuffers::Offset<flatbuffers::String> bias = 0,
-    int32_t padding_left = 0,
-    int32_t padding_right = 0,
-    int32_t padding_top = 0,
-    int32_t padding_bottom = 0,
-    int32_t stride_x = 0,
-    int32_t stride_y = 0,
+    const nn::Pads *padding = nullptr,
+    const nn::Stride *stride = nullptr,
     int32_t depth_multiplier = 0,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
   DEPTHWISE_CONV_2DBuilder builder_(_fbb);
   builder_.add_depth_multiplier(depth_multiplier);
-  builder_.add_stride_y(stride_y);
-  builder_.add_stride_x(stride_x);
-  builder_.add_padding_bottom(padding_bottom);
-  builder_.add_padding_top(padding_top);
-  builder_.add_padding_right(padding_right);
-  builder_.add_padding_left(padding_left);
-  builder_.add_bias(bias);
-  builder_.add_weight(weight);
+  builder_.add_stride(stride);
+  builder_.add_padding(padding);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2DDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0,
-    const char *weight = nullptr,
-    const char *bias = nullptr,
-    int32_t padding_left = 0,
-    int32_t padding_right = 0,
-    int32_t padding_top = 0,
-    int32_t padding_bottom = 0,
-    int32_t stride_x = 0,
-    int32_t stride_y = 0,
-    int32_t depth_multiplier = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
-  auto weight__ = weight ? _fbb.CreateString(weight) : 0;
-  auto bias__ = bias ? _fbb.CreateString(bias) : 0;
-  return nn::CreateDEPTHWISE_CONV_2D(
-      _fbb,
-      link,
-      weight__,
-      bias__,
-      padding_left,
-      padding_right,
-      padding_top,
-      padding_bottom,
-      stride_x,
-      stride_y,
-      depth_multiplier,
-      fuse_code);
 }
 
 struct BATCH_TO_SPACE_ND FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1779,7 +1589,7 @@ struct SPACE_TO_BATCH_ND FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_BLOCK_SIZES = 6,
-    VT_PADS = 8
+    VT_PADDING = 8
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -1787,8 +1597,8 @@ struct SPACE_TO_BATCH_ND FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<int32_t> *block_sizes() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_BLOCK_SIZES);
   }
-  const flatbuffers::Vector<int32_t> *pads() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_PADS);
+  const nn::Pads *padding() const {
+    return GetStruct<const nn::Pads *>(VT_PADDING);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1796,8 +1606,7 @@ struct SPACE_TO_BATCH_ND FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_BLOCK_SIZES) &&
            verifier.VerifyVector(block_sizes()) &&
-           VerifyOffset(verifier, VT_PADS) &&
-           verifier.VerifyVector(pads()) &&
+           VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            verifier.EndTable();
   }
 };
@@ -1812,8 +1621,8 @@ struct SPACE_TO_BATCH_NDBuilder {
   void add_block_sizes(flatbuffers::Offset<flatbuffers::Vector<int32_t>> block_sizes) {
     fbb_.AddOffset(SPACE_TO_BATCH_ND::VT_BLOCK_SIZES, block_sizes);
   }
-  void add_pads(flatbuffers::Offset<flatbuffers::Vector<int32_t>> pads) {
-    fbb_.AddOffset(SPACE_TO_BATCH_ND::VT_PADS, pads);
+  void add_padding(const nn::Pads *padding) {
+    fbb_.AddStruct(SPACE_TO_BATCH_ND::VT_PADDING, padding);
   }
   explicit SPACE_TO_BATCH_NDBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1831,9 +1640,9 @@ inline flatbuffers::Offset<SPACE_TO_BATCH_ND> CreateSPACE_TO_BATCH_ND(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> block_sizes = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> pads = 0) {
+    const nn::Pads *padding = nullptr) {
   SPACE_TO_BATCH_NDBuilder builder_(_fbb);
-  builder_.add_pads(pads);
+  builder_.add_padding(padding);
   builder_.add_block_sizes(block_sizes);
   builder_.add_link(link);
   return builder_.Finish();
@@ -1843,14 +1652,13 @@ inline flatbuffers::Offset<SPACE_TO_BATCH_ND> CreateSPACE_TO_BATCH_NDDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
     const std::vector<int32_t> *block_sizes = nullptr,
-    const std::vector<int32_t> *pads = nullptr) {
+    const nn::Pads *padding = nullptr) {
   auto block_sizes__ = block_sizes ? _fbb.CreateVector<int32_t>(*block_sizes) : 0;
-  auto pads__ = pads ? _fbb.CreateVector<int32_t>(*pads) : 0;
   return nn::CreateSPACE_TO_BATCH_ND(
       _fbb,
       link,
       block_sizes__,
-      pads__);
+      padding);
 }
 
 struct STRIDED_SLICE FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

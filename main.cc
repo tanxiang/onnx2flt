@@ -25,11 +25,11 @@ auto getNodeLink(const onnx::NodeProto &node,
   }
   if (node.has_name())
     return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
-                              flatbuffers.CreateVector(flatOutputs),
-                              flatbuffers.CreateString(node.name()));
+                          flatbuffers.CreateVector(flatOutputs),
+                          flatbuffers.CreateString(node.name()));
   else
     return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
-                              flatbuffers.CreateVector(flatOutputs));
+                          flatbuffers.CreateVector(flatOutputs));
 }
 
 int main(int argc, char *argv[]) {
@@ -52,50 +52,60 @@ int main(int argc, char *argv[]) {
       mapOpFunc{};
 
   mapOpFunc.emplace("Conv", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+                               const onnx::NodeProto &node) {
+    auto flatLink = getNodeLink(node, flatbuffers);
+    std::cout<<node.op_type()<<" attribute_size() : "<<node.attribute_size()<<std::endl;
+    bool getStrides=false,getPads=false,getKernelShapr=false;
+    for(const auto& attribute:node.attribute()){
+        if(attribute.has_name())
+            std::cout<<"attribute.name(): "<<attribute.name()<<std::endl<<attribute.DebugString()<<std::endl;
+    }
+
+  });
 
   mapOpFunc.emplace("Relu", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                                const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("Concat", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+                                 const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("MaxPool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+                                  const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("Softmax", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+                                  const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("Dropout", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+                                  const onnx::NodeProto &) { ; });
 
-  mapOpFunc.emplace("GlobalAveragePool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+  mapOpFunc.emplace("GlobalAveragePool",
+                    [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                       const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("Clip", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                                const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("Add", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+                              const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("Shape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+                                const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("Gather", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+                                 const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("Unsqueeze", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
-                               
+                                    const onnx::NodeProto &) { ; });
+
+  mapOpFunc.emplace("Constant", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                                   const onnx::NodeProto &) { ; });
+
   mapOpFunc.emplace("Reshape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
+                                  const onnx::NodeProto &) { ; });
 
   mapOpFunc.emplace("Gemm", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                                const onnx::NodeProto &) { ; });
-                               
-  mapOpFunc.emplace("Constant", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &) { ; });
-                               
+
   if (model_proto.has_graph()) {
     flatbuffers::FlatBufferBuilder flatbuffers;
     auto graph = model_proto.graph();
@@ -131,7 +141,7 @@ int main(int argc, char *argv[]) {
       std::cout << "graph().sparse_initializer() " << &tensor;
     }
     for (const auto &node : model_proto.graph().node()) {
-      auto flatLink = getNodeLink(node, flatbuffers);
+      //auto flatLink = getNodeLink(node, flatbuffers);
       auto opItr = mapOpFunc.find(node.op_type());
       if (opItr != mapOpFunc.end()) {
         opItr->second.operator()(flatbuffers, node);

@@ -34,47 +34,58 @@ table Link{
     name: string;
 }
 
+struct Pads{
+    //dim:int = 4;
+    //value:[int];
+    left: int;
+    right: int;
+    top: int;
+    bottom: int;
+}
+
+struct Stride{
+    //dim:int = 2;
+    //value:[int];
+    x:int;
+    y:int;
+}
+
+struct Dilation{
+    //dim:int = 2;
+    //value:[int];
+    x:int;
+    y:int;
+}
+
+struct KernelShape{
+    width:int;
+    height:int;
+}
+
 table CONV_2D {
     link:Link (required);
     weight: string;
     bias: string;
-    padding_left: int;
-    padding_right: int;
-    padding_top: int;
-    padding_bottom: int;
-    stride_x: int;
-    stride_y: int;
+    padding: Pads;
+    stride:Stride;
     fuse_code: FuseCode;
-    nchw: bool;
-    dilation_x: int;
-    dilation_y: int;
-
+    dilation:Dilation;
 }
 
 table AVERAGE_POOL_2D {
     link:Link (required);
-    padding_left: int;
-    padding_right: int;
-    padding_top: int;
-    padding_bottom: int;
-    stride_x: int;
-    stride_y: int;
-    kernel_width: int;
-    kernel_height: int;
+    padding: Pads;
+    stride:Stride;
+    kernel_shape:KernelShape;
     fuse_code: FuseCode;
 }
 
 
 table MAX_POOL_2D {
     link:Link (required);
-    padding_left: int;
-    padding_right: int;
-    padding_top: int;
-    padding_bottom: int;
-    stride_x: int;
-    stride_y: int;
-    kernel_width: int;
-    kernel_height: int;
+    padding: Pads;
+    stride:Stride;
+    kernel_shape:KernelShape;
     fuse_code: FuseCode;
 }
 
@@ -89,8 +100,6 @@ table SOFTMAX {
 
 table FULLY_CONNECTED {
     link:Link (required);
-    weight: string;
-    bias: string;
     fuse_code: FuseCode;
 }
 
@@ -107,14 +116,8 @@ table CONCATENATION {
 
 table DEPTHWISE_CONV_2D {
     link:Link (required);
-    weight: string;
-    bias: string;
-    padding_left: int;
-    padding_right: int;
-    padding_top: int;
-    padding_bottom: int;
-    stride_x: int;
-    stride_y: int;
+    padding: Pads;
+    stride:Stride;
     depth_multiplier: int;
     fuse_code: FuseCode;
 }
@@ -127,7 +130,8 @@ table BATCH_TO_SPACE_ND {
 table SPACE_TO_BATCH_ND {
     link:Link (required);
     block_sizes: [int];
-    pads: [int];
+    padding: Pads;
+//pads: [int];
 }
 
 table STRIDED_SLICE {
