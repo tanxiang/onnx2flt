@@ -64,8 +64,6 @@ struct KernelShape{
 
 table CONV_2D {
     link:Link (required);
-    weight: string;
-    bias: string;
     padding: Pads;
     stride:Stride;
     fuse_code: FuseCode;

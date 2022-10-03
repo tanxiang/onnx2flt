@@ -892,21 +892,13 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef CONV_2DBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_WEIGHT = 6,
-    VT_BIAS = 8,
-    VT_PADDING = 10,
-    VT_STRIDE = 12,
-    VT_FUSE_CODE = 14,
-    VT_DILATION = 16
+    VT_PADDING = 6,
+    VT_STRIDE = 8,
+    VT_FUSE_CODE = 10,
+    VT_DILATION = 12
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
-  }
-  const flatbuffers::String *weight() const {
-    return GetPointer<const flatbuffers::String *>(VT_WEIGHT);
-  }
-  const flatbuffers::String *bias() const {
-    return GetPointer<const flatbuffers::String *>(VT_BIAS);
   }
   const nn::Pads *padding() const {
     return GetStruct<const nn::Pads *>(VT_PADDING);
@@ -924,10 +916,6 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
-           VerifyOffset(verifier, VT_WEIGHT) &&
-           verifier.VerifyString(weight()) &&
-           VerifyOffset(verifier, VT_BIAS) &&
-           verifier.VerifyString(bias()) &&
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
@@ -942,12 +930,6 @@ struct CONV_2DBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(CONV_2D::VT_LINK, link);
-  }
-  void add_weight(flatbuffers::Offset<flatbuffers::String> weight) {
-    fbb_.AddOffset(CONV_2D::VT_WEIGHT, weight);
-  }
-  void add_bias(flatbuffers::Offset<flatbuffers::String> bias) {
-    fbb_.AddOffset(CONV_2D::VT_BIAS, bias);
   }
   void add_padding(const nn::Pads *padding) {
     fbb_.AddStruct(CONV_2D::VT_PADDING, padding);
@@ -976,8 +958,6 @@ struct CONV_2DBuilder {
 inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    flatbuffers::Offset<flatbuffers::String> weight = 0,
-    flatbuffers::Offset<flatbuffers::String> bias = 0,
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     nn::FuseCode fuse_code = nn::FuseCode_None,
@@ -986,33 +966,9 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
   builder_.add_dilation(dilation);
   builder_.add_stride(stride);
   builder_.add_padding(padding);
-  builder_.add_bias(bias);
-  builder_.add_weight(weight);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<CONV_2D> CreateCONV_2DDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0,
-    const char *weight = nullptr,
-    const char *bias = nullptr,
-    const nn::Pads *padding = nullptr,
-    const nn::Stride *stride = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_None,
-    const nn::Dilation *dilation = nullptr) {
-  auto weight__ = weight ? _fbb.CreateString(weight) : 0;
-  auto bias__ = bias ? _fbb.CreateString(bias) : 0;
-  return nn::CreateCONV_2D(
-      _fbb,
-      link,
-      weight__,
-      bias__,
-      padding,
-      stride,
-      fuse_code,
-      dilation);
 }
 
 struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
