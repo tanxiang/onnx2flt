@@ -8,6 +8,13 @@
 #include <string>
 #include <vector>
 
+struct mapContext {
+  std::map<std::string, const onnx::TensorProto &> tensorMap;
+  // std::map<std::string, const onnx::SparseTensorProto &> sparseTensorMap;
+  std::map<std::string, const onnx::NodeProto &> nodeMap;
+  std::map<std::string, const onnx::NodeProto &> outputNodeMap;
+};
+
 void usage(const std::string &filename) {
   std::cout << "Usage: " << filename
             << " onnx_model output_filename [table_file]" << std::endl;
@@ -32,95 +39,139 @@ auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
                           flatbuffers.CreateVector(flatOutputs));
 }
 
+auto kernelShapeMarchTensor(std::string name, mapContext &context,
+                            nn::KernelShape &kernelShaper) {}
+
 auto getConvNode(flatbuffers::FlatBufferBuilder &flatbuffers,
-                 const onnx::NodeProto &node) {
+                 const onnx::NodeProto &node, mapContext &context) {
   auto flatLink = getNodeLink(flatbuffers, node);
   // std::cout<<node.op_type()<<" attribute_size() :
   // "<<node.attribute_size()<<std::endl;
-  bool getStrides = false, getPads = false, getKernelShapr = false;
+  bool getStrides = false, getPads = false, getKernelShapr = false,
+       getDilation = false;
+  nn::Pads pads;
+  nn::Stride strides;
+  nn::KernelShape kernelShaper;
+  nn::Dilation dilation;
+
   for (const auto &attribute : node.attribute()) {
     if (attribute.has_name()) {
       // std::cout<<attribute.DebugString()<<std::endl;
-      if (attribute.name() == "pads" && attribute.type() == onnx::AttributeProto_AttributeType_INTS) {
-        nn::Pads pads{
+      if (attribute.name() == "pads" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 4) {
+        pads = {
             static_cast<int32_t>(attribute.ints()[0]),
             static_cast<int32_t>(attribute.ints()[1]),
             static_cast<int32_t>(attribute.ints()[2]),
             static_cast<int32_t>(attribute.ints()[3]),
-            };
+        };
         getPads = true;
-      } else if (attribute.name() == "kernel_shape"  && attribute.type() == onnx::AttributeProto_AttributeType_INTS) {
-        nn::KernelShape kernelShaper{
+      } else if (attribute.name() == "kernel_shape" &&
+                 attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+                 attribute.ints().size() == 2) {
+        kernelShaper = {
             static_cast<int32_t>(attribute.ints()[0]),
             static_cast<int32_t>(attribute.ints()[1]),
         };
         getKernelShapr = true;
-      } else if (attribute.name() == "strides" && attribute.type() == onnx::AttributeProto_AttributeType_INTS) {
-        nn::Stride strides{
+      } else if (attribute.name() == "strides" &&
+                 attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+                 attribute.ints().size() == 2) {
+        strides = {
             static_cast<int32_t>(attribute.ints()[0]),
             static_cast<int32_t>(attribute.ints()[1]),
         };
         getStrides = true;
+      } else if (attribute.name() == "dilation" &&
+                 attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+                 attribute.ints().size() == 2) {
+        dilation = {
+            static_cast<int32_t>(attribute.ints()[0]),
+            static_cast<int32_t>(attribute.ints()[1]),
+        };
+        getDilation = true;
       }
     }
   }
-  if (!(getStrides && getPads && getKernelShapr)) {
-    std::cout << "no comp node \n " << node.DebugString() << std::endl;
+  if (getKernelShapr) {
+    auto &tensor = context.tensorMap.at(node.input()[1]);
+    if (kernelShaper.width() != tensor.dims()[2] ||
+        kernelShaper.height() != tensor.dims()[3]) {
+      std::cout << "check tensor dim != KernelShapr\n"
+                << tensor.dims_size() << '\n'
+                << tensor.dims()[2] << " x : y " << tensor.dims()[3] << '\n'
+                << kernelShaper.width() << " x : y " << kernelShaper.height()
+                << '\n';
+    }
   }
+  if (getStrides && getPads) {
+    if (getDilation)
+      return nn::CreateCONV_2D(flatbuffers, flatLink, &pads, &strides,
+                               &dilation);
+    else
+      return nn::CreateCONV_2D(flatbuffers, flatLink, &pads, &strides);
+  }
+
+  std::cerr << "no comp node \n " << node.DebugString() << std::endl;
+  return nn::CreateCONV_2D(flatbuffers, flatLink);
 }
 
 struct OpToFuncMap
-    : public std::map<std::string,
-                      std::function<void(flatbuffers::FlatBufferBuilder &,
-                                         const onnx::NodeProto &)>> {
+    : public std::map<
+          std::string,
+          std::function<void(flatbuffers::FlatBufferBuilder &,
+                             const onnx::NodeProto &, mapContext &context)>> {
   OpToFuncMap() {
 
     emplace("Conv", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                       const onnx::NodeProto &node) {
-      getConvNode(flatbuffers, node);
+                       const onnx::NodeProto &node, mapContext &context) {
+      getConvNode(flatbuffers, node, context);
     });
 
     emplace("Relu", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                       const onnx::NodeProto &) { ; });
+                       const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Concat", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                         const onnx::NodeProto &) { ; });
+                         const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("MaxPool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                          const onnx::NodeProto &) { ; });
+                          const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Softmax", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                          const onnx::NodeProto &) { ; });
+                          const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Dropout", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                          const onnx::NodeProto &) { ; });
+                          const onnx::NodeProto &, mapContext &context) { ; });
 
-    emplace("GlobalAveragePool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                                    const onnx::NodeProto &) { ; });
+    emplace("GlobalAveragePool",
+            [](flatbuffers::FlatBufferBuilder &flatbuffers,
+               const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Clip", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                       const onnx::NodeProto &) { ; });
+                       const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Add", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                      const onnx::NodeProto &) { ; });
+                      const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Shape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                        const onnx::NodeProto &) { ; });
+                        const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Gather", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                         const onnx::NodeProto &) { ; });
+                         const onnx::NodeProto &, mapContext &context) { ; });
 
-    emplace("Unsqueeze", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                            const onnx::NodeProto &) { ; });
+    emplace("Unsqueeze",
+            [](flatbuffers::FlatBufferBuilder &flatbuffers,
+               const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Constant", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                           const onnx::NodeProto &) { ; });
+                           const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Reshape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                          const onnx::NodeProto &) { ; });
+                          const onnx::NodeProto &, mapContext &context) { ; });
 
     emplace("Gemm", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                       const onnx::NodeProto &) { ; });
+                       const onnx::NodeProto &, mapContext &context) { ; });
   }
 };
 
@@ -141,6 +192,8 @@ int main(int argc, char *argv[]) {
 
   static OpToFuncMap mapOpFunc;
 
+  mapContext context;
+
   if (model_proto.has_graph()) {
     flatbuffers::FlatBufferBuilder flatbuffers;
     auto graph = model_proto.graph();
@@ -152,6 +205,10 @@ int main(int argc, char *argv[]) {
     }
 
     for (const auto &tensor : model_proto.graph().initializer()) {
+      if (tensor.has_name()) {
+        context.tensorMap.emplace(tensor.name(), tensor);
+      }
+
       switch (tensor.data_type()) {
       case onnx::TensorProto_DataType_FLOAT:
         break;
@@ -174,12 +231,23 @@ int main(int argc, char *argv[]) {
 
     for (const auto &tensor : model_proto.graph().sparse_initializer()) {
       std::cout << "graph().sparse_initializer() " << &tensor;
+      //     if (tensor.has_name()) {
+      // context.sparseTensorMap.emplace(tensor.name(), tensor);
+      //}
+    }
+    for (const auto &node : model_proto.graph().node()) {
+      if (node.has_name()) {
+        context.nodeMap.emplace(node.name(), node);
+      }
+      for (const auto &output : node.output()) {
+        context.outputNodeMap.emplace(output, node);
+      }
     }
     for (const auto &node : model_proto.graph().node()) {
       // auto flatLink = getNodeLink(node, flatbuffers);
       auto opItr = mapOpFunc.find(node.op_type());
       if (opItr != mapOpFunc.end()) {
-        opItr->second.operator()(flatbuffers, node);
+        opItr->second(flatbuffers, node, context);
       } else {
         std::cerr << "error: " << node.op_type() << " is not support!\n";
       }

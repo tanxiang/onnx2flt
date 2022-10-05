@@ -894,8 +894,8 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LINK = 4,
     VT_PADDING = 6,
     VT_STRIDE = 8,
-    VT_FUSE_CODE = 10,
-    VT_DILATION = 12
+    VT_DILATION = 10,
+    VT_FUSE_CODE = 12
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -906,11 +906,11 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::Stride *stride() const {
     return GetStruct<const nn::Stride *>(VT_STRIDE);
   }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
-  }
   const nn::Dilation *dilation() const {
     return GetStruct<const nn::Dilation *>(VT_DILATION);
+  }
+  nn::FuseCode fuse_code() const {
+    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -918,8 +918,8 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyTable(link()) &&
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            VerifyField<nn::Dilation>(verifier, VT_DILATION, 4) &&
+           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
 };
@@ -937,11 +937,11 @@ struct CONV_2DBuilder {
   void add_stride(const nn::Stride *stride) {
     fbb_.AddStruct(CONV_2D::VT_STRIDE, stride);
   }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(CONV_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
-  }
   void add_dilation(const nn::Dilation *dilation) {
     fbb_.AddStruct(CONV_2D::VT_DILATION, dilation);
+  }
+  void add_fuse_code(nn::FuseCode fuse_code) {
+    fbb_.AddElement<int8_t>(CONV_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
   }
   explicit CONV_2DBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -960,8 +960,8 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     flatbuffers::Offset<nn::Link> link = 0,
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_None,
-    const nn::Dilation *dilation = nullptr) {
+    const nn::Dilation *dilation = nullptr,
+    nn::FuseCode fuse_code = nn::FuseCode_None) {
   CONV_2DBuilder builder_(_fbb);
   builder_.add_dilation(dilation);
   builder_.add_stride(stride);

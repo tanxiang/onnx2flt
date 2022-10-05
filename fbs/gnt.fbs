@@ -66,8 +66,8 @@ table CONV_2D {
     link:Link (required);
     padding: Pads;
     stride:Stride;
-    fuse_code: FuseCode;
     dilation:Dilation;
+    fuse_code: FuseCode;
 }
 
 table AVERAGE_POOL_2D {
