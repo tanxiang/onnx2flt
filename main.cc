@@ -83,7 +83,7 @@ auto getConvNode(flatbuffers::FlatBufferBuilder &flatbuffers,
             static_cast<int32_t>(attribute.ints()[1]),
         };
         getStrides = true;
-      } else if (attribute.name() == "dilation" &&
+      } else if (attribute.name() == "dilations" &&
                  attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
                  attribute.ints().size() == 2) {
         dilation = {
@@ -91,6 +91,8 @@ auto getConvNode(flatbuffers::FlatBufferBuilder &flatbuffers,
             static_cast<int32_t>(attribute.ints()[1]),
         };
         getDilation = true;
+      } else {
+        std::cout<<"node "<<node.op_type()<<" attribute "<<attribute.name()<<" unsupport!\n";
       }
     }
   }
@@ -117,18 +119,24 @@ auto getConvNode(flatbuffers::FlatBufferBuilder &flatbuffers,
   return nn::CreateCONV_2D(flatbuffers, flatLink);
 }
 
+template<typename Layer>
+inline auto UnionPair(flatbuffers::Offset<Layer>& layer){
+    return std::pair<uint8_t,flatbuffers::Offset<void>>{nn::LayerTraits<Layer>::enum_value,layer.Union()};
+}
+
 struct OpToFuncMap
     : public std::map<
           std::string,
-          std::function<void(flatbuffers::FlatBufferBuilder &,
+          std::function<std::pair<uint8_t,flatbuffers::Offset<void>>(flatbuffers::FlatBufferBuilder &,
                              const onnx::NodeProto &, mapContext &context)>> {
   OpToFuncMap() {
 
     emplace("Conv", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                        const onnx::NodeProto &node, mapContext &context) {
-      getConvNode(flatbuffers, node, context);
+      auto flNode = getConvNode(flatbuffers, node, context);
+      return UnionPair(flNode);
     });
-
+/*
     emplace("Relu", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                        const onnx::NodeProto &, mapContext &context) { ; });
 
@@ -172,6 +180,7 @@ struct OpToFuncMap
 
     emplace("Gemm", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                        const onnx::NodeProto &, mapContext &context) { ; });
+                       */
   }
 };
 
@@ -243,11 +252,17 @@ int main(int argc, char *argv[]) {
         context.outputNodeMap.emplace(output, node);
       }
     }
+      std::vector<uint8_t> nodeTypes;
+        std::vector<flatbuffers::Offset<void>> nodeVals;
+
+
     for (const auto &node : model_proto.graph().node()) {
       // auto flatLink = getNodeLink(node, flatbuffers);
       auto opItr = mapOpFunc.find(node.op_type());
       if (opItr != mapOpFunc.end()) {
-        opItr->second(flatbuffers, node, context);
+        auto ftnode = opItr->second(flatbuffers, node, context);
+        nodeTypes.emplace_back(ftnode.first);
+        nodeVals.emplace_back(ftnode.second);
       } else {
         std::cerr << "error: " << node.op_type() << " is not support!\n";
       }
@@ -257,7 +272,7 @@ int main(int argc, char *argv[]) {
                                 FLATBUFFERS_VERSION_MINOR * 100 +
                                 FLATBUFFERS_VERSION_REVISION,
                             model_proto.ir_version()};
-    auto flatbuffersGraph = nn::CreateGraph(flatbuffers, &version);
+    auto flatbuffersGraph = nn::CreateGraph(flatbuffers, &version,flatbuffers.CreateVector(nodeTypes),flatbuffers.CreateVector(nodeVals));
     flatbuffers.Finish(flatbuffersGraph);
     std::ofstream outputfile{argv[2]};
     outputfile.write(reinterpret_cast<char *>(flatbuffers.GetBufferPointer()),
