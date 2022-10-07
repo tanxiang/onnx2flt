@@ -118,6 +118,9 @@ struct EXPBuilder;
 struct SUB;
 struct SUBBuilder;
 
+struct GATHER;
+struct GATHERBuilder;
+
 struct Graph;
 struct GraphBuilder;
 
@@ -225,11 +228,12 @@ enum Layer : uint8_t {
   Layer_ABS = 25,
   Layer_EXP = 26,
   Layer_SUB = 27,
+  Layer_GATHER = 28,
   Layer_MIN = Layer_NONE,
-  Layer_MAX = Layer_SUB
+  Layer_MAX = Layer_GATHER
 };
 
-inline const Layer (&EnumValuesLayer())[28] {
+inline const Layer (&EnumValuesLayer())[29] {
   static const Layer values[] = {
     Layer_NONE,
     Layer_CONV_2D,
@@ -258,13 +262,14 @@ inline const Layer (&EnumValuesLayer())[28] {
     Layer_LOG,
     Layer_ABS,
     Layer_EXP,
-    Layer_SUB
+    Layer_SUB,
+    Layer_GATHER
   };
   return values;
 }
 
 inline const char * const *EnumNamesLayer() {
-  static const char * const names[29] = {
+  static const char * const names[30] = {
     "NONE",
     "CONV_2D",
     "AVERAGE_POOL_2D",
@@ -293,13 +298,14 @@ inline const char * const *EnumNamesLayer() {
     "ABS",
     "EXP",
     "SUB",
+    "GATHER",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameLayer(Layer e) {
-  if (flatbuffers::IsOutRange(e, Layer_NONE, Layer_SUB)) return "";
+  if (flatbuffers::IsOutRange(e, Layer_NONE, Layer_GATHER)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesLayer()[index];
 }
@@ -414,6 +420,10 @@ template<> struct LayerTraits<nn::EXP> {
 
 template<> struct LayerTraits<nn::SUB> {
   static const Layer enum_value = Layer_SUB;
+};
+
+template<> struct LayerTraits<nn::GATHER> {
+  static const Layer enum_value = Layer_GATHER;
 };
 
 bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer type);
@@ -2495,6 +2505,49 @@ inline flatbuffers::Offset<SUB> CreateSUB(
   return builder_.Finish();
 }
 
+struct GATHER FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef GATHERBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_LINK = 4
+  };
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
+           verifier.EndTable();
+  }
+};
+
+struct GATHERBuilder {
+  typedef GATHER Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(GATHER::VT_LINK, link);
+  }
+  explicit GATHERBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<GATHER> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<GATHER>(end);
+    fbb_.Required(o, GATHER::VT_LINK);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<GATHER> CreateGATHER(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::Link> link = 0) {
+  GATHERBuilder builder_(_fbb);
+  builder_.add_link(link);
+  return builder_.Finish();
+}
+
 struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef GraphBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -2744,6 +2797,10 @@ inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer 
     }
     case Layer_SUB: {
       auto ptr = reinterpret_cast<const nn::SUB *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer_GATHER: {
+      auto ptr = reinterpret_cast<const nn::GATHER *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
