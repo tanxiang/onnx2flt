@@ -37,6 +37,8 @@ struct Dilation;
 
 struct KernelShape;
 
+struct Group;
+
 struct CONV_2D;
 struct CONV_2DBuilder;
 
@@ -566,6 +568,23 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) KernelShape FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(KernelShape, 8);
 
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Group FLATBUFFERS_FINAL_CLASS {
+ private:
+  int32_t id_;
+
+ public:
+  Group()
+      : id_(0) {
+  }
+  Group(int32_t _id)
+      : id_(flatbuffers::EndianScalar(_id)) {
+  }
+  int32_t id() const {
+    return flatbuffers::EndianScalar(id_);
+  }
+};
+FLATBUFFERS_STRUCT_END(Group, 4);
+
 struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef TensorBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -915,7 +934,8 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_PADDING = 6,
     VT_STRIDE = 8,
     VT_DILATION = 10,
-    VT_FUSE_CODE = 12
+    VT_GROUP = 12,
+    VT_FUSE_CODE = 14
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -929,6 +949,9 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::Dilation *dilation() const {
     return GetStruct<const nn::Dilation *>(VT_DILATION);
   }
+  const nn::Group *group() const {
+    return GetStruct<const nn::Group *>(VT_GROUP);
+  }
   nn::FuseCode fuse_code() const {
     return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
   }
@@ -939,6 +962,7 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<nn::Dilation>(verifier, VT_DILATION, 4) &&
+           VerifyField<nn::Group>(verifier, VT_GROUP, 4) &&
            VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
@@ -959,6 +983,9 @@ struct CONV_2DBuilder {
   }
   void add_dilation(const nn::Dilation *dilation) {
     fbb_.AddStruct(CONV_2D::VT_DILATION, dilation);
+  }
+  void add_group(const nn::Group *group) {
+    fbb_.AddStruct(CONV_2D::VT_GROUP, group);
   }
   void add_fuse_code(nn::FuseCode fuse_code) {
     fbb_.AddElement<int8_t>(CONV_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
@@ -981,8 +1008,10 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::Dilation *dilation = nullptr,
+    const nn::Group *group = nullptr,
     nn::FuseCode fuse_code = nn::FuseCode_None) {
   CONV_2DBuilder builder_(_fbb);
+  builder_.add_group(group);
   builder_.add_dilation(dilation);
   builder_.add_stride(stride);
   builder_.add_padding(padding);

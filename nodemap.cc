@@ -1,6 +1,5 @@
 #include "nodemap.hh"
 
-
 auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
                  const onnx::NodeProto &node) {
   std::vector<flatbuffers::Offset<flatbuffers::String>> flatInputs{};
@@ -20,34 +19,38 @@ auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
                           flatbuffers.CreateVector(flatOutputs));
 }
 
-auto kernelShapeMarchTensor(std::string name, mapContext &context,
-                            nn::KernelShape &kernelShaper) {}
-
-auto getConvNode(flatbuffers::FlatBufferBuilder &flatbuffers,
-                 const onnx::NodeProto &node, mapContext &context) {
+template <typename NodeTypeBuilder>
+auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
+               const onnx::NodeProto &node, mapContext &context) {
   auto flatLink = getNodeLink(flatbuffers, node);
-  // std::cout<<node.op_type()<<" attribute_size() :
-  // "<<node.attribute_size()<<std::endl;
-  bool getStrides = false, getPads = false, getKernelShapr = false,
-       getDilation = false;
-  nn::Pads pads;
-  nn::Stride strides;
-  nn::KernelShape kernelShaper;
-  nn::Dilation dilation;
+  NodeTypeBuilder builder{flatbuffers};
+  builder.add_link(flatLink);
+  return builder.Finish();
+}
 
+template <>
+auto getFlNode<nn::CONV_2DBuilder>(flatbuffers::FlatBufferBuilder &flatbuffers,
+                                   const onnx::NodeProto &node,
+                                   mapContext &context) {
+
+  auto flatLink = getNodeLink(flatbuffers, node);
+  nn::CONV_2DBuilder builder{flatbuffers};
+  builder.add_link(flatLink);
+  bool getKernelShapr = false;
+  nn::KernelShape kernelShaper;
   for (const auto &attribute : node.attribute()) {
     if (attribute.has_name()) {
       // std::cout<<attribute.DebugString()<<std::endl;
       if (attribute.name() == "pads" &&
           attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
           attribute.ints().size() == 4) {
-        pads = {
+        nn::Pads pads{
             static_cast<int32_t>(attribute.ints()[0]),
             static_cast<int32_t>(attribute.ints()[1]),
             static_cast<int32_t>(attribute.ints()[2]),
             static_cast<int32_t>(attribute.ints()[3]),
         };
-        getPads = true;
+        builder.add_padding(&pads);
       } else if (attribute.name() == "kernel_shape" &&
                  attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
                  attribute.ints().size() == 2) {
@@ -59,22 +62,28 @@ auto getConvNode(flatbuffers::FlatBufferBuilder &flatbuffers,
       } else if (attribute.name() == "strides" &&
                  attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
                  attribute.ints().size() == 2) {
-        strides = {
+        nn::Stride strides{
             static_cast<int32_t>(attribute.ints()[0]),
             static_cast<int32_t>(attribute.ints()[1]),
         };
-        getStrides = true;
+        builder.add_stride(&strides);
       } else if (attribute.name() == "dilations" &&
                  attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
                  attribute.ints().size() == 2) {
-        dilation = {
+        nn::Dilation dilation{
             static_cast<int32_t>(attribute.ints()[0]),
             static_cast<int32_t>(attribute.ints()[1]),
         };
-        getDilation = true;
+        builder.add_dilation(&dilation);
+      } else if (attribute.name() == "group" &&
+                 attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+        nn::Group group{
+            static_cast<int32_t>(attribute.i()),
+        };
+        builder.add_group(&group);
       } else {
         std::cout << "node " << node.op_type() << " attribute "
-                  << attribute.name() << " unsupport!\n";
+                  << attribute.DebugString() << "!\n";
       }
     }
   }
@@ -89,24 +98,6 @@ auto getConvNode(flatbuffers::FlatBufferBuilder &flatbuffers,
                 << '\n';
     }
   }
-  if (getStrides && getPads) {
-    if (getDilation)
-      return nn::CreateCONV_2D(flatbuffers, flatLink, &pads, &strides,
-                               &dilation);
-    else
-      return nn::CreateCONV_2D(flatbuffers, flatLink, &pads, &strides);
-  }
-
-  std::cerr << "no comp node \n " << node.DebugString() << std::endl;
-  return nn::CreateCONV_2D(flatbuffers, flatLink);
-}
-
-template <typename NodeTypeBuilder>
-auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
-               const onnx::NodeProto &node, mapContext &context) {
-  auto flatLink = getNodeLink(flatbuffers, node);
-  NodeTypeBuilder builder{flatbuffers};
-  builder.add_link(flatLink);
   return builder.Finish();
 }
 
@@ -117,82 +108,80 @@ inline auto UnionPair(flatbuffers::Offset<Layer> &layer) {
 }
 
 OpToFuncMap::OpToFuncMap() {
+  emplace("Conv", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                     const onnx::NodeProto &node, mapContext &context) {
+    auto flNode = getFlNode<nn::CONV_2DBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
 
-    emplace("Conv", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+  emplace("Relu", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                     const onnx::NodeProto &node, mapContext &context) {
+    auto flNode = getFlNode<nn::RELUBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
+
+  emplace("Concat", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                        const onnx::NodeProto &node, mapContext &context) {
-      auto flNode = getConvNode(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
+    auto flNode =
+        getFlNode<nn::CONCATENATIONBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
 
-    emplace("Relu", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                       const onnx::NodeProto &node, mapContext &context) {
-      auto flNode = getFlNode<nn::RELUBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
+  emplace("MaxPool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                        const onnx::NodeProto &node, mapContext &context) {
+    auto flNode = getFlNode<nn::MAX_POOL_2DBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
 
-    emplace("Concat", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                         const onnx::NodeProto &node, mapContext &context) {
-      auto flNode =
-          getFlNode<nn::CONCATENATIONBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
+  emplace("Softmax", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                        const onnx::NodeProto &node, mapContext &context) {
+    auto flNode = getFlNode<nn::SOFTMAXBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
 
-    emplace("MaxPool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+  emplace("Add", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                    const onnx::NodeProto &node, mapContext &context) {
+    auto flNode = getFlNode<nn::ADDBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
+
+  emplace("GlobalAveragePool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                                  const onnx::NodeProto &node,
+                                  mapContext &context) {
+    auto flNode =
+        getFlNode<nn::AVERAGE_POOL_2DBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
+
+  emplace("Clip", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                     const onnx::NodeProto &node, mapContext &context) {
+    auto flNode = getFlNode<nn::RELUBuilder>(flatbuffers, node,
+                                             context); // clip [-1,1] [0,6]
+    return UnionPair(flNode);
+  });
+
+  emplace("Unsqueeze", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                           const onnx::NodeProto &node, mapContext &context) {
-      auto flNode =
-          getFlNode<nn::MAX_POOL_2DBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
+    auto flNode = getFlNode<nn::RESHAPEBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
 
-    emplace("Softmax", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                          const onnx::NodeProto &node, mapContext &context) {
-      auto flNode = getFlNode<nn::SOFTMAXBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
+  emplace("Reshape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                        const onnx::NodeProto &node, mapContext &context) {
+    auto flNode = getFlNode<nn::RESHAPEBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
 
-    emplace("Add", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                      const onnx::NodeProto &node, mapContext &context) {
-      auto flNode = getFlNode<nn::ADDBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
-
-    emplace("GlobalAveragePool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                                    const onnx::NodeProto &node,
-                                    mapContext &context) {
-      auto flNode =
-          getFlNode<nn::AVERAGE_POOL_2DBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
-
-    emplace("Clip", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+  emplace("Gather", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                        const onnx::NodeProto &node, mapContext &context) {
-      auto flNode = getFlNode<nn::RELUBuilder>(flatbuffers, node,
-                                               context); // clip [-1,1] [0,6]
-      return UnionPair(flNode);
-    });
+    auto flNode = getFlNode<nn::GATHERBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
 
-    emplace("Unsqueeze", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                            const onnx::NodeProto &node, mapContext &context) {
-      auto flNode = getFlNode<nn::RESHAPEBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
-
-    emplace("Reshape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                          const onnx::NodeProto &node, mapContext &context) {
-      auto flNode = getFlNode<nn::RESHAPEBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
-
-    emplace("Gather", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                         const onnx::NodeProto &node, mapContext &context) {
-      auto flNode = getFlNode<nn::GATHERBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
-
-    emplace("Gemm", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                       const onnx::NodeProto &node, mapContext &context) {
-      auto flNode =
-          getFlNode<nn::FULLY_CONNECTEDBuilder>(flatbuffers, node, context);
-      return UnionPair(flNode);
-    });
-  }
+  emplace("Gemm", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                     const onnx::NodeProto &node, mapContext &context) {
+    auto flNode =
+        getFlNode<nn::FULLY_CONNECTEDBuilder>(flatbuffers, node, context);
+    return UnionPair(flNode);
+  });
+}

@@ -62,11 +62,16 @@ struct KernelShape{
     height:int;
 }
 
+struct Group{
+    id:int;
+}
+
 table CONV_2D {
     link:Link (required);
     padding: Pads;
     stride:Stride;
     dilation:Dilation;
+    group:Group;
     fuse_code: FuseCode;
 }
 
