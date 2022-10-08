@@ -140,7 +140,26 @@ struct OpToReMap
           std::string,
           std::function<void(flatbuffers::FlatBufferBuilder &,
                              const onnx::NodeProto &, mapContext &)>> {
-  OpToReMap() {}
+  OpToReMap() {
+     emplace("Dropout", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                              const onnx::NodeProto &node, mapContext &context)
+       { //auto flNode = getFlNode<nn::Dropout>(flatbuffers, node, context);
+          //return UnionPair(flNode);
+        });
+
+        emplace("Shape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                            const onnx::NodeProto &node, mapContext &context) {
+          //auto flNode = getFlNode<nn::>(flatbuffers, node, context);
+          //return UnionPair(flNode);
+        });
+
+
+        emplace("Constant", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                               const onnx::NodeProto &node, mapContext &context)
+       { //auto flNode = getFlNode<nn::Cons>(flatbuffers, node, context); return
+       //UnionPair(flNode);
+        });
+  }
 };
 
 struct OpToFuncMap
@@ -197,46 +216,25 @@ struct OpToFuncMap
       return UnionPair(flNode);
     });
 
-    /*    emplace("Dropout", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                              const onnx::NodeProto &node, mapContext &context)
-       { auto flNode = getFlNode<nn::Dropout>(flatbuffers, node, context);
-          return UnionPair(flNode);
-        });
+    emplace("Clip", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                       const onnx::NodeProto &node, mapContext &context) {
+      auto flNode = getFlNode<nn::RELUBuilder>(flatbuffers, node,
+                                               context); // clip [-1,1] [0,6]
+      return UnionPair(flNode);
+    });
 
-
-
-        emplace("Clip", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                           const onnx::NodeProto &node, mapContext &context) {
-          auto flNode = getFlNode<nn::>(flatbuffers, node, context);
-          return UnionPair(flNode);
-        });
-
-        emplace("Shape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+    emplace("Unsqueeze", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                             const onnx::NodeProto &node, mapContext &context) {
-          auto flNode = getFlNode<nn::>(flatbuffers, node, context);
-          return UnionPair(flNode);
-        });
+      auto flNode = getFlNode<nn::RESHAPEBuilder>(flatbuffers, node, context);
+      return UnionPair(flNode);
+    });
 
-        emplace("Unsqueeze", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                                const onnx::NodeProto &node, mapContext
-       &context) { auto flNode = getFlNode<nn::U>(flatbuffers, node, context);
-          return UnionPair(flNode);
-        });
+    emplace("Reshape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                          const onnx::NodeProto &node, mapContext &context) {
+      auto flNode = getFlNode<nn::RESHAPEBuilder>(flatbuffers, node, context);
+      return UnionPair(flNode);
+    });
 
-        emplace("Constant", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                               const onnx::NodeProto &node, mapContext &context)
-       { auto flNode = getFlNode<nn::Cons>(flatbuffers, node, context); return
-       UnionPair(flNode);
-        });
-
-
-        emplace("Reshape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
-                              const onnx::NodeProto &node, mapContext &context)
-       { auto flNode = getFlNode<nn::Res>(flatbuffers, node, context); return
-       UnionPair(flNode);
-        });
-
-         */
     emplace("Gather", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                          const onnx::NodeProto &node, mapContext &context) {
       auto flNode = getFlNode<nn::GATHERBuilder>(flatbuffers, node, context);
@@ -267,6 +265,7 @@ int main(int argc, char *argv[]) {
   std::cout << "model_proto.ir_version = " << model_proto.ir_version()
             << std::endl;
 
+    static OpToReMap mapOpRe;
   static OpToFuncMap mapOpFunc;
 
   mapContext context;
@@ -325,6 +324,11 @@ int main(int argc, char *argv[]) {
 
     for (const auto &node : model_proto.graph().node()) {
       // auto flatLink = getNodeLink(node, flatbuffers);
+      auto opReItr = mapOpRe.find(node.op_type());
+      if (opReItr != mapOpRe.end()) {
+        opReItr->second(flatbuffers, node, context);
+        continue;
+      }
       auto opItr = mapOpFunc.find(node.op_type());
       if (opItr != mapOpFunc.end()) {
         auto ftnode = opItr->second(flatbuffers, node, context);

@@ -121,6 +121,9 @@ struct SUBBuilder;
 struct GATHER;
 struct GATHERBuilder;
 
+struct RESHAPE;
+struct RESHAPEBuilder;
+
 struct Graph;
 struct GraphBuilder;
 
@@ -229,11 +232,12 @@ enum Layer : uint8_t {
   Layer_EXP = 26,
   Layer_SUB = 27,
   Layer_GATHER = 28,
+  Layer_RESHAPE = 29,
   Layer_MIN = Layer_NONE,
-  Layer_MAX = Layer_GATHER
+  Layer_MAX = Layer_RESHAPE
 };
 
-inline const Layer (&EnumValuesLayer())[29] {
+inline const Layer (&EnumValuesLayer())[30] {
   static const Layer values[] = {
     Layer_NONE,
     Layer_CONV_2D,
@@ -263,13 +267,14 @@ inline const Layer (&EnumValuesLayer())[29] {
     Layer_ABS,
     Layer_EXP,
     Layer_SUB,
-    Layer_GATHER
+    Layer_GATHER,
+    Layer_RESHAPE
   };
   return values;
 }
 
 inline const char * const *EnumNamesLayer() {
-  static const char * const names[30] = {
+  static const char * const names[31] = {
     "NONE",
     "CONV_2D",
     "AVERAGE_POOL_2D",
@@ -299,13 +304,14 @@ inline const char * const *EnumNamesLayer() {
     "EXP",
     "SUB",
     "GATHER",
+    "RESHAPE",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameLayer(Layer e) {
-  if (flatbuffers::IsOutRange(e, Layer_NONE, Layer_GATHER)) return "";
+  if (flatbuffers::IsOutRange(e, Layer_NONE, Layer_RESHAPE)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesLayer()[index];
 }
@@ -424,6 +430,10 @@ template<> struct LayerTraits<nn::SUB> {
 
 template<> struct LayerTraits<nn::GATHER> {
   static const Layer enum_value = Layer_GATHER;
+};
+
+template<> struct LayerTraits<nn::RESHAPE> {
+  static const Layer enum_value = Layer_RESHAPE;
 };
 
 bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer type);
@@ -2548,6 +2558,49 @@ inline flatbuffers::Offset<GATHER> CreateGATHER(
   return builder_.Finish();
 }
 
+struct RESHAPE FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef RESHAPEBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_LINK = 4
+  };
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
+           verifier.EndTable();
+  }
+};
+
+struct RESHAPEBuilder {
+  typedef RESHAPE Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(RESHAPE::VT_LINK, link);
+  }
+  explicit RESHAPEBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<RESHAPE> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<RESHAPE>(end);
+    fbb_.Required(o, RESHAPE::VT_LINK);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<RESHAPE> CreateRESHAPE(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::Link> link = 0) {
+  RESHAPEBuilder builder_(_fbb);
+  builder_.add_link(link);
+  return builder_.Finish();
+}
+
 struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef GraphBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -2801,6 +2854,10 @@ inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer 
     }
     case Layer_GATHER: {
       auto ptr = reinterpret_cast<const nn::GATHER *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer_RESHAPE: {
+      auto ptr = reinterpret_cast<const nn::RESHAPE *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
