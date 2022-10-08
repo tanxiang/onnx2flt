@@ -8,7 +8,7 @@ find_package(protobuf REQUIRED)
 
 add_subdirectory(fbs)
 
-add_executable(onnx2flt main.cc)
+add_executable(onnx2flt main.cc nodemap.cc noderemap.cc)
 configure_onnx()
 
 target_link_libraries(onnx2flt
