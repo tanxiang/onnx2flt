@@ -10,7 +10,7 @@ auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
   for (const auto &nodeOutput : node.output()) {
     flatOutputs.emplace_back(flatbuffers.CreateString(nodeOutput));
   }
-  if (node.has_name())
+  if (node.has_name()&&!node.name().empty())
     return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
                           flatbuffers.CreateVector(flatOutputs),
                           flatbuffers.CreateString(node.name()));

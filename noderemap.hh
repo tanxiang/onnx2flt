@@ -10,3 +10,5 @@ struct OpToReMap
   OpToReMap() ;
 };
 
+std::vector<std::vector<onnx::NodeProto*>> createNodeVVFromInput(const onnx::ValueInfoProto&,mapContext&);
+

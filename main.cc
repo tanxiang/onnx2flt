@@ -1,19 +1,17 @@
 
+#include "context.hh"
+#include "nodemap.hh"
+#include "noderemap.hh"
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include "context.hh"
-#include "nodemap.hh"
-#include "noderemap.hh"
-
 
 void usage(const std::string &filename) {
   std::cout << "Usage: " << filename
             << " onnx_model output_filename [table_file]" << std::endl;
 }
-
 
 int main(int argc, char *argv[]) {
   if (argc != 3 && argc != 4) {
@@ -30,7 +28,7 @@ int main(int argc, char *argv[]) {
   std::cout << "model_proto.ir_version = " << model_proto.ir_version()
             << std::endl;
 
-    static OpToReMap mapOpRe;
+  static OpToReMap mapOpRe;
   static OpToFuncMap mapOpFunc;
 
   mapContext context;
@@ -38,12 +36,6 @@ int main(int argc, char *argv[]) {
   if (model_proto.has_graph()) {
     flatbuffers::FlatBufferBuilder flatbuffers;
     auto graph = model_proto.graph();
-    for (const auto &input : graph.input()) {
-      if (input.has_name())
-        std::cout << "input.name() " << input.name() << '\n';
-      else
-        std::cout << "noname input graph\n";
-    }
 
     for (const auto &tensor : model_proto.graph().initializer()) {
       if (tensor.has_name()) {
@@ -71,19 +63,33 @@ int main(int argc, char *argv[]) {
     }
 
     for (const auto &tensor : model_proto.graph().sparse_initializer()) {
-      std::cout << "graph().sparse_initializer() " << &tensor;
+      std::cout << "graph().sparse_initializer() " << &tensor; 
+
       //     if (tensor.has_name()) {
       // context.sparseTensorMap.emplace(tensor.name(), tensor);
       //}
     }
     for (const auto &node : model_proto.graph().node()) {
-      if (node.has_name()) {
+      if (node.has_name() && !node.name().empty()) {
         context.nodeMap.emplace(node.name(), node);
+      }
+      for (const auto &input : node.input()) {
+        context.inputNodeMap.emplace(input, node);
       }
       for (const auto &output : node.output()) {
         context.outputNodeMap.emplace(output, node);
       }
     }
+
+    for (const auto &input : graph.input()) {
+      if (input.has_name()){
+        std::cout << "input.name() " << input.name() << '\n';
+        createNodeVVFromInput(input,context);
+      }
+      else
+        std::cout << "noname input graph\n";
+    }
+
     std::vector<uint8_t> nodeTypes;
     std::vector<flatbuffers::Offset<void>> nodeVals;
 
@@ -108,9 +114,9 @@ int main(int argc, char *argv[]) {
                                 FLATBUFFERS_VERSION_MINOR * 100 +
                                 FLATBUFFERS_VERSION_REVISION,
                             model_proto.ir_version()};
-    auto flatbuffersGraph = nn::CreateGraph(flatbuffers, &version,
-                                            flatbuffers.CreateVector(nodeTypes),
-                                            flatbuffers.CreateVector(nodeVals));
+    auto flatbuffersGraph = nn::CreateGraph(
+        flatbuffers, &version, flatbuffers.CreateVector(nodeTypes),
+        flatbuffers.CreateVector(nodeVals));
     flatbuffers.Finish(flatbuffersGraph);
     std::ofstream outputfile{argv[2]};
     outputfile.write(reinterpret_cast<char *>(flatbuffers.GetBufferPointer()),
