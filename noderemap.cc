@@ -1,4 +1,5 @@
 #include "noderemap.hh"
+#include <queue>
 
 OpToReMap::OpToReMap() {
   emplace("Dropout",
@@ -21,7 +22,7 @@ OpToReMap::OpToReMap() {
              mapContext &context) { // auto flNode =
                                     // getFlNode<nn::Cons>(flatbuffers,
                                     // node, context); return
-            // UnionPair(flNode);
+                                    // UnionPair(flNode);
           });
 }
 
@@ -83,25 +84,52 @@ struct nodeGroup : public std::vector<onnx::NodeProto *> {
       : std::vector<onnx::NodeProto *>{nodes} {}
 };
 
-struct OpReMap
-    : public std::map<std::string, std::function<void(const onnx::NodeProto &,
-                                                      mapContext &)>> {
-  OpReMap() {}
+struct OpReMap : public std::map<std::string,
+                                 std::function<std::vector<const onnx::NodeProto *>(
+                                     const onnx::NodeProto *, mapContext &)>> {
+  OpReMap() {
+    emplace("Conv", [](const onnx::NodeProto *node, mapContext &context) {
+      std::vector<const onnx::NodeProto *> nodes{node};
+
+      if (node->output_size() == 1) {
+        auto output = node->output()[0];
+        auto itr = context.inputNodeMap.find(output);
+        if (itr != context.inputNodeMap.end()) {
+          //itr->second;
+        }
+      }
+      return nodes;
+    });
+  }
 };
 
-std::vector<std::vector<onnx::NodeProto *>>
+std::vector<std::vector<const onnx::NodeProto *>>
 createNodeVVFromInput(const onnx::ValueInfoProto &input, mapContext &context) {
-  std::vector<std::vector<onnx::NodeProto *>> vvRemap{};
+  static OpReMap opReMap{};
+  std::vector<std::vector<const onnx::NodeProto *>> vvRemap{};
   auto inputItr = context.inputNodeMap.find(input.name());
   if (inputItr != context.inputNodeMap.end()) {
-    auto &nodeRoot = inputItr->second;
-    if (nodeRoot.has_name()) {
-      std::cout << "root node " << nodeRoot.name() << std::endl;
-    } else {
-      std::cout << "root node is noname" << std::endl;
+    std::set<const onnx::NodeProto *> parsedNodes;
+    std::queue<const onnx::NodeProto *> needNodes;
+    needNodes.emplace(&(inputItr->second));
+    while (!needNodes.empty()) {
+      auto nodePtr = needNodes.front();
+
+      if (parsedNodes.find(nodePtr) == parsedNodes.end()) {
+        std::vector<const onnx::NodeProto *> vRemap{nodePtr};
+        parsedNodes.emplace(nodePtr);
+
+        if (nodePtr->has_name()) {
+          std::cout << "root node " << nodePtr->name() << std::endl;
+        } else {
+          std::cout << "root node is noname" << std::endl;
+        }
+
+        nodePtr->op_type();
+        nodePtr->output();
+        needNodes.pop();
+      }
     }
-    nodeRoot.op_type();
-    nodeRoot.output();
   }
   return vvRemap;
 }
