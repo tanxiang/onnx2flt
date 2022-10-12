@@ -84,21 +84,39 @@ struct nodeGroup : public std::vector<onnx::NodeProto *> {
       : std::vector<onnx::NodeProto *>{nodes} {}
 };
 
-struct OpReMap : public std::map<std::string,
-                                 std::function<std::vector<const onnx::NodeProto *>(
-                                     const onnx::NodeProto *, mapContext &)>> {
-  OpReMap() {
-    emplace("Conv", [](const onnx::NodeProto *node, mapContext &context) {
-      std::vector<const onnx::NodeProto *> nodes{node};
+auto opReMapDefault(std::vector<const onnx::NodeProto *> &vRemap,
+                    std::set<const onnx::NodeProto *> &parsedNodes,
+                    mapContext &context) {
+  const onnx::NodeProto *node = vRemap[0];
 
-      if (node->output_size() == 1) {
-        auto output = node->output()[0];
-        auto itr = context.inputNodeMap.find(output);
-        if (itr != context.inputNodeMap.end()) {
-          //itr->second;
+  parsedNodes.emplace(node);
+}
+
+struct OpReMap
+    : public std::map<
+          std::string,
+          std::function<std::vector<const onnx::NodeProto *>(
+              std::vector<const onnx::NodeProto *> &vRemap,
+              std::set<const onnx::NodeProto *> &parsedNodes, mapContext &)>> {
+  OpReMap() {
+    emplace("Conv", [](std::vector<const onnx::NodeProto *> &vRemap,
+                       std::set<const onnx::NodeProto *> &parsedNodes,
+                       mapContext &context) {
+        const onnx::NodeProto *node = vRemap[0];
+        parsedNodes.emplace(node);
+        if (node->output_size() == 1) {
+          auto output = node->output()[0];
+          auto itr = context.inputNodeMap.find(output);
+          if (itr != context.inputNodeMap.end()) {
+            std::cout<<"Conv to "<<itr->second.op_type()<<std::endl;
+          }
+        } else {
+          std::cout << "node->output_size() = " << node->output_size()
+                    << std::endl;
         }
-      }
-      return nodes;
+      
+
+      return std::vector<const onnx::NodeProto *>{};
     });
   }
 };
@@ -117,7 +135,12 @@ createNodeVVFromInput(const onnx::ValueInfoProto &input, mapContext &context) {
 
       if (parsedNodes.find(nodePtr) == parsedNodes.end()) {
         std::vector<const onnx::NodeProto *> vRemap{nodePtr};
-        parsedNodes.emplace(nodePtr);
+
+        auto opItr = opReMap.find(nodePtr->op_type());
+        if (opItr != opReMap.end()) {
+          opItr->second(vRemap, parsedNodes, context);
+        } else {
+        }
 
         if (nodePtr->has_name()) {
           std::cout << "root node " << nodePtr->name() << std::endl;
@@ -128,6 +151,7 @@ createNodeVVFromInput(const onnx::ValueInfoProto &input, mapContext &context) {
         nodePtr->op_type();
         nodePtr->output();
         needNodes.pop();
+        vvRemap.emplace_back(vRemap);
       }
     }
   }

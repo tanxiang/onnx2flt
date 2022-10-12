@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (const auto &tensor : model_proto.graph().sparse_initializer()) {
-      std::cout << "graph().sparse_initializer() " << &tensor; 
+      std::cout << "graph().sparse_initializer() " << &tensor;
 
       //     if (tensor.has_name()) {
       // context.sparseTensorMap.emplace(tensor.name(), tensor);
@@ -71,22 +71,26 @@ int main(int argc, char *argv[]) {
     }
     for (const auto &node : model_proto.graph().node()) {
       if (node.has_name() && !node.name().empty()) {
-        context.nodeMap.emplace(node.name(), node);
+        if (!context.nodeMap.emplace(node.name(), node).second) {
+          std::cerr << "context.nodeMap.emplace error same name : "
+                    << node.name() << " not support\n";
+        }
       }
       for (const auto &input : node.input()) {
         context.inputNodeMap.emplace(input, node);
+
       }
       for (const auto &output : node.output()) {
         context.outputNodeMap.emplace(output, node);
+
       }
     }
 
     for (const auto &input : graph.input()) {
-      if (input.has_name()){
+      if (input.has_name()) {
         std::cout << "input.name() " << input.name() << '\n';
-        createNodeVVFromInput(input,context);
-      }
-      else
+        createNodeVVFromInput(input, context);
+      } else
         std::cout << "noname input graph\n";
     }
 
@@ -114,9 +118,9 @@ int main(int argc, char *argv[]) {
                                 FLATBUFFERS_VERSION_MINOR * 100 +
                                 FLATBUFFERS_VERSION_REVISION,
                             model_proto.ir_version()};
-    auto flatbuffersGraph = nn::CreateGraph(
-        flatbuffers, &version, flatbuffers.CreateVector(nodeTypes),
-        flatbuffers.CreateVector(nodeVals));
+    auto flatbuffersGraph = nn::CreateGraph(flatbuffers, &version,
+                                            flatbuffers.CreateVector(nodeTypes),
+                                            flatbuffers.CreateVector(nodeVals));
     flatbuffers.Finish(flatbuffersGraph);
     std::ofstream outputfile{argv[2]};
     outputfile.write(reinterpret_cast<char *>(flatbuffers.GetBufferPointer()),
