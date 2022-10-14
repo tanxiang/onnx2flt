@@ -96,26 +96,65 @@ struct OpReMap
     : public std::map<
           std::string,
           std::function<std::vector<const onnx::NodeProto *>(
-              std::vector<const onnx::NodeProto *> &vRemap,
+              const onnx::NodeProto *, std::vector<const onnx::NodeProto *> &vRemap,
               std::set<const onnx::NodeProto *> &parsedNodes, mapContext &)>> {
   OpReMap() {
-    emplace("Conv", [](std::vector<const onnx::NodeProto *> &vRemap,
+    emplace("Conv", [this](const onnx::NodeProto *node,
+                           std::vector<const onnx::NodeProto *> &vRemap,
+                           std::set<const onnx::NodeProto *> &parsedNodes,
+                           mapContext &context) {
+      parsedNodes.emplace(node);
+      auto output = node->output()[0];
+      auto outCount = context.inputNodeMap.count(output);
+      switch (outCount) {
+      case 0: {
+        // test graph output
+        break;
+      }
+      case 1: {
+        auto walkItr = context.inputNodeMap.find(output);
+        auto needNodes =
+            (*this)[walkItr->second.op_type()](&(walkItr->second),vRemap, parsedNodes, context);
+        break;
+      }
+
+      default: {
+        std::cout << "Conv to " << outCount << " nodes\n";
+        auto range = context.inputNodeMap.equal_range(output);
+        for (auto itr = range.first; itr != range.second; ++itr) {
+          auto walkItr = itr;
+          std::cout << "Conv to " << walkItr->second.op_type() << " output "
+                    << walkItr->second.output()[0] << std::endl;
+          if (walkItr->second.op_type() == "Clip") {
+            vRemap.emplace_back(&walkItr->second);
+          }
+          if (walkItr->second.op_type() == "Relu") {
+          }
+        }
+      }
+      }
+
+      return std::vector<const onnx::NodeProto *>{};
+    });
+
+    emplace("Clip", [](const onnx::NodeProto *node,
+                       std::vector<const onnx::NodeProto *> &vRemap,
                        std::set<const onnx::NodeProto *> &parsedNodes,
                        mapContext &context) {
-        const onnx::NodeProto *node = vRemap[0];
-        parsedNodes.emplace(node);
-        if (node->output_size() == 1) {
-          auto output = node->output()[0];
-          auto itr = context.inputNodeMap.find(output);
-          if (itr != context.inputNodeMap.end()) {
-            std::cout<<"Conv to "<<itr->second.op_type()<<std::endl;
-          }
-        } else {
-          std::cout << "node->output_size() = " << node->output_size()
-                    << std::endl;
+      return std::vector<const onnx::NodeProto *>{};
+      parsedNodes.emplace(node);
+      auto output = node->output()[0];
+      auto range = context.inputNodeMap.equal_range(output);
+      for (auto itr = range.first; itr != range.second; ++itr) {
+        auto walkItr = itr;
+        std::cout << "Conv to " << walkItr->second.op_type() << " output "
+                  << walkItr->second.output()[0] << std::endl;
+        if (walkItr->second.op_type() == "Clip") {
+          vRemap.emplace_back(&walkItr->second);
         }
-      
-
+        if (walkItr->second.op_type() == "Relu") {
+        }
+      }
       return std::vector<const onnx::NodeProto *>{};
     });
   }
@@ -134,11 +173,11 @@ createNodeVVFromInput(const onnx::ValueInfoProto &input, mapContext &context) {
       auto nodePtr = needNodes.front();
 
       if (parsedNodes.find(nodePtr) == parsedNodes.end()) {
-        std::vector<const onnx::NodeProto *> vRemap{nodePtr};
+        std::vector<const onnx::NodeProto *> vRemap{};
 
         auto opItr = opReMap.find(nodePtr->op_type());
         if (opItr != opReMap.end()) {
-          opItr->second(vRemap, parsedNodes, context);
+          opItr->second(nodePtr, vRemap, parsedNodes, context);
         } else {
         }
 

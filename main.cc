@@ -78,11 +78,12 @@ int main(int argc, char *argv[]) {
       }
       for (const auto &input : node.input()) {
         context.inputNodeMap.emplace(input, node);
-
       }
       for (const auto &output : node.output()) {
-        context.outputNodeMap.emplace(output, node);
-
+        if (!context.outputNodeMap.emplace(output, node).second) {
+          std::cerr << "context.outputNodeMap.emplace error same output : "
+                    << output << " in " << &node << " not support\n";
+        }
       }
     }
 

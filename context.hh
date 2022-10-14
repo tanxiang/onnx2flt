@@ -8,6 +8,6 @@ struct mapContext {
   // std::map<std::string, const onnx::SparseTensorProto &> sparseTensorMap;
   std::map<std::string, const onnx::NodeProto &> nodeMap;
   std::multimap<std::string, const onnx::NodeProto &> inputNodeMap;
-  std::multimap<std::string, const onnx::NodeProto &> outputNodeMap;
+  std::map<std::string, const onnx::NodeProto &> outputNodeMap;
 };
 
