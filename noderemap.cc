@@ -84,79 +84,153 @@ struct nodeGroup : public std::vector<onnx::NodeProto *> {
       : std::vector<onnx::NodeProto *>{nodes} {}
 };
 
-auto opReMapDefault(std::vector<const onnx::NodeProto *> &vRemap,
-                    std::set<const onnx::NodeProto *> &parsedNodes,
-                    mapContext &context) {
-  const onnx::NodeProto *node = vRemap[0];
-
+std::vector<const onnx::NodeProto *> opReMapDefault(
+    const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
+    std::set<const onnx::NodeProto *> &parsedNodes, mapContext &context) {
+  if (!vRemap.empty()) {
+    std::cerr << "!vRemap.empty() in " << node->op_type() << std::endl;
+    return {node};
+  }
+  vRemap.emplace_back(node);
   parsedNodes.emplace(node);
+  return {};
 }
 
 struct OpReMap
     : public std::map<
           std::string,
           std::function<std::vector<const onnx::NodeProto *>(
-              const onnx::NodeProto *, std::vector<const onnx::NodeProto *> &vRemap,
+              const onnx::NodeProto *,
+              std::vector<const onnx::NodeProto *> &vRemap,
               std::set<const onnx::NodeProto *> &parsedNodes, mapContext &)>> {
   OpReMap() {
-    emplace("Conv", [this](const onnx::NodeProto *node,
-                           std::vector<const onnx::NodeProto *> &vRemap,
-                           std::set<const onnx::NodeProto *> &parsedNodes,
-                           mapContext &context) {
-      parsedNodes.emplace(node);
-      auto output = node->output()[0];
-      auto outCount = context.inputNodeMap.count(output);
-      switch (outCount) {
-      case 0: {
-        // test graph output
-        break;
-      }
-      case 1: {
-        auto walkItr = context.inputNodeMap.find(output);
-        auto needNodes =
-            (*this)[walkItr->second.op_type()](&(walkItr->second),vRemap, parsedNodes, context);
-        break;
-      }
-
-      default: {
-        std::cout << "Conv to " << outCount << " nodes\n";
-        auto range = context.inputNodeMap.equal_range(output);
-        for (auto itr = range.first; itr != range.second; ++itr) {
-          auto walkItr = itr;
-          std::cout << "Conv to " << walkItr->second.op_type() << " output "
-                    << walkItr->second.output()[0] << std::endl;
-          if (walkItr->second.op_type() == "Clip") {
-            vRemap.emplace_back(&walkItr->second);
+    emplace(
+        "Conv",
+        [this](const onnx::NodeProto *node,
+               std::vector<const onnx::NodeProto *> &vRemap,
+               std::set<const onnx::NodeProto *> &parsedNodes,
+               mapContext &context) -> std::vector<const onnx::NodeProto *> {
+          if (!vRemap.empty()) {
+            std::cerr << "!vRemap.empty() in " << node->op_type() << std::endl;
+            return {node};
           }
-          if (walkItr->second.op_type() == "Relu") {
+          //std::cerr <<"std::cerr cpp v = "<< __cplusplus<<std::endl;
+          if (parsedNodes.contains(node)) {
           }
-        }
-      }
-      }
+          parsedNodes.emplace(node);
+          vRemap.emplace_back(node);
+          auto output = node->output()[0];
 
-      return std::vector<const onnx::NodeProto *>{};
-    });
+          auto outCount = context.inputNodeMap.count(output);
 
-    emplace("Clip", [](const onnx::NodeProto *node,
-                       std::vector<const onnx::NodeProto *> &vRemap,
-                       std::set<const onnx::NodeProto *> &parsedNodes,
-                       mapContext &context) {
-      return std::vector<const onnx::NodeProto *>{};
-      parsedNodes.emplace(node);
-      auto output = node->output()[0];
-      auto range = context.inputNodeMap.equal_range(output);
-      for (auto itr = range.first; itr != range.second; ++itr) {
-        auto walkItr = itr;
-        std::cout << "Conv to " << walkItr->second.op_type() << " output "
-                  << walkItr->second.output()[0] << std::endl;
-        if (walkItr->second.op_type() == "Clip") {
-          vRemap.emplace_back(&walkItr->second);
-        }
-        if (walkItr->second.op_type() == "Relu") {
-        }
-      }
-      return std::vector<const onnx::NodeProto *>{};
-    });
+          switch (outCount) {
+          case 0: {
+            std::cerr << "node output : " << node->output()[0]
+                      << "need in graphs output" << std::endl;
+            return {};
+          }
+          case 1: {
+            auto walkItr = context.inputNodeMap.find(output);
+            std::cout << "Conv to " << walkItr->second.op_type() << " output "
+                      << walkItr->second.output()[0] << std::endl;
+
+            return (*this)[walkItr->second.op_type()](
+                &(walkItr->second), vRemap, parsedNodes, context);
+          }
+
+          default: {
+            std::cout << "Conv to " << outCount << " nums nodes\n";
+            auto range = context.inputNodeMap.equal_range(output);
+            for (auto itr = range.first; itr != range.second; ++itr) {
+              auto walkItr = itr;
+              std::cout << "Conv to " << walkItr->second.op_type() << " output "
+                        << walkItr->second.output()[0] << std::endl;
+            }
+          }
+          }
+
+          return {};
+        });
+
+    emplace(
+        "Clip",
+        [this](const onnx::NodeProto *node,
+               std::vector<const onnx::NodeProto *> &vRemap,
+               std::set<const onnx::NodeProto *> &parsedNodes,
+               mapContext &context) -> std::vector<const onnx::NodeProto *> {
+          vRemap.emplace_back(node);
+          parsedNodes.emplace(node);
+
+          auto output = node->output()[0];
+
+          auto outCount = context.inputNodeMap.count(output);
+          switch (outCount) {
+          case 0:
+            std::cerr << "node output : " << node->output()[0]
+                      << "need in graphs output" << std::endl;
+            return {};
+          case 1: {
+            auto walkItr = context.inputNodeMap.find(output);
+            std::cout << "Clip to " << walkItr->second.op_type() << " output "
+                      << walkItr->second.output()[0] << std::endl;
+
+            return (*this)[walkItr->second.op_type()](
+                &(walkItr->second), vRemap, parsedNodes, context);
+          }
+
+          default: {
+            std::cout << "Clip to " << outCount << " nums nodes\n";
+            auto range = context.inputNodeMap.equal_range(output);
+            for (auto itr = range.first; itr != range.second; ++itr) {
+              auto walkItr = itr;
+              std::cout << "Clip to " << walkItr->second.op_type() << " output "
+                        << walkItr->second.output()[0] << std::endl;
+            }
+          }
+          }
+          return std::vector<const onnx::NodeProto *>{};
+        });
+
+    emplace(
+        "Relu",
+        [this](const onnx::NodeProto *node,
+               std::vector<const onnx::NodeProto *> &vRemap,
+               std::set<const onnx::NodeProto *> &parsedNodes,
+               mapContext &context) -> std::vector<const onnx::NodeProto *> {
+          vRemap.emplace_back(node);
+          parsedNodes.emplace(node);
+
+          auto output = node->output()[0];
+
+          auto outCount = context.inputNodeMap.count(output);
+          switch (outCount) {
+          case 0:
+            std::cerr << "node output : " << node->output()[0]
+                      << "need in graphs output" << std::endl;
+            return {};
+          case 1: {
+            auto walkItr = context.inputNodeMap.find(output);
+            std::cout << "Relu to " << walkItr->second.op_type() << " output "
+                      << walkItr->second.output()[0] << std::endl;
+
+            auto needNodes = (*this)[walkItr->second.op_type()](
+                &(walkItr->second), vRemap, parsedNodes, context);
+            break;
+          }
+
+          default: {
+            std::cout << "Relu to " << outCount << " nums nodes\n";
+            auto range = context.inputNodeMap.equal_range(output);
+            for (auto itr = range.first; itr != range.second; ++itr) {
+              auto walkItr = itr;
+              std::cout << "Relu to " << walkItr->second.op_type() << " output "
+                        << walkItr->second.output()[0] << std::endl;
+            }
+          }
+          }
+
+          return std::vector<const onnx::NodeProto *>{};
+        });
   }
 };
 
