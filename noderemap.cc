@@ -1,5 +1,6 @@
 #include "noderemap.hh"
 #include <queue>
+#include <sstream>
 
 OpToReMap::OpToReMap() {
   emplace("Dropout",
@@ -84,6 +85,15 @@ struct nodeGroup : public std::vector<onnx::NodeProto *> {
       : std::vector<onnx::NodeProto *>{nodes} {}
 };
 
+std::string nodeID(const onnx::NodeProto &node) {
+  if (node.has_name() && !node.name().empty()) {
+    return node.name();
+  }
+  std::ostringstream id{};
+  id << node.op_type() << ' ' << &node;
+  return id.str();
+}
+
 struct OpReMap
     : public std::map<
           std::string,
@@ -92,21 +102,43 @@ struct OpReMap
               std::vector<const onnx::NodeProto *> &vRemap,
               std::set<const onnx::NodeProto *> &parsedNodes, mapContext &)>> {
 
+  template <typename Range>
+  auto packNode(Range range, std::set<const onnx::NodeProto *> &parsedNodes) {
+    std::vector<const onnx::NodeProto *> ret{};
+    for (auto itr = range.first; itr != range.second; ++itr) {
+      if (parsedNodes.contains(&itr->second)) {
+        std::cout << '[' << nodeID(itr->second) << ']';
+
+      } else {
+        std::cout << '<' << nodeID(itr->second) << '>';
+        ret.emplace_back(&itr->second);
+      }
+    }
+    std::cout << std::endl;
+    return ret;
+  }
+
   std::vector<const onnx::NodeProto *> opReMapDefault(
       const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
       std::set<const onnx::NodeProto *> &parsedNodes, mapContext &context) {
     if (!vRemap.empty()) {
-      std::cerr << "!vRemap.empty() in " << node->op_type() << std::endl;
+      // std::cerr << "!vRemap.empty() in " << node->op_type() << std::endl;
       return {node};
+    }
+    if (parsedNodes.contains(node)) {
+      return {};
     }
     vRemap.emplace_back(node);
     parsedNodes.emplace(node);
-    return {};
+
+    auto output = node->output()[0];
+    auto outCount = context.inputNodeMap.count(output);
+    std::cout << "\t\t" << nodeID(*node) << " to ";
+    return packNode(context.inputNodeMap.equal_range(output), parsedNodes);
   }
 
   template <typename... Targs>
   auto checkNode(const onnx::NodeProto *node, Targs... args) {
-
     auto opItr = find(node->op_type());
     if (opItr != end()) {
       return opItr->second(node, args...);
@@ -122,7 +154,8 @@ struct OpReMap
                std::set<const onnx::NodeProto *> &parsedNodes,
                mapContext &context) -> std::vector<const onnx::NodeProto *> {
           if (!vRemap.empty()) {
-            std::cerr << "!vRemap.empty() in " << node->op_type() << std::endl;
+            // std::cerr << "!vRemap.empty() in " << node->op_type() <<
+            // std::endl;
             return {node};
           }
           // std::cerr <<"std::cerr cpp v = "<< __cplusplus<<std::endl;
@@ -136,29 +169,18 @@ struct OpReMap
           auto outCount = context.inputNodeMap.count(output);
 
           switch (outCount) {
-          case 0: {
-            std::cerr << "node output : " << node->output()[0]
-                      << "need in graphs output" << std::endl;
-            return {};
-          }
           case 1: {
             auto walkItr = context.inputNodeMap.find(output);
-            std::cout << "Conv to " << walkItr->second.op_type() << " output "
+            std::cout << '\t' << nodeID(*node) << " to "
+                      << nodeID(walkItr->second) << " output "
                       << walkItr->second.output()[0] << std::endl;
 
-            return checkNode(
-                &(walkItr->second), vRemap, parsedNodes, context);
+            return checkNode(&(walkItr->second), vRemap, parsedNodes, context);
           }
-
-          default: {
-            std::cout << "Conv to " << outCount << " nums nodes\n";
-            auto range = context.inputNodeMap.equal_range(output);
-            for (auto itr = range.first; itr != range.second; ++itr) {
-              auto walkItr = itr;
-              std::cout << "Conv to " << walkItr->second.op_type() << " output "
-                        << walkItr->second.output()[0] << std::endl;
-            }
-          }
+          default:
+            std::cout << "\t\t" << nodeID(*node) << " to ";
+            return packNode(context.inputNodeMap.equal_range(output),
+                            parsedNodes);
           }
 
           return {};
@@ -180,30 +202,21 @@ struct OpReMap
 
           auto outCount = context.inputNodeMap.count(output);
           switch (outCount) {
-          case 0:
-            std::cerr << "node output : " << node->output()[0]
-                      << "need in graphs output" << std::endl;
-            return {};
           case 1: {
             auto walkItr = context.inputNodeMap.find(output);
-            std::cout << "Clip to " << walkItr->second.op_type() << " output "
+            std::cout << '\t' << nodeID(*node) << " to "
+                      << nodeID(walkItr->second) << " output "
                       << walkItr->second.output()[0] << std::endl;
 
-            return checkNode(
-                &(walkItr->second), vRemap, parsedNodes, context);
+            return checkNode(&(walkItr->second), vRemap, parsedNodes, context);
           }
 
-          default: {
-            std::cout << "Clip to " << outCount << " nums nodes\n";
-            auto range = context.inputNodeMap.equal_range(output);
-            for (auto itr = range.first; itr != range.second; ++itr) {
-              auto walkItr = itr;
-              std::cout << "Clip to " << walkItr->second.op_type() << " output "
-                        << walkItr->second.output()[0] << std::endl;
-            }
+          default:
+            std::cout << "\t\t" << nodeID(*node) << " to ";
+            return packNode(context.inputNodeMap.equal_range(output),
+                            parsedNodes);
           }
-          }
-          return std::vector<const onnx::NodeProto *>{};
+          return {};
         });
 
     emplace(
@@ -228,23 +241,17 @@ struct OpReMap
             return {};
           case 1: {
             auto walkItr = context.inputNodeMap.find(output);
-            std::cout << "Relu to " << walkItr->second.op_type() << " output "
+            std::cout << '\t' << nodeID(*node) << " to "
+                      << nodeID(walkItr->second) << " output "
                       << walkItr->second.output()[0] << std::endl;
 
-            auto needNodes = checkNode(
-                &(walkItr->second), vRemap, parsedNodes, context);
-            break;
+            return checkNode(&(walkItr->second), vRemap, parsedNodes, context);
           }
 
-          default: {
-            std::cout << "Relu to " << outCount << " nums nodes\n";
-            auto range = context.inputNodeMap.equal_range(output);
-            for (auto itr = range.first; itr != range.second; ++itr) {
-              auto walkItr = itr;
-              std::cout << "Relu to " << walkItr->second.op_type() << " output "
-                        << walkItr->second.output()[0] << std::endl;
-            }
-          }
+          default:
+            std::cout << "\t\t" << nodeID(*node) << " to ";
+            return packNode(context.inputNodeMap.equal_range(output),
+                            parsedNodes);
           }
 
           return {};
@@ -263,24 +270,26 @@ createNodeVVFromInput(const onnx::ValueInfoProto &input, mapContext &context) {
     needNodes.emplace_back(&(inputItr->second));
     while (!needNodes.empty()) {
       auto nodePtr = needNodes.front();
-
       if (parsedNodes.find(nodePtr) == parsedNodes.end()) {
         std::vector<const onnx::NodeProto *> vRemap{};
 
-
-        opReMap.checkNode(nodePtr, vRemap, parsedNodes, context);
-
-        if (nodePtr->has_name()) {
-          std::cout << "root node " << nodePtr->name() << std::endl;
+        if (nodePtr->has_name() && !nodePtr->name().empty()) {
+          std::cout << "node group start at " << nodePtr->name() << " op "
+                    << nodePtr->op_type() << " : " << needNodes.size()
+                    << std::endl;
         } else {
-          std::cout << "root node is noname" << std::endl;
+          std::cout << "node group start at op " << nodePtr->op_type() << " : "
+                    << needNodes.size() << std::endl;
         }
+
+        auto needs = opReMap.checkNode(nodePtr, vRemap, parsedNodes, context);
+        needNodes.insert(needNodes.end(), needs.begin(), needs.end());
 
         nodePtr->op_type();
         nodePtr->output();
-        needNodes.pop_front();
         vvRemap.emplace_back(vRemap);
       }
+      needNodes.pop_front();
     }
   }
   return vvRemap;
