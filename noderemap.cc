@@ -86,11 +86,12 @@ struct nodeGroup : public std::vector<onnx::NodeProto *> {
 };
 
 std::string nodeID(const onnx::NodeProto &node) {
-  if (node.has_name() && !node.name().empty()) {
-    return node.name();
-  }
   std::ostringstream id{};
-  id << node.op_type() << ' ' << &node;
+
+  if (node.has_name() && !node.name().empty())
+    id << node.name() << ' ' << &node;
+  else
+    id << node.op_type() << ' ' << &node;
   return id.str();
 }
 
@@ -98,21 +99,20 @@ struct OpReMap
     : public std::map<
           std::string,
           std::function<std::vector<const onnx::NodeProto *>(
-              const onnx::NodeProto *,
-              std::vector<const onnx::NodeProto *> &,
+              const onnx::NodeProto *, std::vector<const onnx::NodeProto *> &,
               std::set<const onnx::NodeProto *> &, mapContext &)>> {
 
   template <typename Range>
   auto packNode(Range range, std::set<const onnx::NodeProto *> &addNodes) {
     std::vector<const onnx::NodeProto *> ret{};
     for (auto itr = range.first; itr != range.second; ++itr) {
-      if (addNodes.contains(&itr->second)) {
-        std::cout << '[' << nodeID(itr->second) << ']';
+
+      if (addNodes.emplace(&itr->second).second) {
+        ret.emplace_back(&itr->second);
+        std::cout << '<' << addNodes.size() << nodeID(itr->second) << '>';
 
       } else {
-        std::cout << '<' << nodeID(itr->second) << '>';
-        ret.emplace_back(&itr->second);
-        addNodes.emplace(&itr->second);
+        std::cout << '[' << nodeID(itr->second) << ']';
       }
     }
     std::cout << std::endl;
@@ -139,12 +139,12 @@ struct OpReMap
   }
 
   template <typename... Targs>
-  auto checkNode(const onnx::NodeProto *node, Targs... args) {
+  auto checkNode(const onnx::NodeProto *node, Targs &&...args) {
     auto opItr = find(node->op_type());
     if (opItr != end()) {
-      return opItr->second(node, args...);
+      return opItr->second(node, std::forward<Targs>(args)...);
     }
-    return opReMapDefault(node, args...);
+    return opReMapDefault(node, std::forward<Targs>(args)...);
   }
 
   OpReMap() {
@@ -181,8 +181,7 @@ struct OpReMap
           }
           default:
             std::cout << "\t\t" << nodeID(*node) << " to ";
-            return packNode(context.inputNodeMap.equal_range(output),
-                            addNodes);
+            return packNode(context.inputNodeMap.equal_range(output), addNodes);
           }
 
           return {};
@@ -215,8 +214,7 @@ struct OpReMap
 
           default:
             std::cout << "\t\t" << nodeID(*node) << " to ";
-            return packNode(context.inputNodeMap.equal_range(output),
-                            addNodes);
+            return packNode(context.inputNodeMap.equal_range(output), addNodes);
           }
           return {};
         });
@@ -227,7 +225,6 @@ struct OpReMap
                std::vector<const onnx::NodeProto *> &vRemap,
                std::set<const onnx::NodeProto *> &addNodes,
                mapContext &context) -> std::vector<const onnx::NodeProto *> {
-
           vRemap.emplace_back(node);
           addNodes.emplace(node);
 
@@ -250,8 +247,7 @@ struct OpReMap
 
           default:
             std::cout << "\t\t" << nodeID(*node) << " to ";
-            return packNode(context.inputNodeMap.equal_range(output),
-                            addNodes);
+            return packNode(context.inputNodeMap.equal_range(output), addNodes);
           }
 
           return {};
