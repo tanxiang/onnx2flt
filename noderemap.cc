@@ -109,7 +109,7 @@ struct OpReMap
 
       if (addNodes.emplace(&itr->second).second) {
         ret.emplace_back(&itr->second);
-        std::cout << '<' << addNodes.size() << nodeID(itr->second) << '>';
+        std::cout << '<' << nodeID(itr->second) << '>';
 
       } else {
         std::cout << '[' << nodeID(itr->second) << ']';
@@ -119,21 +119,29 @@ struct OpReMap
     return ret;
   }
 
+  auto packNode(const onnx::NodeProto *node,
+                std::set<const onnx::NodeProto *> &addNodes) {
+    std::vector<const onnx::NodeProto *> ret{};
+    if (addNodes.emplace(node).second) {
+      ret.emplace_back(node);
+      std::cout << '<' << nodeID(*node) << '>';
+    } else {
+      std::cout << '[' << nodeID(*node) << ']';
+    }
+    std::cout << std::endl;
+    return ret;
+  }
+
   std::vector<const onnx::NodeProto *> opReMapDefault(
       const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
       std::set<const onnx::NodeProto *> &addNodes, mapContext &context) {
     if (!vRemap.empty()) {
-      // std::cerr << "!vRemap.empty() in " << node->op_type() << std::endl;
-      return {node};
+      std::cout << "\tnew group";
+      return packNode(node, addNodes);
     }
-    /*if (parsedNodes.contains(node)) {
-      return {};
-    }
-    vRemap.emplace_back(node);
-    parsedNodes.emplace(node);
-*/
     auto output = node->output()[0];
     auto outCount = context.inputNodeMap.count(output);
+    vRemap.emplace_back(node);
     std::cout << "\t\t" << nodeID(*node) << " to ";
     return packNode(context.inputNodeMap.equal_range(output), addNodes);
   }
@@ -155,16 +163,10 @@ struct OpReMap
                std::set<const onnx::NodeProto *> &addNodes,
                mapContext &context) -> std::vector<const onnx::NodeProto *> {
           if (!vRemap.empty()) {
-            // std::cerr << "!vRemap.empty() in " << node->op_type() <<
-            // std::endl;
-            addNodes.emplace(node);
-            return {node};
+                  std::cout << "\tnew group";
+
+            return packNode(node, addNodes);
           }
-          // std::cerr <<"std::cerr cpp v = "<< __cplusplus<<std::endl;
-          /*if (parsedNodes.contains(node)) {
-            return {};
-          }
-          parsedNodes.emplace(node);*/
           vRemap.emplace_back(node);
           auto output = node->output()[0];
 
@@ -266,7 +268,6 @@ createNodeVVFromInput(const onnx::ValueInfoProto &input, mapContext &context) {
     needNodes.emplace_back(&(inputItr->second));
     while (!needNodes.empty()) {
       auto nodePtr = needNodes.front();
-      // if (parsedNodes.find(nodePtr) == parsedNodes.end()) {
       std::vector<const onnx::NodeProto *> vRemap{};
 
       if (nodePtr->has_name() && !nodePtr->name().empty()) {
@@ -283,8 +284,8 @@ createNodeVVFromInput(const onnx::ValueInfoProto &input, mapContext &context) {
 
       nodePtr->op_type();
       nodePtr->output();
-      vvRemap.emplace_back(vRemap);
-      //}
+      if (!vRemap.empty())
+        vvRemap.emplace_back(vRemap);
       needNodes.pop_front();
     }
   }

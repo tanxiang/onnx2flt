@@ -69,6 +69,8 @@ int main(int argc, char *argv[]) {
       // context.sparseTensorMap.emplace(tensor.name(), tensor);
       //}
     }
+    std::cout << "model_proto.graph().node_size() = "
+              << model_proto.graph().node_size() << std::endl;
     for (const auto &node : model_proto.graph().node()) {
       if (node.has_name() && !node.name().empty()) {
         if (!context.nodeMap.emplace(node.name(), node).second) {
@@ -86,13 +88,48 @@ int main(int argc, char *argv[]) {
         }
       }
     }
-
+    std::vector<std::vector<const onnx::NodeProto *>> vvRemap;
     for (const auto &input : graph.input()) {
       if (input.has_name()) {
         std::cout << "input.name() " << input.name() << '\n';
-        createNodeVVFromInput(input, context);
+        vvRemap = createNodeVVFromInput(input, context);
+        std::cout << "vvRemap size = " << vvRemap.size() << std::endl;
+        int allSize{0};
+        for (auto &vRemap : vvRemap) {
+          allSize += vRemap.size();
+        }
+        std::cout << "vvRemap allSize = " << allSize << std::endl;
+
       } else
         std::cout << "noname input graph\n";
+    }
+    int conventNodeNum{0};
+    for (const auto &node : model_proto.graph().node()) {
+      bool nodeRemapd = false;
+      for (auto &vRemap : vvRemap) {
+        for (auto &Remap : vRemap) {
+          if (&node == Remap) {
+            nodeRemapd = true;
+            break;
+          }
+        }
+        if (nodeRemapd)
+          break;
+      }
+      if (!nodeRemapd) {
+        ++conventNodeNum;
+        std::cout << nodeID(node) << " need to tensor:" << conventNodeNum
+                  << '\t';
+        for (auto &input : node.input()) {
+          if (context.tensorMap.contains(input))
+            std::cout << '<' << input << "> ";
+          else if (context.outputNodeMap.contains(input))
+            std::cout << '[' << nodeID(context.outputNodeMap.at(input)) << "] ";
+          else
+            std::cout << '{' << input << "} ";
+        }
+        std::cout << std::endl;
+      }
     }
 
     std::vector<uint8_t> nodeTypes;
