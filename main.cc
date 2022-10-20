@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
   std::cout << "model_proto.ir_version = " << model_proto.ir_version()
             << std::endl;
 
-  static OpToReMap mapOpRe;
+
   static OpToFuncMap mapOpFunc;
 
   mapContext context;
@@ -135,20 +135,15 @@ int main(int argc, char *argv[]) {
     std::vector<uint8_t> nodeTypes;
     std::vector<flatbuffers::Offset<void>> nodeVals;
 
-    for (const auto &node : model_proto.graph().node()) {
-      // auto flatLink = getNodeLink(node, flatbuffers);
-      auto opReItr = mapOpRe.find(node.op_type());
-      if (opReItr != mapOpRe.end()) {
-        opReItr->second(flatbuffers, node, context);
-        continue;
-      }
-      auto opItr = mapOpFunc.find(node.op_type());
+    for (auto &vRemap :vvRemap) {
+
+      auto opItr = mapOpFunc.find(vRemap[0]->op_type());
       if (opItr != mapOpFunc.end()) {
-        auto ftnode = opItr->second(flatbuffers, node, context);
+        auto ftnode = opItr->second(flatbuffers, vRemap, context);
         nodeTypes.emplace_back(ftnode.first);
         nodeVals.emplace_back(ftnode.second);
       } else {
-        std::cerr << "error: " << node.op_type() << " is not support!\n";
+        std::cerr << "error: " << vRemap[0]->op_type() << " is not support!\n";
       }
     }
 
