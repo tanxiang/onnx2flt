@@ -22,12 +22,12 @@ auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
 auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
                  std::vector<const onnx::NodeProto *> &nodes) {
   std::vector<flatbuffers::Offset<flatbuffers::String>> flatInputs{};
-  auto startItr =nodes.begin();
+  auto startItr = nodes.begin();
   for (auto &nodeInput : (*startItr)->input()) {
     flatInputs.emplace_back(flatbuffers.CreateString(nodeInput));
   }
   std::vector<flatbuffers::Offset<flatbuffers::String>> flatOutputs{};
-    auto endItr =nodes.rbegin();
+  auto endItr = nodes.rbegin();
 
   for (auto &nodeOutput : (*endItr)->output()) {
     flatOutputs.emplace_back(flatbuffers.CreateString(nodeOutput));
@@ -120,6 +120,21 @@ auto getFlNode<nn::CONV_2DBuilder>(flatbuffers::FlatBufferBuilder &flatbuffers,
                 << kernelShaper.width() << " x : y " << kernelShaper.height()
                 << '\n';
     }
+  }
+  if (nodes.size() > 1) {
+    std::cout << nodes[1]->DebugString();
+    if (nodes[1]->op_type() == "Relu") {
+      builder.add_fuse_code(nn::FuseCode::FuseCode_Relu);
+    }
+    if (nodes[1]->op_type() == "Clip") {
+        std::cout <<context.tensorMap.at( nodes[1]->input()[1]).DebugString();
+        std::cout <<context.tensorMap.at( nodes[1]->input()[2]).DebugString()<<std::endl;
+
+      builder.add_fuse_code(nn::FuseCode::FuseCode_Relu6);
+    }
+  }
+  if (nodes.size() > 2) {
+    std::cout << nodes[2]->op_type() << "error" << std::endl;
   }
   return builder.Finish();
 }
