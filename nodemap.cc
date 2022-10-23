@@ -48,14 +48,112 @@ auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
   auto flatLink = getNodeLink(flatbuffers, nodes);
   NodeTypeBuilder builder{flatbuffers};
   builder.add_link(flatLink);
+  for (const auto &attribute : nodes[0]->attribute()) {
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Pads & pads) {
+                    builder.add_padding(&pads);
+                  }) {
+      if (attribute.name() == "pads" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 4) {
+        nn::Pads pads{
+            static_cast<int32_t>(attribute.ints()[0]),
+            static_cast<int32_t>(attribute.ints()[1]),
+            static_cast<int32_t>(attribute.ints()[2]),
+            static_cast<int32_t>(attribute.ints()[3]),
+        };
+        builder.add_padding(&pads);
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Stride & strides) {
+                    builder.add_stride(&strides);
+                  }) {
+      if (attribute.name() == "strides" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 2) {
+        nn::Stride strides{
+            static_cast<int32_t>(attribute.ints()[0]),
+            static_cast<int32_t>(attribute.ints()[1]),
+        };
+        builder.add_stride(&strides);
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Group & group) {
+                    builder.add_group(&group);
+                  }) {
+      if (attribute.name() == "group" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+        nn::Group group{
+            static_cast<int32_t>(attribute.i()),
+        };
+        builder.add_group(&group);
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Dilation & dilation) {
+                    builder.add_dilation(&dilation);
+                  }) {
+      if (attribute.name() == "dilations" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 2) {
+        nn::Dilation dilation{
+            static_cast<int32_t>(attribute.ints()[0]),
+            static_cast<int32_t>(attribute.ints()[1]),
+        };
+        builder.add_dilation(&dilation);
+        continue;
+      }
+    }
+
+    if(attribute.name() == "kernel_shape"){
+        continue;
+    }
+    std::cout << "node " << nodes[0]->name() << " attr "
+              << attribute.DebugString();
+  }
+  if constexpr (requires(NodeTypeBuilder & builder, nn::FuseCode & fuseCode) {
+                  builder.add_fuse_code(&fuseCode);
+                }) {
+    if (nodes.size() > 1) {
+      // std::cout << nodes[1]->DebugString();
+      if (nodes[1]->op_type() == "Relu") {
+        builder.add_fuse_code(nn::FuseCode::FuseCode_Relu);
+      }
+      if (nodes[1]->op_type() == "Clip") {
+        auto &min = context.tensorMap.at(nodes[1]->input()[1]);
+        auto &max = context.tensorMap.at(nodes[1]->input()[2]);
+        if (min.data_type() !=
+                onnx::TensorProto_DataType::TensorProto_DataType_FLOAT ||
+            max.data_type() !=
+                onnx::TensorProto_DataType::TensorProto_DataType_FLOAT ||
+            min.dims_size() != 1 || max.dims_size() != 1) {
+          std::cout << min.DebugString() << max.DebugString();
+        } else if (min.float_data()[0] == 0.0f && max.float_data()[0] == 6.0f) {
+          builder.add_fuse_code(nn::FuseCode::FuseCode_Relu6);
+        } else if (min.float_data()[0] == 0.0f && max.float_data()[0] == 1.0f) {
+          builder.add_fuse_code(nn::FuseCode::FuseCode_Relu1);
+        } else {
+          std::cout << "Clip:" << min.float_data()[0] << '-'
+                    << max.float_data()[0] << std::endl;
+        }
+      }
+    }
+    if (nodes.size() > 2) {
+      std::cout << nodes[2]->DebugString() << "error" << std::endl;
+    }
+  }
   return builder.Finish();
 }
-
+/*
 template <>
 auto getFlNode<nn::CONV_2DBuilder>(flatbuffers::FlatBufferBuilder &flatbuffers,
                                    std::vector<const onnx::NodeProto *> &nodes,
                                    mapContext &context) {
-
   auto flatLink = getNodeLink(flatbuffers, nodes);
   nn::CONV_2DBuilder builder{flatbuffers};
   builder.add_link(flatLink);
@@ -122,23 +220,35 @@ auto getFlNode<nn::CONV_2DBuilder>(flatbuffers::FlatBufferBuilder &flatbuffers,
     }
   }
   if (nodes.size() > 1) {
-    std::cout << nodes[1]->DebugString();
+    // std::cout << nodes[1]->DebugString();
     if (nodes[1]->op_type() == "Relu") {
       builder.add_fuse_code(nn::FuseCode::FuseCode_Relu);
     }
     if (nodes[1]->op_type() == "Clip") {
-        std::cout <<context.tensorMap.at( nodes[1]->input()[1]).DebugString();
-        std::cout <<context.tensorMap.at( nodes[1]->input()[2]).DebugString()<<std::endl;
-
-      builder.add_fuse_code(nn::FuseCode::FuseCode_Relu6);
+      auto &min = context.tensorMap.at(nodes[1]->input()[1]);
+      auto &max = context.tensorMap.at(nodes[1]->input()[2]);
+      if (min.data_type() !=
+              onnx::TensorProto_DataType::TensorProto_DataType_FLOAT ||
+          max.data_type() !=
+              onnx::TensorProto_DataType::TensorProto_DataType_FLOAT ||
+          min.dims_size() != 1 || max.dims_size() != 1) {
+        std::cout << min.DebugString() << max.DebugString();
+      } else if (min.float_data()[0] == 0.0f && max.float_data()[0] == 6.0f) {
+        builder.add_fuse_code(nn::FuseCode::FuseCode_Relu6);
+      } else if (min.float_data()[0] == 0.0f && max.float_data()[0] == 1.0f) {
+        builder.add_fuse_code(nn::FuseCode::FuseCode_Relu1);
+      } else {
+        std::cout << "Clip:" << min.float_data()[0] << '-'
+                  << max.float_data()[0] << std::endl;
+      }
     }
   }
   if (nodes.size() > 2) {
-    std::cout << nodes[2]->op_type() << "error" << std::endl;
+    std::cout << nodes[2]->DebugString() << "error" << std::endl;
   }
   return builder.Finish();
 }
-
+*/
 template <typename Layer>
 inline auto UnionPair(flatbuffers::Offset<Layer> &layer) {
   return std::pair<uint8_t, flatbuffers::Offset<void>>{

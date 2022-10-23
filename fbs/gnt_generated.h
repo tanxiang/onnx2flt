@@ -60,6 +60,12 @@ struct FULLY_CONNECTEDBuilder;
 struct ADD;
 struct ADDBuilder;
 
+struct SUB;
+struct SUBBuilder;
+
+struct MUL;
+struct MULBuilder;
+
 struct CONCATENATION;
 struct CONCATENATIONBuilder;
 
@@ -74,9 +80,6 @@ struct SPACE_TO_BATCH_NDBuilder;
 
 struct STRIDED_SLICE;
 struct STRIDED_SLICEBuilder;
-
-struct MUL;
-struct MULBuilder;
 
 struct DEQUANTIZE;
 struct DEQUANTIZEBuilder;
@@ -116,9 +119,6 @@ struct ABSBuilder;
 
 struct EXP;
 struct EXPBuilder;
-
-struct SUB;
-struct SUBBuilder;
 
 struct GATHER;
 struct GATHERBuilder;
@@ -169,17 +169,15 @@ inline const char *EnumNameDataType(DataType e) {
 }
 
 enum FuseCode : int8_t {
-  FuseCode_None = 0,
-  FuseCode_Relu = 1,
-  FuseCode_Relu1 = 2,
-  FuseCode_Relu6 = 3,
-  FuseCode_MIN = FuseCode_None,
+  FuseCode_Relu = 0,
+  FuseCode_Relu1 = 1,
+  FuseCode_Relu6 = 2,
+  FuseCode_MIN = FuseCode_Relu,
   FuseCode_MAX = FuseCode_Relu6
 };
 
-inline const FuseCode (&EnumValuesFuseCode())[4] {
+inline const FuseCode (&EnumValuesFuseCode())[3] {
   static const FuseCode values[] = {
-    FuseCode_None,
     FuseCode_Relu,
     FuseCode_Relu1,
     FuseCode_Relu6
@@ -188,8 +186,7 @@ inline const FuseCode (&EnumValuesFuseCode())[4] {
 }
 
 inline const char * const *EnumNamesFuseCode() {
-  static const char * const names[5] = {
-    "None",
+  static const char * const names[4] = {
     "Relu",
     "Relu1",
     "Relu6",
@@ -199,7 +196,7 @@ inline const char * const *EnumNamesFuseCode() {
 }
 
 inline const char *EnumNameFuseCode(FuseCode e) {
-  if (flatbuffers::IsOutRange(e, FuseCode_None, FuseCode_Relu6)) return "";
+  if (flatbuffers::IsOutRange(e, FuseCode_Relu, FuseCode_Relu6)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesFuseCode()[index];
 }
@@ -1009,7 +1006,7 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     const nn::Stride *stride = nullptr,
     const nn::Dilation *dilation = nullptr,
     const nn::Group *group = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
+    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
   CONV_2DBuilder builder_(_fbb);
   builder_.add_group(group);
   builder_.add_dilation(dilation);
@@ -1093,7 +1090,7 @@ inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::KernelShape *kernel_shape = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
+    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
   AVERAGE_POOL_2DBuilder builder_(_fbb);
   builder_.add_kernel_shape(kernel_shape);
   builder_.add_stride(stride);
@@ -1176,7 +1173,7 @@ inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2D(
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::KernelShape *kernel_shape = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
+    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
   MAX_POOL_2DBuilder builder_(_fbb);
   builder_.add_kernel_shape(kernel_shape);
   builder_.add_stride(stride);
@@ -1328,7 +1325,7 @@ struct FULLY_CONNECTEDBuilder {
 inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTED(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
+    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
   FULLY_CONNECTEDBuilder builder_(_fbb);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
@@ -1381,8 +1378,114 @@ struct ADDBuilder {
 inline flatbuffers::Offset<ADD> CreateADD(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
+    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
   ADDBuilder builder_(_fbb);
+  builder_.add_link(link);
+  builder_.add_fuse_code(fuse_code);
+  return builder_.Finish();
+}
+
+struct SUB FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SUBBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_LINK = 4,
+    VT_FUSE_CODE = 6
+  };
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  nn::FuseCode fuse_code() const {
+    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
+           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
+           verifier.EndTable();
+  }
+};
+
+struct SUBBuilder {
+  typedef SUB Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(SUB::VT_LINK, link);
+  }
+  void add_fuse_code(nn::FuseCode fuse_code) {
+    fbb_.AddElement<int8_t>(SUB::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
+  }
+  explicit SUBBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<SUB> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SUB>(end);
+    fbb_.Required(o, SUB::VT_LINK);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SUB> CreateSUB(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::Link> link = 0,
+    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+  SUBBuilder builder_(_fbb);
+  builder_.add_link(link);
+  builder_.add_fuse_code(fuse_code);
+  return builder_.Finish();
+}
+
+struct MUL FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef MULBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_LINK = 4,
+    VT_FUSE_CODE = 6
+  };
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  nn::FuseCode fuse_code() const {
+    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
+           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
+           verifier.EndTable();
+  }
+};
+
+struct MULBuilder {
+  typedef MUL Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(MUL::VT_LINK, link);
+  }
+  void add_fuse_code(nn::FuseCode fuse_code) {
+    fbb_.AddElement<int8_t>(MUL::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
+  }
+  explicit MULBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<MUL> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<MUL>(end);
+    fbb_.Required(o, MUL::VT_LINK);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<MUL> CreateMUL(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::Link> link = 0,
+    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+  MULBuilder builder_(_fbb);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
@@ -1514,7 +1617,7 @@ inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2D(
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     int32_t depth_multiplier = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
+    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
   DEPTHWISE_CONV_2DBuilder builder_(_fbb);
   builder_.add_depth_multiplier(depth_multiplier);
   builder_.add_stride(stride);
@@ -1793,59 +1896,6 @@ inline flatbuffers::Offset<STRIDED_SLICE> CreateSTRIDED_SLICEDirect(
       begin_mask,
       end_mask,
       shrink_axis_mask);
-}
-
-struct MUL FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef MULBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_LINK = 4,
-    VT_FUSE_CODE = 6
-  };
-  const nn::Link *link() const {
-    return GetPointer<const nn::Link *>(VT_LINK);
-  }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_LINK) &&
-           verifier.VerifyTable(link()) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
-           verifier.EndTable();
-  }
-};
-
-struct MULBuilder {
-  typedef MUL Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_link(flatbuffers::Offset<nn::Link> link) {
-    fbb_.AddOffset(MUL::VT_LINK, link);
-  }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(MUL::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
-  }
-  explicit MULBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<MUL> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<MUL>(end);
-    fbb_.Required(o, MUL::VT_LINK);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<MUL> CreateMUL(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
-  MULBuilder builder_(_fbb);
-  builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
-  return builder_.Finish();
 }
 
 struct DEQUANTIZE FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -2488,59 +2538,6 @@ inline flatbuffers::Offset<EXP> CreateEXP(
     flatbuffers::Offset<nn::Link> link = 0) {
   EXPBuilder builder_(_fbb);
   builder_.add_link(link);
-  return builder_.Finish();
-}
-
-struct SUB FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef SUBBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_LINK = 4,
-    VT_FUSE_CODE = 6
-  };
-  const nn::Link *link() const {
-    return GetPointer<const nn::Link *>(VT_LINK);
-  }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_LINK) &&
-           verifier.VerifyTable(link()) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
-           verifier.EndTable();
-  }
-};
-
-struct SUBBuilder {
-  typedef SUB Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_link(flatbuffers::Offset<nn::Link> link) {
-    fbb_.AddOffset(SUB::VT_LINK, link);
-  }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(SUB::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
-  }
-  explicit SUBBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<SUB> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<SUB>(end);
-    fbb_.Required(o, SUB::VT_LINK);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<SUB> CreateSUB(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_None) {
-  SUBBuilder builder_(_fbb);
-  builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 

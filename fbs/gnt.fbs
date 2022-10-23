@@ -6,7 +6,7 @@ struct versionInfo{
 }
 
 enum DataType:byte { Float, Int, QuantAsymm, QuantSymm, QuantSymmPerChannel}
-enum FuseCode:byte { None, Relu, Relu1, Relu6 }
+enum FuseCode:byte { Relu, Relu1, Relu6 }
 
 table Tensor {
     name:string(required);
@@ -111,6 +111,16 @@ table ADD {
     fuse_code: FuseCode;
 }
 
+table SUB {
+    link:Link (required);
+    fuse_code: FuseCode;
+}
+
+table MUL {
+    link:Link (required);
+    fuse_code: FuseCode;
+}
+
 table CONCATENATION {
     link:Link (required);
     axis: int;
@@ -146,10 +156,6 @@ table STRIDED_SLICE {
     shrink_axis_mask: int;
 }
 
-table MUL {
-    link:Link (required);
-    fuse_code: FuseCode;
-}
 
 table DEQUANTIZE {
     link:Link (required);
@@ -207,11 +213,6 @@ table ABS {
 
 table EXP {
     link:Link (required);
-}
-
-table SUB {
-    link:Link (required);
-    fuse_code: FuseCode;
 }
 
 table GATHER {
