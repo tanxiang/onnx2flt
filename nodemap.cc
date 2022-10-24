@@ -1,4 +1,5 @@
 #include "nodemap.hh"
+#include "noderemap.hh"
 
 auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
                  const onnx::NodeProto &node) {
@@ -109,12 +110,56 @@ auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
         continue;
       }
     }
+        if constexpr (requires(NodeTypeBuilder & builder, flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes) {
+                    builder.add_axes(axes);
+                  }) {
+      if (attribute.name() == "add_axes" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS ) {
+            flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes;
 
-    if(attribute.name() == "kernel_shape"){
+        builder.add_axes(axes);
         continue;
+      }
     }
-    std::cout << "node " << nodes[0]->name() << " attr "
-              << attribute.DebugString();
+
+    if constexpr (requires(NodeTypeBuilder & builder, int32_t & axis) {
+                    builder.add_axis(axis);
+                  }) {
+      if (attribute.name() == "axis" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+
+        builder.add_axis(static_cast<int32_t>(attribute.i()));
+        continue;
+      }
+    }
+
+    if constexpr (std::same_as<NodeTypeBuilder, nn::FULLY_CONNECTEDBuilder>) {
+      if (attribute.name() == "alpha" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT&&
+          attribute.f() == 1.f) {
+
+        // builder.add_bias(attribute.f());
+        continue;
+      }
+      if (attribute.name() == "beta" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT&&
+          attribute.f() == 1.f) {
+
+        // builder.add_bias(attribute.f());
+        continue;
+      }
+      if (attribute.name() == "transB" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+
+        // builder.add_bias(attribute.f());
+        continue;
+      }
+    }
+
+    if (attribute.name() == "kernel_shape") {
+      continue;
+    }
+    std::cout << nodeID(*nodes[0]) << " attr " << attribute.DebugString();
   }
   if constexpr (requires(NodeTypeBuilder & builder, nn::FuseCode & fuseCode) {
                   builder.add_fuse_code(&fuseCode);

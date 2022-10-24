@@ -103,6 +103,7 @@ table SOFTMAX {
 
 table FULLY_CONNECTED {
     link:Link (required);
+    bias: float;
     fuse_code: FuseCode;
 }
 
@@ -217,10 +218,12 @@ table EXP {
 
 table GATHER {
     link:Link (required);
+        axis: int;
 }
 
 table RESHAPE {
     link:Link (required);
+    axes:[int];
 }
 
 union Layer { 
