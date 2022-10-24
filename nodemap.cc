@@ -110,12 +110,14 @@ auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
         continue;
       }
     }
-        if constexpr (requires(NodeTypeBuilder & builder, flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes) {
+    if constexpr (requires(
+                      NodeTypeBuilder & builder,
+                      flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes) {
                     builder.add_axes(axes);
                   }) {
-      if (attribute.name() == "add_axes" &&
-          attribute.type() == onnx::AttributeProto_AttributeType_INTS ) {
-            flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes;
+      if (attribute.name() == "axes" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS) {
+        flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes;
 
         builder.add_axes(axes);
         continue;
@@ -135,14 +137,14 @@ auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
 
     if constexpr (std::same_as<NodeTypeBuilder, nn::FULLY_CONNECTEDBuilder>) {
       if (attribute.name() == "alpha" &&
-          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT&&
+          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT &&
           attribute.f() == 1.f) {
 
         // builder.add_bias(attribute.f());
         continue;
       }
       if (attribute.name() == "beta" &&
-          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT&&
+          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT &&
           attribute.f() == 1.f) {
 
         // builder.add_bias(attribute.f());
