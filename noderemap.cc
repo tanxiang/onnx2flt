@@ -138,7 +138,7 @@ struct OpReMap
                std::set<const onnx::NodeProto *> &addNodes,
                mapContext &context) -> std::vector<const onnx::NodeProto *> {
           if (!vRemap.empty()) {
-                  std::cout << "\tnew group";
+            std::cout << "\tnew group";
 
             return packNode(node, addNodes);
           }

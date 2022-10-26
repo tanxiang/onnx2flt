@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
       if (!nodeRemapd) {
         ++conventNodeNum;
         std::cout << nodeID(node) << " need to tensor:" << conventNodeNum
-                  << '\t';
+                  << '\n' <<node.DebugString();
         for (auto &input : node.input()) {
           if (context.tensorMap.contains(input))
             std::cout << '<' << input << "> ";
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
         nodeTypes.emplace_back(ftnode.first);
         nodeVals.emplace_back(ftnode.second);
       } else {
-        std::cerr << "error: " << vRemap[0]->op_type() << " is not support!\n";
+        std::cerr << "error: " << vRemap[0]->op_type() << " is not support!\n"<<vRemap[0]->DebugString();
       }
     }
 

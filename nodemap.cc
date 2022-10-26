@@ -117,9 +117,8 @@ auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
                   }) {
       if (attribute.name() == "axes" &&
           attribute.type() == onnx::AttributeProto_AttributeType_INTS) {
-        flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes;
-
-        builder.add_axes(axes);
+        std::vector<int32_t> axesv(attribute.ints().begin(),attribute.ints().end());
+        builder.add_axes(flatbuffers.CreateVector(axesv));
         continue;
       }
     }
