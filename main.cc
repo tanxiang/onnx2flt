@@ -28,7 +28,6 @@ int main(int argc, char *argv[]) {
   std::cout << "model_proto.ir_version = " << model_proto.ir_version()
             << std::endl;
 
-
   static OpToFuncMap mapOpFunc;
 
   mapContext context;
@@ -119,7 +118,8 @@ int main(int argc, char *argv[]) {
       if (!nodeRemapd) {
         ++conventNodeNum;
         std::cout << nodeID(node) << " need to tensor:" << conventNodeNum
-                  << '\n' <<node.DebugString();
+                  << '\n'
+                  << node.DebugString();
         for (auto &input : node.input()) {
           if (context.tensorMap.contains(input))
             std::cout << '<' << input << "> ";
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
     std::vector<uint8_t> nodeTypes;
     std::vector<flatbuffers::Offset<void>> nodeVals;
 
-    for (auto &vRemap :vvRemap) {
+    for (auto &vRemap : vvRemap) {
 
       auto opItr = mapOpFunc.find(vRemap[0]->op_type());
       if (opItr != mapOpFunc.end()) {
@@ -143,12 +143,18 @@ int main(int argc, char *argv[]) {
         nodeTypes.emplace_back(ftnode.first);
         nodeVals.emplace_back(ftnode.second);
       } else {
-        std::cerr << "error: " << vRemap[0]->op_type() << " is not support!\n"<<vRemap[0]->DebugString();
+        std::cerr << "error: " << vRemap[0]->op_type() << " is not support!\n"
+                  << vRemap[0]->DebugString();
       }
     }
 
+    std::vector<std::string> outputs;
     for (const auto &output : graph.output()) {
+      if (output.has_name() && !output.name().empty())
+        outputs.emplace_back(output.name());
     }
+
+    auto vvRRemap = createNodeVVFromOutputs(outputs,context);
 
     nn::versionInfo version{FLATBUFFERS_VERSION_MAJOR * 10000 +
                                 FLATBUFFERS_VERSION_MINOR * 100 +

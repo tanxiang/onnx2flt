@@ -278,16 +278,21 @@ struct OpRReMap
   std::vector<const onnx::NodeProto *> opReMapDefault(
       const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
       std::set<const onnx::NodeProto *> &addNodes, mapContext &context) {
+
     if (!vRemap.empty()) {
       std::cout << "\tnew group";
       return packNode(node, addNodes);
     }
-    auto output = node->output()[0];
-    auto outCount = context.inputNodeMap.count(output);
+
     vRemap.emplace_back(node);
     std::cout << "\t\t" << nodeID(*node) << " to ";
+    std::vector<std::pair<std::string, const onnx::NodeProto &>> inputItrs;
+    for (auto input : node->input()) {
+      auto const &nodePair = context.outputNodeMap.find(input);
+      inputItrs.emplace_back(nodePair->first, nodePair->second);
+    }
 
-    return packNode(context.inputNodeMap.equal_range(output), addNodes);
+    return packNode(std::pair{inputItrs.begin(), inputItrs.end()}, addNodes);
   }
 
   template <typename... Targs>
