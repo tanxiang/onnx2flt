@@ -147,6 +147,9 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    for (const auto &output : graph.output()) {
+    }
+
     nn::versionInfo version{FLATBUFFERS_VERSION_MAJOR * 10000 +
                                 FLATBUFFERS_VERSION_MINOR * 100 +
                                 FLATBUFFERS_VERSION_REVISION,
