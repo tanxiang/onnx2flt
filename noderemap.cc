@@ -268,6 +268,10 @@ createNodeVVFromInput(const onnx::ValueInfoProto &input, mapContext &context) {
   return vvRemap;
 }
 
+struct fusedNode : public std::set<std::string> {
+  fusedNode() : std::set<std::string>{"Conv", "Add", "Sub", "Pool"} {}
+};
+
 struct OpRReMap
     : public std::map<
           std::string,
@@ -285,11 +289,15 @@ struct OpRReMap
     }
 
     vRemap.emplace_back(node);
+    addNodes.emplace(node);
+
     std::cout << "\t\t" << nodeID(*node) << " to ";
     std::vector<std::pair<std::string, const onnx::NodeProto &>> inputItrs;
     for (auto input : node->input()) {
-      auto const &nodePair = context.outputNodeMap.find(input);
-      inputItrs.emplace_back(nodePair->first, nodePair->second);
+      auto const nodePair = context.outputNodeMap.find(input);
+      if (nodePair != context.outputNodeMap.end()) {
+        inputItrs.emplace_back(nodePair->first, nodePair->second);
+      }
     }
 
     return packNode(std::pair{inputItrs.begin(), inputItrs.end()}, addNodes);
@@ -304,6 +312,53 @@ struct OpRReMap
     return opReMapDefault(node, std::forward<Targs>(args)...);
   }
 
+  std::vector<const onnx::NodeProto *> checkfuseNode(
+      const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
+      std::set<const onnx::NodeProto *> &addNodes, mapContext &context) {
+    auto input = node->input()[0];
+    auto inputNode = context.outputNodeMap.find(input);
+
+    std::vector<const onnx::NodeProto *> needs;
+    switch (context.inputNodeMap.count(input)) {
+    case 1: {
+      std::cout << '\t' << nodeID(*node) << " to " << nodeID(inputNode->second)
+                << " output " << inputNode->second.output()[0] << std::endl;
+
+      needs = checkNode(&(inputNode->second), vRemap, addNodes, context);
+    }
+
+    default:
+      std::cout << "\t\t" << nodeID(*node) << " to ";
+      needs = packNode(&(inputNode->second), addNodes);
+    }
+
+    vRemap.emplace_back(node);
+    addNodes.emplace(node);
+
+    return needs;
+  }
+
+  static fusedNode fusedNodeSet;
+  std::vector<const onnx::NodeProto *> checkfusedNode(
+      const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
+      std::set<const onnx::NodeProto *> &addNodes, mapContext &context) {
+
+    if (fusedNodeSet.contains(node->op_type())) {
+
+      vRemap.emplace_back(node);
+      addNodes.emplace(node);
+      std::vector<std::pair<std::string, const onnx::NodeProto &>> inputItrs;
+
+      for (auto &input : node->input()) {
+        auto const &nodePair = context.outputNodeMap.find(input);
+        inputItrs.emplace_back(nodePair->first, nodePair->second);
+      }
+      return packNode(std::pair{inputItrs.begin(), inputItrs.end()}, addNodes);
+    }
+
+    return packNode(node, addNodes);
+  }
+
   OpRReMap() {
 
     emplace(
@@ -315,27 +370,7 @@ struct OpRReMap
           /*if (parsedNodes.contains(node)) {
             return {};
           }*/
-          vRemap.emplace_back(node);
-          addNodes.emplace(node);
-
-          auto output = node->output()[0];
-
-          auto outCount = context.inputNodeMap.count(output);
-          switch (outCount) {
-          case 1: {
-            auto walkItr = context.inputNodeMap.find(output);
-            std::cout << '\t' << nodeID(*node) << " to "
-                      << nodeID(walkItr->second) << " output "
-                      << walkItr->second.output()[0] << std::endl;
-
-            return checkNode(&(walkItr->second), vRemap, addNodes, context);
-          }
-
-          default:
-            std::cout << "\t\t" << nodeID(*node) << " to ";
-            return packNode(context.inputNodeMap.equal_range(output), addNodes);
-          }
-          return {};
+          return checkfuseNode(node, vRemap, addNodes, context);
         });
 
     emplace(
@@ -344,32 +379,7 @@ struct OpRReMap
                std::vector<const onnx::NodeProto *> &vRemap,
                std::set<const onnx::NodeProto *> &addNodes,
                mapContext &context) -> std::vector<const onnx::NodeProto *> {
-          vRemap.emplace_back(node);
-          addNodes.emplace(node);
-
-          auto output = node->output()[0];
-
-          auto outCount = context.inputNodeMap.count(output);
-          switch (outCount) {
-          case 0:
-            std::cerr << "node output : " << node->output()[0]
-                      << "need in graphs output" << std::endl;
-            return {};
-          case 1: {
-            auto walkItr = context.inputNodeMap.find(output);
-            std::cout << '\t' << nodeID(*node) << " to "
-                      << nodeID(walkItr->second) << " output "
-                      << walkItr->second.output()[0] << std::endl;
-
-            return checkNode(&(walkItr->second), vRemap, addNodes, context);
-          }
-
-          default:
-            std::cout << "\t\t" << nodeID(*node) << " to ";
-            return packNode(context.inputNodeMap.equal_range(output), addNodes);
-          }
-
-          return {};
+          return checkfuseNode(node, vRemap, addNodes, context);
         });
   }
 };
