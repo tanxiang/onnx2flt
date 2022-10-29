@@ -152,6 +152,8 @@ int main(int argc, char *argv[]) {
     for (const auto &output : graph.output()) {
       if (output.has_name() && !output.name().empty())
         outputs.emplace_back(output.name());
+
+        std::cout<<"graphs output:" << output.name()<<std::endl;
     }
 
     auto vvRRemap = createNodeVVFromOutputs(outputs,context);
