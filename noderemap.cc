@@ -359,12 +359,12 @@ struct OpRReMap
 
     std::vector<const onnx::NodeProto *> needs;
     switch (context.inputNodeMap.count(input)) {
-    case 1: {
+    case 1: 
       std::cout << '\t' << nodeID(*node) << " to " << nodeID(inputNode->second)
                 << " output " << inputNode->second.output()[0] << std::endl;
 
       needs = checkfusedNode(&(inputNode->second), vRemap, addNodes, context);
-    }
+      break;
 
     default:
       std::cout << "\t\t" << nodeID(*node) << " to ";
