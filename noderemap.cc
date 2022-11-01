@@ -70,6 +70,17 @@ std::string nodeID(const onnx::NodeProto &node) {
   return id.str();
 }
 
+std::string tensorID(const onnx::TensorProto &tensor) {
+
+  std::ostringstream id{};
+
+  if (tensor.has_name() && !tensor.name().empty())
+    id << tensor.name() << ' ' << &tensor;
+  else
+    id << "tensor " << &tensor;
+  return id.str();
+}
+
 template <typename Range>
 auto packNode(Range range, std::set<const onnx::NodeProto *> &addNodes) {
   std::vector<const onnx::NodeProto *> ret{};
@@ -92,9 +103,9 @@ auto packNode(const onnx::NodeProto *node,
   std::vector<const onnx::NodeProto *> ret{};
   if (addNodes.emplace(node).second) {
     ret.emplace_back(node);
-    std::cout << '<' << nodeID(*node) << '>';
+    std::cout << '<' << nodeID(*node) << "> ";
   } else {
-    std::cout << '[' << nodeID(*node) << ']';
+    std::cout << '[' << nodeID(*node) << "] ";
   }
   std::cout << std::endl;
   return ret;
@@ -279,6 +290,31 @@ struct OpRReMap
               const onnx::NodeProto *, std::vector<const onnx::NodeProto *> &,
               std::set<const onnx::NodeProto *> &, mapContext &)>> {
 
+  auto packNodeByInput(const onnx::NodeProto &node, mapContext &context,
+                       std::set<const onnx::NodeProto *> &addNodes) {
+    std::vector<const onnx::NodeProto *> ret{};
+
+    for (auto &input : node.input()) {
+
+      if (auto const nodePair = context.outputNodeMap.find(input);
+          context.outputNodeMap.end() != nodePair) {
+        if (addNodes.emplace(&nodePair->second).second) {
+          ret.emplace_back(&nodePair->second);
+          std::cout << '<' << nodeID(nodePair->second) << "> ";
+        } else {
+          std::cout << '[' << nodeID(nodePair->second) << "] ";
+        }
+      } else if (auto const tensorPair = context.tensorMap.find(input);
+                 context.tensorMap.end() != tensorPair) {
+        std::cout << '{' << tensorID(tensorPair->second) << "} ";
+      } else {
+        std::cout << '(' << input << ") ";
+      }
+    }
+    std::cout << std::endl;
+    return ret;
+  }
+
   std::vector<const onnx::NodeProto *> opReMapDefault(
       const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
       std::set<const onnx::NodeProto *> &addNodes, mapContext &context) {
@@ -292,29 +328,32 @@ struct OpRReMap
     addNodes.emplace(node);
 
     std::cout << "\t\t" << nodeID(*node) << " to ";
-    std::vector<std::pair<std::string, const onnx::NodeProto &>> inputItrs;
-    for (auto input : node->input()) {
-      auto const nodePair = context.outputNodeMap.find(input);
-      if (nodePair != context.outputNodeMap.end()) {
-        inputItrs.emplace_back(nodePair->first, nodePair->second);
-      }
-    }
 
-    return packNode(std::pair{inputItrs.begin(), inputItrs.end()}, addNodes);
+    return packNodeByInput(*node, context, addNodes);
   }
 
-  template <typename... Targs>
-  auto checkNode(const onnx::NodeProto *node, Targs &&...args) {
-    auto opItr = find(node->op_type());
-    if (opItr != end()) {
-      return opItr->second(node, std::forward<Targs>(args)...);
+  fusedNode fusedNodeSet;
+  std::vector<const onnx::NodeProto *> checkfusedNode(
+      const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
+      std::set<const onnx::NodeProto *> &addNodes, mapContext &context) {
+
+    if (fusedNodeSet.contains(node->op_type())) {
+
+      vRemap.emplace_back(node);
+      addNodes.emplace(node);
+
+      std::cout << "\t\t" << nodeID(*node) << " to ";
+      return packNodeByInput(*node, context, addNodes);
     }
-    return opReMapDefault(node, std::forward<Targs>(args)...);
+
+    return packNode(node, addNodes);
   }
 
   std::vector<const onnx::NodeProto *> checkfuseNode(
       const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
       std::set<const onnx::NodeProto *> &addNodes, mapContext &context) {
+    addNodes.emplace(node);
+
     auto input = node->input()[0];
     auto inputNode = context.outputNodeMap.find(input);
 
@@ -324,39 +363,26 @@ struct OpRReMap
       std::cout << '\t' << nodeID(*node) << " to " << nodeID(inputNode->second)
                 << " output " << inputNode->second.output()[0] << std::endl;
 
-      needs = checkNode(&(inputNode->second), vRemap, addNodes, context);
+      needs = checkfusedNode(&(inputNode->second), vRemap, addNodes, context);
     }
 
     default:
       std::cout << "\t\t" << nodeID(*node) << " to ";
-      needs = packNode(&(inputNode->second), addNodes);
+      needs = packNodeByInput(*node, context, addNodes);
     }
 
     vRemap.emplace_back(node);
-    addNodes.emplace(node);
 
     return needs;
   }
 
-  static fusedNode fusedNodeSet;
-  std::vector<const onnx::NodeProto *> checkfusedNode(
-      const onnx::NodeProto *node, std::vector<const onnx::NodeProto *> &vRemap,
-      std::set<const onnx::NodeProto *> &addNodes, mapContext &context) {
-
-    if (fusedNodeSet.contains(node->op_type())) {
-
-      vRemap.emplace_back(node);
-      addNodes.emplace(node);
-      std::vector<std::pair<std::string, const onnx::NodeProto &>> inputItrs;
-
-      for (auto &input : node->input()) {
-        auto const &nodePair = context.outputNodeMap.find(input);
-        inputItrs.emplace_back(nodePair->first, nodePair->second);
-      }
-      return packNode(std::pair{inputItrs.begin(), inputItrs.end()}, addNodes);
+  template <typename... Targs>
+  auto checkNode(const onnx::NodeProto *node, Targs &&...args) {
+    auto opItr = find(node->op_type());
+    if (opItr != end()) {
+      return opItr->second(node, std::forward<Targs>(args)...);
     }
-
-    return packNode(node, addNodes);
+    return opReMapDefault(node, std::forward<Targs>(args)...);
   }
 
   OpRReMap() {
@@ -404,6 +430,8 @@ createNodeVVFromOutputs(const std::vector<std::string> outputs,
     std::vector<const onnx::NodeProto *> vRemap{};
 
     auto needs = opReMap.checkNode(nodePtr, vRemap, addNodes, context);
+    if (!vRemap.empty())
+      vvRemap.emplace_back(std::move(vRemap));
     needNodes.insert(needNodes.end(), needs.begin(), needs.end());
     needNodes.pop_front();
   }
