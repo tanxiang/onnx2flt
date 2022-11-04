@@ -87,14 +87,16 @@ int main(int argc, char *argv[]) {
         }
       }
     }
-    std::vector<std::vector<const onnx::NodeProto *>> vvRemap;
+#ifdef REMAP_FOMR_INPUT
+
+    std::vector<std::vector<const onnx::NodeProto *>> vvRRemap;
     for (const auto &input : graph.input()) {
       if (input.has_name()) {
         std::cout << "input.name() " << input.name() << '\n';
-        vvRemap = createNodeVVFromInput(input, context);
-        std::cout << "vvRemap size = " << vvRemap.size() << std::endl;
+        vvRRemap = createNodeVVFromInput(input, context);
+        std::cout << "vvRemap size = " << vvRRemap.size() << std::endl;
         int allSize{0};
-        for (auto &vRemap : vvRemap) {
+        for (auto &vRemap : vvRRemap) {
           allSize += vRemap.size();
         }
         std::cout << "vvRemap allSize = " << allSize << std::endl;
@@ -102,10 +104,30 @@ int main(int argc, char *argv[]) {
       } else
         std::cout << "noname input graph\n";
     }
+#else
+
+    std::vector<std::string> outputs;
+    for (const auto &output : graph.output()) {
+      if (output.has_name() && !output.name().empty())
+        outputs.emplace_back(output.name());
+
+      std::cout << "graphs output:" << output.name() << std::endl;
+    }
+
+    auto vvRRemap = createNodeVVFromOutputs(outputs, context);
+
+    std::cout << "vvRemap size = " << vvRRemap.size() << std::endl;
+    int allSize{0};
+    for (auto &vRemap : vvRRemap) {
+      allSize += vRemap.size();
+    }
+    std::cout << "vvRemap allSize = " << allSize << std::endl;
+#endif
+
     int conventNodeNum{0};
     for (const auto &node : model_proto.graph().node()) {
       bool nodeRemapd = false;
-      for (auto &vRemap : vvRemap) {
+      for (auto &vRemap : vvRRemap) {
         for (auto &Remap : vRemap) {
           if (&node == Remap) {
             nodeRemapd = true;
@@ -135,7 +157,7 @@ int main(int argc, char *argv[]) {
     std::vector<uint8_t> nodeTypes;
     std::vector<flatbuffers::Offset<void>> nodeVals;
 
-    for (auto &vRemap : vvRemap) {
+    for (auto &vRemap : vvRRemap) {
 
       auto opItr = mapOpFunc.find(vRemap[0]->op_type());
       if (opItr != mapOpFunc.end()) {
@@ -147,16 +169,6 @@ int main(int argc, char *argv[]) {
                   << vRemap[0]->DebugString();
       }
     }
-
-    std::vector<std::string> outputs;
-    for (const auto &output : graph.output()) {
-      if (output.has_name() && !output.name().empty())
-        outputs.emplace_back(output.name());
-
-        std::cout<<"graphs output:" << output.name()<<std::endl;
-    }
-
-    auto vvRRemap = createNodeVVFromOutputs(outputs,context);
 
     nn::versionInfo version{FLATBUFFERS_VERSION_MAJOR * 10000 +
                                 FLATBUFFERS_VERSION_MINOR * 100 +
