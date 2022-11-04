@@ -168,7 +168,7 @@ auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
     if (nodes.size() > 1) {
       // std::cout << nodes[1]->DebugString();
       if (nodes[1]->op_type() == "Relu") {
-        builder.add_fuse_code(nn::FuseCode::FuseCode_Relu);
+        builder.add_fuse_code(nn::FuseCode::Relu);
       }
       if (nodes[1]->op_type() == "Clip") {
         auto &min = context.tensorMap.at(nodes[1]->input()[1]);
@@ -180,9 +180,9 @@ auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
             min.dims_size() != 1 || max.dims_size() != 1) {
           std::cout << min.DebugString() << max.DebugString();
         } else if (min.float_data()[0] == 0.0f && max.float_data()[0] == 6.0f) {
-          builder.add_fuse_code(nn::FuseCode::FuseCode_Relu6);
+          builder.add_fuse_code(nn::FuseCode::Relu6);
         } else if (min.float_data()[0] == 0.0f && max.float_data()[0] == 1.0f) {
-          builder.add_fuse_code(nn::FuseCode::FuseCode_Relu1);
+          builder.add_fuse_code(nn::FuseCode::Relu1);
         } else {
           std::cout << "Clip:" << min.float_data()[0] << '-'
                     << max.float_data()[0] << std::endl;
@@ -297,7 +297,7 @@ auto getFlNode<nn::CONV_2DBuilder>(flatbuffers::FlatBufferBuilder &flatbuffers,
 */
 template <typename Layer>
 inline auto UnionPair(flatbuffers::Offset<Layer> &layer) {
-  return std::pair<uint8_t, flatbuffers::Offset<void>>{
+  return std::pair<nn::Layer, flatbuffers::Offset<void>>{
       nn::LayerTraits<Layer>::enum_value, layer.Union()};
 }
 

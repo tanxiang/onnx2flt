@@ -129,23 +129,23 @@ struct RESHAPEBuilder;
 struct Graph;
 struct GraphBuilder;
 
-enum DataType : int8_t {
-  DataType_Float = 0,
-  DataType_Int = 1,
-  DataType_QuantAsymm = 2,
-  DataType_QuantSymm = 3,
-  DataType_QuantSymmPerChannel = 4,
-  DataType_MIN = DataType_Float,
-  DataType_MAX = DataType_QuantSymmPerChannel
+enum class DataType : int8_t {
+  Float = 0,
+  Int = 1,
+  QuantAsymm = 2,
+  QuantSymm = 3,
+  QuantSymmPerChannel = 4,
+  MIN = Float,
+  MAX = QuantSymmPerChannel
 };
 
 inline const DataType (&EnumValuesDataType())[5] {
   static const DataType values[] = {
-    DataType_Float,
-    DataType_Int,
-    DataType_QuantAsymm,
-    DataType_QuantSymm,
-    DataType_QuantSymmPerChannel
+    DataType::Float,
+    DataType::Int,
+    DataType::QuantAsymm,
+    DataType::QuantSymm,
+    DataType::QuantSymmPerChannel
   };
   return values;
 }
@@ -163,24 +163,24 @@ inline const char * const *EnumNamesDataType() {
 }
 
 inline const char *EnumNameDataType(DataType e) {
-  if (flatbuffers::IsOutRange(e, DataType_Float, DataType_QuantSymmPerChannel)) return "";
+  if (flatbuffers::IsOutRange(e, DataType::Float, DataType::QuantSymmPerChannel)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesDataType()[index];
 }
 
-enum FuseCode : int8_t {
-  FuseCode_Relu = 0,
-  FuseCode_Relu1 = 1,
-  FuseCode_Relu6 = 2,
-  FuseCode_MIN = FuseCode_Relu,
-  FuseCode_MAX = FuseCode_Relu6
+enum class FuseCode : int8_t {
+  Relu = 0,
+  Relu1 = 1,
+  Relu6 = 2,
+  MIN = Relu,
+  MAX = Relu6
 };
 
 inline const FuseCode (&EnumValuesFuseCode())[3] {
   static const FuseCode values[] = {
-    FuseCode_Relu,
-    FuseCode_Relu1,
-    FuseCode_Relu6
+    FuseCode::Relu,
+    FuseCode::Relu1,
+    FuseCode::Relu6
   };
   return values;
 }
@@ -196,78 +196,78 @@ inline const char * const *EnumNamesFuseCode() {
 }
 
 inline const char *EnumNameFuseCode(FuseCode e) {
-  if (flatbuffers::IsOutRange(e, FuseCode_Relu, FuseCode_Relu6)) return "";
+  if (flatbuffers::IsOutRange(e, FuseCode::Relu, FuseCode::Relu6)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesFuseCode()[index];
 }
 
-enum Layer : uint8_t {
-  Layer_NONE = 0,
-  Layer_CONV_2D = 1,
-  Layer_AVERAGE_POOL_2D = 2,
-  Layer_MAX_POOL_2D = 3,
-  Layer_RELU = 4,
-  Layer_SOFTMAX = 5,
-  Layer_FULLY_CONNECTED = 6,
-  Layer_ADD = 7,
-  Layer_CONCATENATION = 8,
-  Layer_DEPTHWISE_CONV_2D = 9,
-  Layer_BATCH_TO_SPACE_ND = 10,
-  Layer_SPACE_TO_BATCH_ND = 11,
-  Layer_STRIDED_SLICE = 12,
-  Layer_MUL = 13,
-  Layer_DEQUANTIZE = 14,
-  Layer_LOCAL_RESPONSE_NORMALIZATION = 15,
-  Layer_TANH = 16,
-  Layer_FLOOR = 17,
-  Layer_LOGISTIC = 18,
-  Layer_PRELU = 19,
-  Layer_POW = 20,
-  Layer_NEG = 21,
-  Layer_MINIMUM = 22,
-  Layer_MAXIMUM = 23,
-  Layer_LOG = 24,
-  Layer_ABS = 25,
-  Layer_EXP = 26,
-  Layer_SUB = 27,
-  Layer_GATHER = 28,
-  Layer_RESHAPE = 29,
-  Layer_MIN = Layer_NONE,
-  Layer_MAX = Layer_RESHAPE
+enum class Layer : uint8_t {
+  NONE = 0,
+  CONV_2D = 1,
+  AVERAGE_POOL_2D = 2,
+  MAX_POOL_2D = 3,
+  RELU = 4,
+  SOFTMAX = 5,
+  FULLY_CONNECTED = 6,
+  ADD = 7,
+  CONCATENATION = 8,
+  DEPTHWISE_CONV_2D = 9,
+  BATCH_TO_SPACE_ND = 10,
+  SPACE_TO_BATCH_ND = 11,
+  STRIDED_SLICE = 12,
+  MUL = 13,
+  DEQUANTIZE = 14,
+  LOCAL_RESPONSE_NORMALIZATION = 15,
+  TANH = 16,
+  FLOOR = 17,
+  LOGISTIC = 18,
+  PRELU = 19,
+  POW = 20,
+  NEG = 21,
+  MINIMUM = 22,
+  MAXIMUM = 23,
+  LOG = 24,
+  ABS = 25,
+  EXP = 26,
+  SUB = 27,
+  GATHER = 28,
+  RESHAPE = 29,
+  MIN = NONE,
+  MAX = RESHAPE
 };
 
 inline const Layer (&EnumValuesLayer())[30] {
   static const Layer values[] = {
-    Layer_NONE,
-    Layer_CONV_2D,
-    Layer_AVERAGE_POOL_2D,
-    Layer_MAX_POOL_2D,
-    Layer_RELU,
-    Layer_SOFTMAX,
-    Layer_FULLY_CONNECTED,
-    Layer_ADD,
-    Layer_CONCATENATION,
-    Layer_DEPTHWISE_CONV_2D,
-    Layer_BATCH_TO_SPACE_ND,
-    Layer_SPACE_TO_BATCH_ND,
-    Layer_STRIDED_SLICE,
-    Layer_MUL,
-    Layer_DEQUANTIZE,
-    Layer_LOCAL_RESPONSE_NORMALIZATION,
-    Layer_TANH,
-    Layer_FLOOR,
-    Layer_LOGISTIC,
-    Layer_PRELU,
-    Layer_POW,
-    Layer_NEG,
-    Layer_MINIMUM,
-    Layer_MAXIMUM,
-    Layer_LOG,
-    Layer_ABS,
-    Layer_EXP,
-    Layer_SUB,
-    Layer_GATHER,
-    Layer_RESHAPE
+    Layer::NONE,
+    Layer::CONV_2D,
+    Layer::AVERAGE_POOL_2D,
+    Layer::MAX_POOL_2D,
+    Layer::RELU,
+    Layer::SOFTMAX,
+    Layer::FULLY_CONNECTED,
+    Layer::ADD,
+    Layer::CONCATENATION,
+    Layer::DEPTHWISE_CONV_2D,
+    Layer::BATCH_TO_SPACE_ND,
+    Layer::SPACE_TO_BATCH_ND,
+    Layer::STRIDED_SLICE,
+    Layer::MUL,
+    Layer::DEQUANTIZE,
+    Layer::LOCAL_RESPONSE_NORMALIZATION,
+    Layer::TANH,
+    Layer::FLOOR,
+    Layer::LOGISTIC,
+    Layer::PRELU,
+    Layer::POW,
+    Layer::NEG,
+    Layer::MINIMUM,
+    Layer::MAXIMUM,
+    Layer::LOG,
+    Layer::ABS,
+    Layer::EXP,
+    Layer::SUB,
+    Layer::GATHER,
+    Layer::RESHAPE
   };
   return values;
 }
@@ -310,133 +310,133 @@ inline const char * const *EnumNamesLayer() {
 }
 
 inline const char *EnumNameLayer(Layer e) {
-  if (flatbuffers::IsOutRange(e, Layer_NONE, Layer_RESHAPE)) return "";
+  if (flatbuffers::IsOutRange(e, Layer::NONE, Layer::RESHAPE)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesLayer()[index];
 }
 
 template<typename T> struct LayerTraits {
-  static const Layer enum_value = Layer_NONE;
+  static const Layer enum_value = Layer::NONE;
 };
 
 template<> struct LayerTraits<nn::CONV_2D> {
-  static const Layer enum_value = Layer_CONV_2D;
+  static const Layer enum_value = Layer::CONV_2D;
 };
 
 template<> struct LayerTraits<nn::AVERAGE_POOL_2D> {
-  static const Layer enum_value = Layer_AVERAGE_POOL_2D;
+  static const Layer enum_value = Layer::AVERAGE_POOL_2D;
 };
 
 template<> struct LayerTraits<nn::MAX_POOL_2D> {
-  static const Layer enum_value = Layer_MAX_POOL_2D;
+  static const Layer enum_value = Layer::MAX_POOL_2D;
 };
 
 template<> struct LayerTraits<nn::RELU> {
-  static const Layer enum_value = Layer_RELU;
+  static const Layer enum_value = Layer::RELU;
 };
 
 template<> struct LayerTraits<nn::SOFTMAX> {
-  static const Layer enum_value = Layer_SOFTMAX;
+  static const Layer enum_value = Layer::SOFTMAX;
 };
 
 template<> struct LayerTraits<nn::FULLY_CONNECTED> {
-  static const Layer enum_value = Layer_FULLY_CONNECTED;
+  static const Layer enum_value = Layer::FULLY_CONNECTED;
 };
 
 template<> struct LayerTraits<nn::ADD> {
-  static const Layer enum_value = Layer_ADD;
+  static const Layer enum_value = Layer::ADD;
 };
 
 template<> struct LayerTraits<nn::CONCATENATION> {
-  static const Layer enum_value = Layer_CONCATENATION;
+  static const Layer enum_value = Layer::CONCATENATION;
 };
 
 template<> struct LayerTraits<nn::DEPTHWISE_CONV_2D> {
-  static const Layer enum_value = Layer_DEPTHWISE_CONV_2D;
+  static const Layer enum_value = Layer::DEPTHWISE_CONV_2D;
 };
 
 template<> struct LayerTraits<nn::BATCH_TO_SPACE_ND> {
-  static const Layer enum_value = Layer_BATCH_TO_SPACE_ND;
+  static const Layer enum_value = Layer::BATCH_TO_SPACE_ND;
 };
 
 template<> struct LayerTraits<nn::SPACE_TO_BATCH_ND> {
-  static const Layer enum_value = Layer_SPACE_TO_BATCH_ND;
+  static const Layer enum_value = Layer::SPACE_TO_BATCH_ND;
 };
 
 template<> struct LayerTraits<nn::STRIDED_SLICE> {
-  static const Layer enum_value = Layer_STRIDED_SLICE;
+  static const Layer enum_value = Layer::STRIDED_SLICE;
 };
 
 template<> struct LayerTraits<nn::MUL> {
-  static const Layer enum_value = Layer_MUL;
+  static const Layer enum_value = Layer::MUL;
 };
 
 template<> struct LayerTraits<nn::DEQUANTIZE> {
-  static const Layer enum_value = Layer_DEQUANTIZE;
+  static const Layer enum_value = Layer::DEQUANTIZE;
 };
 
 template<> struct LayerTraits<nn::LOCAL_RESPONSE_NORMALIZATION> {
-  static const Layer enum_value = Layer_LOCAL_RESPONSE_NORMALIZATION;
+  static const Layer enum_value = Layer::LOCAL_RESPONSE_NORMALIZATION;
 };
 
 template<> struct LayerTraits<nn::TANH> {
-  static const Layer enum_value = Layer_TANH;
+  static const Layer enum_value = Layer::TANH;
 };
 
 template<> struct LayerTraits<nn::FLOOR> {
-  static const Layer enum_value = Layer_FLOOR;
+  static const Layer enum_value = Layer::FLOOR;
 };
 
 template<> struct LayerTraits<nn::LOGISTIC> {
-  static const Layer enum_value = Layer_LOGISTIC;
+  static const Layer enum_value = Layer::LOGISTIC;
 };
 
 template<> struct LayerTraits<nn::PRELU> {
-  static const Layer enum_value = Layer_PRELU;
+  static const Layer enum_value = Layer::PRELU;
 };
 
 template<> struct LayerTraits<nn::POW> {
-  static const Layer enum_value = Layer_POW;
+  static const Layer enum_value = Layer::POW;
 };
 
 template<> struct LayerTraits<nn::NEG> {
-  static const Layer enum_value = Layer_NEG;
+  static const Layer enum_value = Layer::NEG;
 };
 
 template<> struct LayerTraits<nn::MINIMUM> {
-  static const Layer enum_value = Layer_MINIMUM;
+  static const Layer enum_value = Layer::MINIMUM;
 };
 
 template<> struct LayerTraits<nn::MAXIMUM> {
-  static const Layer enum_value = Layer_MAXIMUM;
+  static const Layer enum_value = Layer::MAXIMUM;
 };
 
 template<> struct LayerTraits<nn::LOG> {
-  static const Layer enum_value = Layer_LOG;
+  static const Layer enum_value = Layer::LOG;
 };
 
 template<> struct LayerTraits<nn::ABS> {
-  static const Layer enum_value = Layer_ABS;
+  static const Layer enum_value = Layer::ABS;
 };
 
 template<> struct LayerTraits<nn::EXP> {
-  static const Layer enum_value = Layer_EXP;
+  static const Layer enum_value = Layer::EXP;
 };
 
 template<> struct LayerTraits<nn::SUB> {
-  static const Layer enum_value = Layer_SUB;
+  static const Layer enum_value = Layer::SUB;
 };
 
 template<> struct LayerTraits<nn::GATHER> {
-  static const Layer enum_value = Layer_GATHER;
+  static const Layer enum_value = Layer::GATHER;
 };
 
 template<> struct LayerTraits<nn::RESHAPE> {
-  static const Layer enum_value = Layer_RESHAPE;
+  static const Layer enum_value = Layer::RESHAPE;
 };
 
 bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer type);
-bool VerifyLayerVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
+bool VerifyLayerVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<Layer> *types);
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) versionInfo FLATBUFFERS_FINAL_CLASS {
  private:
@@ -444,6 +444,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) versionInfo FLATBUFFERS_FINAL_CLASS {
   int64_t dataversion_;
 
  public:
+  struct Traits;
   versionInfo()
       : codeversion_(0),
         dataversion_(0) {
@@ -461,6 +462,10 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) versionInfo FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(versionInfo, 16);
 
+struct versionInfo::Traits {
+  using type = versionInfo;
+};
+
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Pads FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t left_;
@@ -469,6 +474,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Pads FLATBUFFERS_FINAL_CLASS {
   int32_t bottom_;
 
  public:
+  struct Traits;
   Pads()
       : left_(0),
         right_(0),
@@ -496,12 +502,17 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Pads FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Pads, 16);
 
+struct Pads::Traits {
+  using type = Pads;
+};
+
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Stride FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t x_;
   int32_t y_;
 
  public:
+  struct Traits;
   Stride()
       : x_(0),
         y_(0) {
@@ -519,12 +530,17 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Stride FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Stride, 8);
 
+struct Stride::Traits {
+  using type = Stride;
+};
+
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Dilation FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t x_;
   int32_t y_;
 
  public:
+  struct Traits;
   Dilation()
       : x_(0),
         y_(0) {
@@ -542,12 +558,17 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Dilation FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Dilation, 8);
 
+struct Dilation::Traits {
+  using type = Dilation;
+};
+
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) KernelShape FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t width_;
   int32_t height_;
 
  public:
+  struct Traits;
   KernelShape()
       : width_(0),
         height_(0) {
@@ -565,11 +586,16 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) KernelShape FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(KernelShape, 8);
 
+struct KernelShape::Traits {
+  using type = KernelShape;
+};
+
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Group FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t id_;
 
  public:
+  struct Traits;
   Group()
       : id_(0) {
   }
@@ -582,8 +608,13 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Group FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Group, 4);
 
+struct Group::Traits {
+  using type = Group;
+};
+
 struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef TensorBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_TYPE = 6,
@@ -646,7 +677,7 @@ struct TensorBuilder {
 inline flatbuffers::Offset<Tensor> CreateTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    nn::DataType type = nn::DataType_Float,
+    nn::DataType type = nn::DataType::Float,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> raw_data = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim = 0) {
   TensorBuilder builder_(_fbb);
@@ -657,10 +688,15 @@ inline flatbuffers::Offset<Tensor> CreateTensor(
   return builder_.Finish();
 }
 
+struct Tensor::Traits {
+  using type = Tensor;
+  static auto constexpr Create = CreateTensor;
+};
+
 inline flatbuffers::Offset<Tensor> CreateTensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    nn::DataType type = nn::DataType_Float,
+    nn::DataType type = nn::DataType::Float,
     const std::vector<uint8_t> *raw_data = nullptr,
     const std::vector<uint16_t> *dim = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
@@ -676,6 +712,7 @@ inline flatbuffers::Offset<Tensor> CreateTensorDirect(
 
 struct QuantInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef QuantInfoBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_TYPE = 6,
@@ -745,7 +782,7 @@ struct QuantInfoBuilder {
 inline flatbuffers::Offset<QuantInfo> CreateQuantInfo(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    nn::DataType type = nn::DataType_Float,
+    nn::DataType type = nn::DataType::Float,
     uint16_t dim = 0,
     flatbuffers::Offset<flatbuffers::Vector<float>> scales = 0,
     int32_t zero_point = 0) {
@@ -758,10 +795,15 @@ inline flatbuffers::Offset<QuantInfo> CreateQuantInfo(
   return builder_.Finish();
 }
 
+struct QuantInfo::Traits {
+  using type = QuantInfo;
+  static auto constexpr Create = CreateQuantInfo;
+};
+
 inline flatbuffers::Offset<QuantInfo> CreateQuantInfoDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    nn::DataType type = nn::DataType_Float,
+    nn::DataType type = nn::DataType::Float,
     uint16_t dim = 0,
     const std::vector<float> *scales = nullptr,
     int32_t zero_point = 0) {
@@ -778,6 +820,7 @@ inline flatbuffers::Offset<QuantInfo> CreateQuantInfoDirect(
 
 struct Input FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef InputBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_DIM = 6
@@ -829,6 +872,11 @@ inline flatbuffers::Offset<Input> CreateInput(
   return builder_.Finish();
 }
 
+struct Input::Traits {
+  using type = Input;
+  static auto constexpr Create = CreateInput;
+};
+
 inline flatbuffers::Offset<Input> CreateInputDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
@@ -843,6 +891,7 @@ inline flatbuffers::Offset<Input> CreateInputDirect(
 
 struct Link FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LinkBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INPUT = 4,
     VT_OUTPUT = 6,
@@ -909,6 +958,11 @@ inline flatbuffers::Offset<Link> CreateLink(
   return builder_.Finish();
 }
 
+struct Link::Traits {
+  using type = Link;
+  static auto constexpr Create = CreateLink;
+};
+
 inline flatbuffers::Offset<Link> CreateLinkDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *input = nullptr,
@@ -926,6 +980,7 @@ inline flatbuffers::Offset<Link> CreateLinkDirect(
 
 struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef CONV_2DBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_PADDING = 6,
@@ -1006,7 +1061,7 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     const nn::Stride *stride = nullptr,
     const nn::Dilation *dilation = nullptr,
     const nn::Group *group = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
   CONV_2DBuilder builder_(_fbb);
   builder_.add_group(group);
   builder_.add_dilation(dilation);
@@ -1017,8 +1072,14 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
   return builder_.Finish();
 }
 
+struct CONV_2D::Traits {
+  using type = CONV_2D;
+  static auto constexpr Create = CreateCONV_2D;
+};
+
 struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AVERAGE_POOL_2DBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_PADDING = 6,
@@ -1090,7 +1151,7 @@ inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::KernelShape *kernel_shape = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
   AVERAGE_POOL_2DBuilder builder_(_fbb);
   builder_.add_kernel_shape(kernel_shape);
   builder_.add_stride(stride);
@@ -1100,8 +1161,14 @@ inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
   return builder_.Finish();
 }
 
+struct AVERAGE_POOL_2D::Traits {
+  using type = AVERAGE_POOL_2D;
+  static auto constexpr Create = CreateAVERAGE_POOL_2D;
+};
+
 struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MAX_POOL_2DBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_PADDING = 6,
@@ -1173,7 +1240,7 @@ inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2D(
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::KernelShape *kernel_shape = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
   MAX_POOL_2DBuilder builder_(_fbb);
   builder_.add_kernel_shape(kernel_shape);
   builder_.add_stride(stride);
@@ -1183,8 +1250,14 @@ inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2D(
   return builder_.Finish();
 }
 
+struct MAX_POOL_2D::Traits {
+  using type = MAX_POOL_2D;
+  static auto constexpr Create = CreateMAX_POOL_2D;
+};
+
 struct RELU FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef RELUBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -1226,8 +1299,14 @@ inline flatbuffers::Offset<RELU> CreateRELU(
   return builder_.Finish();
 }
 
+struct RELU::Traits {
+  using type = RELU;
+  static auto constexpr Create = CreateRELU;
+};
+
 struct SOFTMAX FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SOFTMAXBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_BETA = 6
@@ -1279,8 +1358,14 @@ inline flatbuffers::Offset<SOFTMAX> CreateSOFTMAX(
   return builder_.Finish();
 }
 
+struct SOFTMAX::Traits {
+  using type = SOFTMAX;
+  static auto constexpr Create = CreateSOFTMAX;
+};
+
 struct FULLY_CONNECTED FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef FULLY_CONNECTEDBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_BIAS = 6,
@@ -1334,7 +1419,7 @@ inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTED(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
     float bias = 0.0f,
-    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
   FULLY_CONNECTEDBuilder builder_(_fbb);
   builder_.add_bias(bias);
   builder_.add_link(link);
@@ -1342,8 +1427,14 @@ inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTED(
   return builder_.Finish();
 }
 
+struct FULLY_CONNECTED::Traits {
+  using type = FULLY_CONNECTED;
+  static auto constexpr Create = CreateFULLY_CONNECTED;
+};
+
 struct ADD FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ADDBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_FUSE_CODE = 6
@@ -1388,15 +1479,21 @@ struct ADDBuilder {
 inline flatbuffers::Offset<ADD> CreateADD(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
   ADDBuilder builder_(_fbb);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
+struct ADD::Traits {
+  using type = ADD;
+  static auto constexpr Create = CreateADD;
+};
+
 struct SUB FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SUBBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_FUSE_CODE = 6
@@ -1441,15 +1538,21 @@ struct SUBBuilder {
 inline flatbuffers::Offset<SUB> CreateSUB(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
   SUBBuilder builder_(_fbb);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
+struct SUB::Traits {
+  using type = SUB;
+  static auto constexpr Create = CreateSUB;
+};
+
 struct MUL FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MULBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_FUSE_CODE = 6
@@ -1494,15 +1597,21 @@ struct MULBuilder {
 inline flatbuffers::Offset<MUL> CreateMUL(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
   MULBuilder builder_(_fbb);
   builder_.add_link(link);
   builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
+struct MUL::Traits {
+  using type = MUL;
+  static auto constexpr Create = CreateMUL;
+};
+
 struct CONCATENATION FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef CONCATENATIONBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_AXIS = 6
@@ -1554,8 +1663,14 @@ inline flatbuffers::Offset<CONCATENATION> CreateCONCATENATION(
   return builder_.Finish();
 }
 
+struct CONCATENATION::Traits {
+  using type = CONCATENATION;
+  static auto constexpr Create = CreateCONCATENATION;
+};
+
 struct DEPTHWISE_CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef DEPTHWISE_CONV_2DBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_PADDING = 6,
@@ -1627,7 +1742,7 @@ inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2D(
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     int32_t depth_multiplier = 0,
-    nn::FuseCode fuse_code = nn::FuseCode_Relu) {
+    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
   DEPTHWISE_CONV_2DBuilder builder_(_fbb);
   builder_.add_depth_multiplier(depth_multiplier);
   builder_.add_stride(stride);
@@ -1637,8 +1752,14 @@ inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2D(
   return builder_.Finish();
 }
 
+struct DEPTHWISE_CONV_2D::Traits {
+  using type = DEPTHWISE_CONV_2D;
+  static auto constexpr Create = CreateDEPTHWISE_CONV_2D;
+};
+
 struct BATCH_TO_SPACE_ND FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef BATCH_TO_SPACE_NDBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_BLOCK_SIZES = 6
@@ -1691,6 +1812,11 @@ inline flatbuffers::Offset<BATCH_TO_SPACE_ND> CreateBATCH_TO_SPACE_ND(
   return builder_.Finish();
 }
 
+struct BATCH_TO_SPACE_ND::Traits {
+  using type = BATCH_TO_SPACE_ND;
+  static auto constexpr Create = CreateBATCH_TO_SPACE_ND;
+};
+
 inline flatbuffers::Offset<BATCH_TO_SPACE_ND> CreateBATCH_TO_SPACE_NDDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
@@ -1704,6 +1830,7 @@ inline flatbuffers::Offset<BATCH_TO_SPACE_ND> CreateBATCH_TO_SPACE_NDDirect(
 
 struct SPACE_TO_BATCH_ND FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SPACE_TO_BATCH_NDBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_BLOCK_SIZES = 6,
@@ -1766,6 +1893,11 @@ inline flatbuffers::Offset<SPACE_TO_BATCH_ND> CreateSPACE_TO_BATCH_ND(
   return builder_.Finish();
 }
 
+struct SPACE_TO_BATCH_ND::Traits {
+  using type = SPACE_TO_BATCH_ND;
+  static auto constexpr Create = CreateSPACE_TO_BATCH_ND;
+};
+
 inline flatbuffers::Offset<SPACE_TO_BATCH_ND> CreateSPACE_TO_BATCH_NDDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
@@ -1781,6 +1913,7 @@ inline flatbuffers::Offset<SPACE_TO_BATCH_ND> CreateSPACE_TO_BATCH_NDDirect(
 
 struct STRIDED_SLICE FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef STRIDED_SLICEBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_STARTS = 6,
@@ -1885,6 +2018,11 @@ inline flatbuffers::Offset<STRIDED_SLICE> CreateSTRIDED_SLICE(
   return builder_.Finish();
 }
 
+struct STRIDED_SLICE::Traits {
+  using type = STRIDED_SLICE;
+  static auto constexpr Create = CreateSTRIDED_SLICE;
+};
+
 inline flatbuffers::Offset<STRIDED_SLICE> CreateSTRIDED_SLICEDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
@@ -1910,6 +2048,7 @@ inline flatbuffers::Offset<STRIDED_SLICE> CreateSTRIDED_SLICEDirect(
 
 struct DEQUANTIZE FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef DEQUANTIZEBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -1951,8 +2090,14 @@ inline flatbuffers::Offset<DEQUANTIZE> CreateDEQUANTIZE(
   return builder_.Finish();
 }
 
+struct DEQUANTIZE::Traits {
+  using type = DEQUANTIZE;
+  static auto constexpr Create = CreateDEQUANTIZE;
+};
+
 struct LOCAL_RESPONSE_NORMALIZATION FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LOCAL_RESPONSE_NORMALIZATIONBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_RADIUS = 6,
@@ -2034,8 +2179,14 @@ inline flatbuffers::Offset<LOCAL_RESPONSE_NORMALIZATION> CreateLOCAL_RESPONSE_NO
   return builder_.Finish();
 }
 
+struct LOCAL_RESPONSE_NORMALIZATION::Traits {
+  using type = LOCAL_RESPONSE_NORMALIZATION;
+  static auto constexpr Create = CreateLOCAL_RESPONSE_NORMALIZATION;
+};
+
 struct TANH FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef TANHBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -2077,8 +2228,14 @@ inline flatbuffers::Offset<TANH> CreateTANH(
   return builder_.Finish();
 }
 
+struct TANH::Traits {
+  using type = TANH;
+  static auto constexpr Create = CreateTANH;
+};
+
 struct FLOOR FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef FLOORBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -2120,8 +2277,14 @@ inline flatbuffers::Offset<FLOOR> CreateFLOOR(
   return builder_.Finish();
 }
 
+struct FLOOR::Traits {
+  using type = FLOOR;
+  static auto constexpr Create = CreateFLOOR;
+};
+
 struct LOGISTIC FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LOGISTICBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -2163,8 +2326,14 @@ inline flatbuffers::Offset<LOGISTIC> CreateLOGISTIC(
   return builder_.Finish();
 }
 
+struct LOGISTIC::Traits {
+  using type = LOGISTIC;
+  static auto constexpr Create = CreateLOGISTIC;
+};
+
 struct PRELU FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef PRELUBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_ALPHA = 6
@@ -2217,6 +2386,11 @@ inline flatbuffers::Offset<PRELU> CreatePRELU(
   return builder_.Finish();
 }
 
+struct PRELU::Traits {
+  using type = PRELU;
+  static auto constexpr Create = CreatePRELU;
+};
+
 inline flatbuffers::Offset<PRELU> CreatePRELUDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
@@ -2230,6 +2404,7 @@ inline flatbuffers::Offset<PRELU> CreatePRELUDirect(
 
 struct POW FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef POWBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_EXP = 6
@@ -2282,6 +2457,11 @@ inline flatbuffers::Offset<POW> CreatePOW(
   return builder_.Finish();
 }
 
+struct POW::Traits {
+  using type = POW;
+  static auto constexpr Create = CreatePOW;
+};
+
 inline flatbuffers::Offset<POW> CreatePOWDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
@@ -2295,6 +2475,7 @@ inline flatbuffers::Offset<POW> CreatePOWDirect(
 
 struct NEG FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef NEGBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -2336,8 +2517,14 @@ inline flatbuffers::Offset<NEG> CreateNEG(
   return builder_.Finish();
 }
 
+struct NEG::Traits {
+  using type = NEG;
+  static auto constexpr Create = CreateNEG;
+};
+
 struct MINIMUM FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MINIMUMBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -2379,8 +2566,14 @@ inline flatbuffers::Offset<MINIMUM> CreateMINIMUM(
   return builder_.Finish();
 }
 
+struct MINIMUM::Traits {
+  using type = MINIMUM;
+  static auto constexpr Create = CreateMINIMUM;
+};
+
 struct MAXIMUM FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MAXIMUMBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -2422,8 +2615,14 @@ inline flatbuffers::Offset<MAXIMUM> CreateMAXIMUM(
   return builder_.Finish();
 }
 
+struct MAXIMUM::Traits {
+  using type = MAXIMUM;
+  static auto constexpr Create = CreateMAXIMUM;
+};
+
 struct LOG FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LOGBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -2465,8 +2664,14 @@ inline flatbuffers::Offset<LOG> CreateLOG(
   return builder_.Finish();
 }
 
+struct LOG::Traits {
+  using type = LOG;
+  static auto constexpr Create = CreateLOG;
+};
+
 struct ABS FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ABSBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -2508,8 +2713,14 @@ inline flatbuffers::Offset<ABS> CreateABS(
   return builder_.Finish();
 }
 
+struct ABS::Traits {
+  using type = ABS;
+  static auto constexpr Create = CreateABS;
+};
+
 struct EXP FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef EXPBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4
   };
@@ -2551,8 +2762,14 @@ inline flatbuffers::Offset<EXP> CreateEXP(
   return builder_.Finish();
 }
 
+struct EXP::Traits {
+  using type = EXP;
+  static auto constexpr Create = CreateEXP;
+};
+
 struct GATHER FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef GATHERBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_AXIS = 6
@@ -2604,8 +2821,14 @@ inline flatbuffers::Offset<GATHER> CreateGATHER(
   return builder_.Finish();
 }
 
+struct GATHER::Traits {
+  using type = GATHER;
+  static auto constexpr Create = CreateGATHER;
+};
+
 struct RESHAPE FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef RESHAPEBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
     VT_AXES = 6
@@ -2658,6 +2881,11 @@ inline flatbuffers::Offset<RESHAPE> CreateRESHAPE(
   return builder_.Finish();
 }
 
+struct RESHAPE::Traits {
+  using type = RESHAPE;
+  static auto constexpr Create = CreateRESHAPE;
+};
+
 inline flatbuffers::Offset<RESHAPE> CreateRESHAPEDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
@@ -2671,6 +2899,7 @@ inline flatbuffers::Offset<RESHAPE> CreateRESHAPEDirect(
 
 struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef GraphBuilder Builder;
+  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VERSION = 4,
     VT_NODE_TYPE = 6,
@@ -2683,8 +2912,8 @@ struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::versionInfo *version() const {
     return GetStruct<const nn::versionInfo *>(VT_VERSION);
   }
-  const flatbuffers::Vector<uint8_t> *node_type() const {
-    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_NODE_TYPE);
+  const flatbuffers::Vector<nn::Layer> *node_type() const {
+    return GetPointer<const flatbuffers::Vector<nn::Layer> *>(VT_NODE_TYPE);
   }
   const flatbuffers::Vector<flatbuffers::Offset<void>> *node() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<void>> *>(VT_NODE);
@@ -2732,7 +2961,7 @@ struct GraphBuilder {
   void add_version(const nn::versionInfo *version) {
     fbb_.AddStruct(Graph::VT_VERSION, version);
   }
-  void add_node_type(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> node_type) {
+  void add_node_type(flatbuffers::Offset<flatbuffers::Vector<nn::Layer>> node_type) {
     fbb_.AddOffset(Graph::VT_NODE_TYPE, node_type);
   }
   void add_node(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> node) {
@@ -2764,7 +2993,7 @@ struct GraphBuilder {
 inline flatbuffers::Offset<Graph> CreateGraph(
     flatbuffers::FlatBufferBuilder &_fbb,
     const nn::versionInfo *version = nullptr,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> node_type = 0,
+    flatbuffers::Offset<flatbuffers::Vector<nn::Layer>> node_type = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> node = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::Tensor>>> initializers = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::Input>>> inputs = 0,
@@ -2781,16 +3010,21 @@ inline flatbuffers::Offset<Graph> CreateGraph(
   return builder_.Finish();
 }
 
+struct Graph::Traits {
+  using type = Graph;
+  static auto constexpr Create = CreateGraph;
+};
+
 inline flatbuffers::Offset<Graph> CreateGraphDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const nn::versionInfo *version = nullptr,
-    const std::vector<uint8_t> *node_type = nullptr,
+    const std::vector<nn::Layer> *node_type = nullptr,
     const std::vector<flatbuffers::Offset<void>> *node = nullptr,
     const std::vector<flatbuffers::Offset<nn::Tensor>> *initializers = nullptr,
     const std::vector<flatbuffers::Offset<nn::Input>> *inputs = nullptr,
     const std::vector<flatbuffers::Offset<nn::QuantInfo>> *quant_infos = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *outputs = nullptr) {
-  auto node_type__ = node_type ? _fbb.CreateVector<uint8_t>(*node_type) : 0;
+  auto node_type__ = node_type ? _fbb.CreateVector<nn::Layer>(*node_type) : 0;
   auto node__ = node ? _fbb.CreateVector<flatbuffers::Offset<void>>(*node) : 0;
   auto initializers__ = initializers ? _fbb.CreateVector<flatbuffers::Offset<nn::Tensor>>(*initializers) : 0;
   auto inputs__ = inputs ? _fbb.CreateVector<flatbuffers::Offset<nn::Input>>(*inputs) : 0;
@@ -2809,122 +3043,122 @@ inline flatbuffers::Offset<Graph> CreateGraphDirect(
 
 inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer type) {
   switch (type) {
-    case Layer_NONE: {
+    case Layer::NONE: {
       return true;
     }
-    case Layer_CONV_2D: {
+    case Layer::CONV_2D: {
       auto ptr = reinterpret_cast<const nn::CONV_2D *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_AVERAGE_POOL_2D: {
+    case Layer::AVERAGE_POOL_2D: {
       auto ptr = reinterpret_cast<const nn::AVERAGE_POOL_2D *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_MAX_POOL_2D: {
+    case Layer::MAX_POOL_2D: {
       auto ptr = reinterpret_cast<const nn::MAX_POOL_2D *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_RELU: {
+    case Layer::RELU: {
       auto ptr = reinterpret_cast<const nn::RELU *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_SOFTMAX: {
+    case Layer::SOFTMAX: {
       auto ptr = reinterpret_cast<const nn::SOFTMAX *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_FULLY_CONNECTED: {
+    case Layer::FULLY_CONNECTED: {
       auto ptr = reinterpret_cast<const nn::FULLY_CONNECTED *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_ADD: {
+    case Layer::ADD: {
       auto ptr = reinterpret_cast<const nn::ADD *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_CONCATENATION: {
+    case Layer::CONCATENATION: {
       auto ptr = reinterpret_cast<const nn::CONCATENATION *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_DEPTHWISE_CONV_2D: {
+    case Layer::DEPTHWISE_CONV_2D: {
       auto ptr = reinterpret_cast<const nn::DEPTHWISE_CONV_2D *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_BATCH_TO_SPACE_ND: {
+    case Layer::BATCH_TO_SPACE_ND: {
       auto ptr = reinterpret_cast<const nn::BATCH_TO_SPACE_ND *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_SPACE_TO_BATCH_ND: {
+    case Layer::SPACE_TO_BATCH_ND: {
       auto ptr = reinterpret_cast<const nn::SPACE_TO_BATCH_ND *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_STRIDED_SLICE: {
+    case Layer::STRIDED_SLICE: {
       auto ptr = reinterpret_cast<const nn::STRIDED_SLICE *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_MUL: {
+    case Layer::MUL: {
       auto ptr = reinterpret_cast<const nn::MUL *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_DEQUANTIZE: {
+    case Layer::DEQUANTIZE: {
       auto ptr = reinterpret_cast<const nn::DEQUANTIZE *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_LOCAL_RESPONSE_NORMALIZATION: {
+    case Layer::LOCAL_RESPONSE_NORMALIZATION: {
       auto ptr = reinterpret_cast<const nn::LOCAL_RESPONSE_NORMALIZATION *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_TANH: {
+    case Layer::TANH: {
       auto ptr = reinterpret_cast<const nn::TANH *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_FLOOR: {
+    case Layer::FLOOR: {
       auto ptr = reinterpret_cast<const nn::FLOOR *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_LOGISTIC: {
+    case Layer::LOGISTIC: {
       auto ptr = reinterpret_cast<const nn::LOGISTIC *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_PRELU: {
+    case Layer::PRELU: {
       auto ptr = reinterpret_cast<const nn::PRELU *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_POW: {
+    case Layer::POW: {
       auto ptr = reinterpret_cast<const nn::POW *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_NEG: {
+    case Layer::NEG: {
       auto ptr = reinterpret_cast<const nn::NEG *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_MINIMUM: {
+    case Layer::MINIMUM: {
       auto ptr = reinterpret_cast<const nn::MINIMUM *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_MAXIMUM: {
+    case Layer::MAXIMUM: {
       auto ptr = reinterpret_cast<const nn::MAXIMUM *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_LOG: {
+    case Layer::LOG: {
       auto ptr = reinterpret_cast<const nn::LOG *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_ABS: {
+    case Layer::ABS: {
       auto ptr = reinterpret_cast<const nn::ABS *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_EXP: {
+    case Layer::EXP: {
       auto ptr = reinterpret_cast<const nn::EXP *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_SUB: {
+    case Layer::SUB: {
       auto ptr = reinterpret_cast<const nn::SUB *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_GATHER: {
+    case Layer::GATHER: {
       auto ptr = reinterpret_cast<const nn::GATHER *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer_RESHAPE: {
+    case Layer::RESHAPE: {
       auto ptr = reinterpret_cast<const nn::RESHAPE *>(obj);
       return verifier.VerifyTable(ptr);
     }
@@ -2932,7 +3166,7 @@ inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer 
   }
 }
 
-inline bool VerifyLayerVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+inline bool VerifyLayerVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<Layer> *types) {
   if (!values || !types) return !values && !types;
   if (values->size() != types->size()) return false;
   for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {

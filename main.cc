@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    std::vector<uint8_t> nodeTypes;
+    std::vector<nn::Layer> nodeTypes;
     std::vector<flatbuffers::Offset<void>> nodeVals;
 
     for (auto &vRemap : vvRRemap) {
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
       auto opItr = mapOpFunc.find(vRemap[0]->op_type());
       if (opItr != mapOpFunc.end()) {
         auto ftnode = opItr->second(flatbuffers, vRemap, context);
-        nodeTypes.emplace_back(ftnode.first);
+        nodeTypes.emplace_back(nn::Layer{ ftnode.first});
         nodeVals.emplace_back(ftnode.second);
       } else {
         std::cerr << "error: " << vRemap[0]->op_type() << " is not support!\n"
@@ -178,9 +178,15 @@ int main(int argc, char *argv[]) {
                                             flatbuffers.CreateVector(nodeTypes),
                                             flatbuffers.CreateVector(nodeVals));
     flatbuffers.Finish(flatbuffersGraph);
-    std::ofstream outputfile{argv[2]};
-    outputfile.write(reinterpret_cast<char *>(flatbuffers.GetBufferPointer()),
-                     flatbuffers.GetSize());
+    {
+
+      std::ofstream outputfile{argv[2]};
+      outputfile.write(reinterpret_cast<char *>(flatbuffers.GetBufferPointer()),
+                       flatbuffers.GetSize());
+    }
+    {
+
+    }
   }
 
   return 0;
