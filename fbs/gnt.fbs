@@ -8,11 +8,44 @@ struct versionInfo{
 enum DataType:byte { Float, Int, QuantAsymm, QuantSymm, QuantSymmPerChannel}
 enum FuseCode:byte { Relu, Relu1, Relu6 }
 
-table Tensor {
-    name:string(required);
-    type:DataType;
-    raw_data: [ubyte];
+table TensorInfo{
+    name:string;
+    data_fuse:FuseCode;
     dim: [ushort];
+}
+table ubyteTensor{
+    info:TensorInfo;
+    data :[ubyte];
+}
+
+table ushortTensor{
+    info:TensorInfo;
+    data :[ushort];
+}
+
+
+table uintTensor{
+    info:TensorInfo;
+    data :[uint];
+}
+
+table intTensor{
+    info:TensorInfo;
+    data :[int];
+}
+
+table floatTensor{
+    info:TensorInfo;
+    data :[float];
+}
+
+table doubleTensor{
+    info:TensorInfo;
+    data :[double];
+}
+
+union Tensor{
+    ubyteTensor,ushortTensor,uintTensor,intTensor,floatTensor,doubleTensor
 }
 
 table QuantInfo {
@@ -28,9 +61,15 @@ table Input {
     dim: [ushort];
 }
 
-table Link{
+table LinkOd{
     input: [string](required);
     output: [string](required);
+    name: string;
+}
+
+table Link{
+    input: [uint];
+    output: [uint];
     name: string;
 }
 

@@ -3,13 +3,13 @@
 
 auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
                  const onnx::NodeProto &node) {
-  std::vector<flatbuffers::Offset<flatbuffers::String>> flatInputs{};
+  std::vector<uint32_t> flatInputs{};
   for (const auto &nodeInput : node.input()) {
-    flatInputs.emplace_back(flatbuffers.CreateString(nodeInput));
+    // flatInputs.emplace_back(flatbuffers.CreateString(nodeInput));
   }
-  std::vector<flatbuffers::Offset<flatbuffers::String>> flatOutputs{};
+  std::vector<uint32_t> flatOutputs{};
   for (const auto &nodeOutput : node.output()) {
-    flatOutputs.emplace_back(flatbuffers.CreateString(nodeOutput));
+    // flatOutputs.emplace_back(flatbuffers.CreateString(nodeOutput));
   }
   if (node.has_name() && !node.name().empty())
     return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
@@ -22,16 +22,16 @@ auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
 
 auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
                  std::vector<const onnx::NodeProto *> &nodes) {
-  std::vector<flatbuffers::Offset<flatbuffers::String>> flatInputs{};
+  std::vector<uint32_t> flatInputs{};
   auto startItr = nodes.begin();
   for (auto &nodeInput : (*startItr)->input()) {
-    flatInputs.emplace_back(flatbuffers.CreateString(nodeInput));
+    // flatInputs.emplace_back(flatbuffers.CreateString(nodeInput));
   }
-  std::vector<flatbuffers::Offset<flatbuffers::String>> flatOutputs{};
+  std::vector<uint32_t> flatOutputs{};
   auto endItr = nodes.rbegin();
 
   for (auto &nodeOutput : (*endItr)->output()) {
-    flatOutputs.emplace_back(flatbuffers.CreateString(nodeOutput));
+    // flatOutputs.emplace_back(flatbuffers.CreateString(nodeOutput));
   }
   if ((*startItr)->has_name() && !(*startItr)->name().empty())
     return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
@@ -117,7 +117,8 @@ auto getFlNode(flatbuffers::FlatBufferBuilder &flatbuffers,
                   }) {
       if (attribute.name() == "axes" &&
           attribute.type() == onnx::AttributeProto_AttributeType_INTS) {
-        std::vector<int32_t> axesv(attribute.ints().begin(),attribute.ints().end());
+        std::vector<int32_t> axesv(attribute.ints().begin(),
+                                   attribute.ints().end());
         builder.add_axes(flatbuffers.CreateVector(axesv));
         continue;
       }
