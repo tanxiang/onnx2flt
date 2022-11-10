@@ -86,6 +86,9 @@ int main(int argc, char *argv[]) {
                     << output << " in " << &node << " not support\n";
         }
       }
+      if(node.output_size()>1){
+         std::cerr << nodeID(node)<<node.DebugString();
+      }
     }
 #ifdef REMAP_FOMR_INPUT
 
@@ -153,6 +156,32 @@ int main(int argc, char *argv[]) {
         std::cout << std::endl;
       }
     }
+    std::vector<nn::Tensor> tensorTypes;
+    std::vector<flatbuffers::Offset<void>> tensorVals;
+    for (auto &vRemap : vvRRemap) {
+      for(auto input : (*vRemap.begin())->input()){
+        auto tensorItr = context.tensorMap.find(input);
+        if(tensorItr!=context.tensorMap.end()){
+            std::cout << "get  : input <" <<input<<"> "<<tensorItr->second.name()<<"\n";
+        }
+        else{
+            std::cerr << "error: input <" <<input<<"> not found\n";
+        }
+
+      }
+      for(auto output : (*vRemap.rbegin())->output()){
+        auto tensorItr = context.tensorMap.find(output);
+        if(tensorItr!=context.tensorMap.end()){
+            std::cout << "get : output <" <<output<<"> "<<tensorItr->second.name()<<"\n";
+        }
+        else{
+            std::cerr << "error: output <" <<output<<"> not found\n";
+        }
+
+      }
+
+      
+    }
 
     std::vector<nn::Layer> nodeTypes;
     std::vector<flatbuffers::Offset<void>> nodeVals;
@@ -162,7 +191,7 @@ int main(int argc, char *argv[]) {
       auto opItr = mapOpFunc.find(vRemap[0]->op_type());
       if (opItr != mapOpFunc.end()) {
         auto ftnode = opItr->second(flatbuffers, vRemap, context);
-        nodeTypes.emplace_back(nn::Layer{ ftnode.first});
+        nodeTypes.emplace_back(nn::Layer{ftnode.first});
         nodeVals.emplace_back(ftnode.second);
       } else {
         std::cerr << "error: " << vRemap[0]->op_type() << " is not support!\n"
@@ -184,9 +213,7 @@ int main(int argc, char *argv[]) {
       outputfile.write(reinterpret_cast<char *>(flatbuffers.GetBufferPointer()),
                        flatbuffers.GetSize());
     }
-    {
-
-    }
+    {}
   }
 
   return 0;
