@@ -13,11 +13,9 @@ auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
   }
   if (node.has_name() && !node.name().empty())
     return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
-                          flatbuffers.CreateVector(flatOutputs),
                           flatbuffers.CreateString(node.name()));
   else
-    return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
-                          flatbuffers.CreateVector(flatOutputs));
+    return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs));
 }
 
 auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
@@ -35,11 +33,9 @@ auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
   }
   if ((*startItr)->has_name() && !(*startItr)->name().empty())
     return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
-                          flatbuffers.CreateVector(flatOutputs),
                           flatbuffers.CreateString((*startItr)->name()));
   else
-    return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
-                          flatbuffers.CreateVector(flatOutputs));
+    return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs));
 }
 
 template <typename NodeTypeBuilder>

@@ -44,10 +44,6 @@ table doubleTensor{
     data :[double];
 }
 
-union Tensor{
-    ubyteTensor,ushortTensor,uintTensor,intTensor,floatTensor,doubleTensor
-}
-
 table QuantInfo {
     name: string(required);
     type: DataType;
@@ -56,8 +52,13 @@ table QuantInfo {
     zero_point: int32;
 }
 
-table Input {
-    name:string;
+table InputTensor {
+    type: DataType;
+    dim: [ushort];
+}
+
+table OutputTensor {
+    type: DataType;
     dim: [ushort];
 }
 
@@ -69,7 +70,6 @@ table LinkOd{
 
 table Link{
     input: [uint];
-    output: [uint];
     name: string;
 }
 
@@ -265,7 +265,11 @@ table RESHAPE {
     axes:[int];
 }
 
-union Layer { 
+union Layer {
+    InputTensor,OutputTensor,
+
+    ubyteTensor,ushortTensor,uintTensor,intTensor,floatTensor,doubleTensor,
+    
 CONV_2D,AVERAGE_POOL_2D,MAX_POOL_2D,RELU,SOFTMAX,FULLY_CONNECTED,
 ADD,CONCATENATION,DEPTHWISE_CONV_2D,BATCH_TO_SPACE_ND,SPACE_TO_BATCH_ND,
 STRIDED_SLICE,MUL,DEQUANTIZE,LOCAL_RESPONSE_NORMALIZATION,TANH,FLOOR,LOGISTIC,
@@ -275,10 +279,7 @@ PRELU,POW,NEG,MINIMUM,MAXIMUM,LOG,ABS,EXP,SUB,GATHER,RESHAPE
 table Graph {
     version:versionInfo;
     node:[Layer];
-    initializers:[Tensor];
-    inputs:[Input];
     quant_infos:[QuantInfo];
-    outputs:[string];
 }
 
 root_type Graph;

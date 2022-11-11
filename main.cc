@@ -156,8 +156,7 @@ int main(int argc, char *argv[]) {
         std::cout << std::endl;
       }
     }
-    std::vector<nn::Tensor> tensorTypes;
-    std::vector<flatbuffers::Offset<void>> tensorVals;
+
     for (auto &vRemap : vvRRemap) {
       for(auto input : (*vRemap.begin())->input()){
         auto tensorItr = context.tensorMap.find(input);
@@ -177,17 +176,12 @@ int main(int argc, char *argv[]) {
         else{
             std::cerr << "error: output <" <<output<<"> not found\n";
         }
-
       }
-
-      
     }
 
     std::vector<nn::Layer> nodeTypes;
     std::vector<flatbuffers::Offset<void>> nodeVals;
-
     for (auto &vRemap : vvRRemap) {
-
       auto opItr = mapOpFunc.find(vRemap[0]->op_type());
       if (opItr != mapOpFunc.end()) {
         auto ftnode = opItr->second(flatbuffers, vRemap, context);
@@ -213,7 +207,6 @@ int main(int argc, char *argv[]) {
       outputfile.write(reinterpret_cast<char *>(flatbuffers.GetBufferPointer()),
                        flatbuffers.GetSize());
     }
-    {}
   }
 
   return 0;

@@ -41,8 +41,11 @@ struct doubleTensorBuilder;
 struct QuantInfo;
 struct QuantInfoBuilder;
 
-struct Input;
-struct InputBuilder;
+struct InputTensor;
+struct InputTensorBuilder;
+
+struct OutputTensor;
+struct OutputTensorBuilder;
 
 struct LinkOd;
 struct LinkOdBuilder;
@@ -222,120 +225,60 @@ inline const char *EnumNameFuseCode(FuseCode e) {
   return EnumNamesFuseCode()[index];
 }
 
-enum class Tensor : uint8_t {
-  NONE = 0,
-  ubyteTensor = 1,
-  ushortTensor = 2,
-  uintTensor = 3,
-  intTensor = 4,
-  floatTensor = 5,
-  doubleTensor = 6,
-  MIN = NONE,
-  MAX = doubleTensor
-};
-
-inline const Tensor (&EnumValuesTensor())[7] {
-  static const Tensor values[] = {
-    Tensor::NONE,
-    Tensor::ubyteTensor,
-    Tensor::ushortTensor,
-    Tensor::uintTensor,
-    Tensor::intTensor,
-    Tensor::floatTensor,
-    Tensor::doubleTensor
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesTensor() {
-  static const char * const names[8] = {
-    "NONE",
-    "ubyteTensor",
-    "ushortTensor",
-    "uintTensor",
-    "intTensor",
-    "floatTensor",
-    "doubleTensor",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameTensor(Tensor e) {
-  if (flatbuffers::IsOutRange(e, Tensor::NONE, Tensor::doubleTensor)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesTensor()[index];
-}
-
-template<typename T> struct TensorTraits {
-  static const Tensor enum_value = Tensor::NONE;
-};
-
-template<> struct TensorTraits<nn::ubyteTensor> {
-  static const Tensor enum_value = Tensor::ubyteTensor;
-};
-
-template<> struct TensorTraits<nn::ushortTensor> {
-  static const Tensor enum_value = Tensor::ushortTensor;
-};
-
-template<> struct TensorTraits<nn::uintTensor> {
-  static const Tensor enum_value = Tensor::uintTensor;
-};
-
-template<> struct TensorTraits<nn::intTensor> {
-  static const Tensor enum_value = Tensor::intTensor;
-};
-
-template<> struct TensorTraits<nn::floatTensor> {
-  static const Tensor enum_value = Tensor::floatTensor;
-};
-
-template<> struct TensorTraits<nn::doubleTensor> {
-  static const Tensor enum_value = Tensor::doubleTensor;
-};
-
-bool VerifyTensor(flatbuffers::Verifier &verifier, const void *obj, Tensor type);
-bool VerifyTensorVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<Tensor> *types);
-
 enum class Layer : uint8_t {
   NONE = 0,
-  CONV_2D = 1,
-  AVERAGE_POOL_2D = 2,
-  MAX_POOL_2D = 3,
-  RELU = 4,
-  SOFTMAX = 5,
-  FULLY_CONNECTED = 6,
-  ADD = 7,
-  CONCATENATION = 8,
-  DEPTHWISE_CONV_2D = 9,
-  BATCH_TO_SPACE_ND = 10,
-  SPACE_TO_BATCH_ND = 11,
-  STRIDED_SLICE = 12,
-  MUL = 13,
-  DEQUANTIZE = 14,
-  LOCAL_RESPONSE_NORMALIZATION = 15,
-  TANH = 16,
-  FLOOR = 17,
-  LOGISTIC = 18,
-  PRELU = 19,
-  POW = 20,
-  NEG = 21,
-  MINIMUM = 22,
-  MAXIMUM = 23,
-  LOG = 24,
-  ABS = 25,
-  EXP = 26,
-  SUB = 27,
-  GATHER = 28,
-  RESHAPE = 29,
+  InputTensor = 1,
+  OutputTensor = 2,
+  ubyteTensor = 3,
+  ushortTensor = 4,
+  uintTensor = 5,
+  intTensor = 6,
+  floatTensor = 7,
+  doubleTensor = 8,
+  CONV_2D = 9,
+  AVERAGE_POOL_2D = 10,
+  MAX_POOL_2D = 11,
+  RELU = 12,
+  SOFTMAX = 13,
+  FULLY_CONNECTED = 14,
+  ADD = 15,
+  CONCATENATION = 16,
+  DEPTHWISE_CONV_2D = 17,
+  BATCH_TO_SPACE_ND = 18,
+  SPACE_TO_BATCH_ND = 19,
+  STRIDED_SLICE = 20,
+  MUL = 21,
+  DEQUANTIZE = 22,
+  LOCAL_RESPONSE_NORMALIZATION = 23,
+  TANH = 24,
+  FLOOR = 25,
+  LOGISTIC = 26,
+  PRELU = 27,
+  POW = 28,
+  NEG = 29,
+  MINIMUM = 30,
+  MAXIMUM = 31,
+  LOG = 32,
+  ABS = 33,
+  EXP = 34,
+  SUB = 35,
+  GATHER = 36,
+  RESHAPE = 37,
   MIN = NONE,
   MAX = RESHAPE
 };
 
-inline const Layer (&EnumValuesLayer())[30] {
+inline const Layer (&EnumValuesLayer())[38] {
   static const Layer values[] = {
     Layer::NONE,
+    Layer::InputTensor,
+    Layer::OutputTensor,
+    Layer::ubyteTensor,
+    Layer::ushortTensor,
+    Layer::uintTensor,
+    Layer::intTensor,
+    Layer::floatTensor,
+    Layer::doubleTensor,
     Layer::CONV_2D,
     Layer::AVERAGE_POOL_2D,
     Layer::MAX_POOL_2D,
@@ -370,8 +313,16 @@ inline const Layer (&EnumValuesLayer())[30] {
 }
 
 inline const char * const *EnumNamesLayer() {
-  static const char * const names[31] = {
+  static const char * const names[39] = {
     "NONE",
+    "InputTensor",
+    "OutputTensor",
+    "ubyteTensor",
+    "ushortTensor",
+    "uintTensor",
+    "intTensor",
+    "floatTensor",
+    "doubleTensor",
     "CONV_2D",
     "AVERAGE_POOL_2D",
     "MAX_POOL_2D",
@@ -414,6 +365,38 @@ inline const char *EnumNameLayer(Layer e) {
 
 template<typename T> struct LayerTraits {
   static const Layer enum_value = Layer::NONE;
+};
+
+template<> struct LayerTraits<nn::InputTensor> {
+  static const Layer enum_value = Layer::InputTensor;
+};
+
+template<> struct LayerTraits<nn::OutputTensor> {
+  static const Layer enum_value = Layer::OutputTensor;
+};
+
+template<> struct LayerTraits<nn::ubyteTensor> {
+  static const Layer enum_value = Layer::ubyteTensor;
+};
+
+template<> struct LayerTraits<nn::ushortTensor> {
+  static const Layer enum_value = Layer::ushortTensor;
+};
+
+template<> struct LayerTraits<nn::uintTensor> {
+  static const Layer enum_value = Layer::uintTensor;
+};
+
+template<> struct LayerTraits<nn::intTensor> {
+  static const Layer enum_value = Layer::intTensor;
+};
+
+template<> struct LayerTraits<nn::floatTensor> {
+  static const Layer enum_value = Layer::floatTensor;
+};
+
+template<> struct LayerTraits<nn::doubleTensor> {
+  static const Layer enum_value = Layer::doubleTensor;
 };
 
 template<> struct LayerTraits<nn::CONV_2D> {
@@ -1320,74 +1303,141 @@ inline flatbuffers::Offset<QuantInfo> CreateQuantInfoDirect(
       zero_point);
 }
 
-struct Input FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef InputBuilder Builder;
+struct InputTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef InputTensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
+    VT_TYPE = 4,
     VT_DIM = 6
   };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  nn::DataType type() const {
+    return static_cast<nn::DataType>(GetField<int8_t>(VT_TYPE, 0));
   }
   const flatbuffers::Vector<uint16_t> *dim() const {
     return GetPointer<const flatbuffers::Vector<uint16_t> *>(VT_DIM);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyField<int8_t>(verifier, VT_TYPE, 1) &&
            VerifyOffset(verifier, VT_DIM) &&
            verifier.VerifyVector(dim()) &&
            verifier.EndTable();
   }
 };
 
-struct InputBuilder {
-  typedef Input Table;
+struct InputTensorBuilder {
+  typedef InputTensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Input::VT_NAME, name);
+  void add_type(nn::DataType type) {
+    fbb_.AddElement<int8_t>(InputTensor::VT_TYPE, static_cast<int8_t>(type), 0);
   }
   void add_dim(flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim) {
-    fbb_.AddOffset(Input::VT_DIM, dim);
+    fbb_.AddOffset(InputTensor::VT_DIM, dim);
   }
-  explicit InputBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit InputTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<Input> Finish() {
+  flatbuffers::Offset<InputTensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Input>(end);
+    auto o = flatbuffers::Offset<InputTensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<Input> CreateInput(
+inline flatbuffers::Offset<InputTensor> CreateInputTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    nn::DataType type = nn::DataType::Float,
     flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim = 0) {
-  InputBuilder builder_(_fbb);
+  InputTensorBuilder builder_(_fbb);
   builder_.add_dim(dim);
-  builder_.add_name(name);
+  builder_.add_type(type);
   return builder_.Finish();
 }
 
-struct Input::Traits {
-  using type = Input;
-  static auto constexpr Create = CreateInput;
+struct InputTensor::Traits {
+  using type = InputTensor;
+  static auto constexpr Create = CreateInputTensor;
 };
 
-inline flatbuffers::Offset<Input> CreateInputDirect(
+inline flatbuffers::Offset<InputTensor> CreateInputTensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
+    nn::DataType type = nn::DataType::Float,
     const std::vector<uint16_t> *dim = nullptr) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto dim__ = dim ? _fbb.CreateVector<uint16_t>(*dim) : 0;
-  return nn::CreateInput(
+  return nn::CreateInputTensor(
       _fbb,
-      name__,
+      type,
+      dim__);
+}
+
+struct OutputTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef OutputTensorBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_TYPE = 4,
+    VT_DIM = 6
+  };
+  nn::DataType type() const {
+    return static_cast<nn::DataType>(GetField<int8_t>(VT_TYPE, 0));
+  }
+  const flatbuffers::Vector<uint16_t> *dim() const {
+    return GetPointer<const flatbuffers::Vector<uint16_t> *>(VT_DIM);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int8_t>(verifier, VT_TYPE, 1) &&
+           VerifyOffset(verifier, VT_DIM) &&
+           verifier.VerifyVector(dim()) &&
+           verifier.EndTable();
+  }
+};
+
+struct OutputTensorBuilder {
+  typedef OutputTensor Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_type(nn::DataType type) {
+    fbb_.AddElement<int8_t>(OutputTensor::VT_TYPE, static_cast<int8_t>(type), 0);
+  }
+  void add_dim(flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim) {
+    fbb_.AddOffset(OutputTensor::VT_DIM, dim);
+  }
+  explicit OutputTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<OutputTensor> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<OutputTensor>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<OutputTensor> CreateOutputTensor(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    nn::DataType type = nn::DataType::Float,
+    flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim = 0) {
+  OutputTensorBuilder builder_(_fbb);
+  builder_.add_dim(dim);
+  builder_.add_type(type);
+  return builder_.Finish();
+}
+
+struct OutputTensor::Traits {
+  using type = OutputTensor;
+  static auto constexpr Create = CreateOutputTensor;
+};
+
+inline flatbuffers::Offset<OutputTensor> CreateOutputTensorDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    nn::DataType type = nn::DataType::Float,
+    const std::vector<uint16_t> *dim = nullptr) {
+  auto dim__ = dim ? _fbb.CreateVector<uint16_t>(*dim) : 0;
+  return nn::CreateOutputTensor(
+      _fbb,
+      type,
       dim__);
 }
 
@@ -1485,14 +1535,10 @@ struct Link FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INPUT = 4,
-    VT_OUTPUT = 6,
-    VT_NAME = 8
+    VT_NAME = 6
   };
   const flatbuffers::Vector<uint32_t> *input() const {
     return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_INPUT);
-  }
-  const flatbuffers::Vector<uint32_t> *output() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_OUTPUT);
   }
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -1501,8 +1547,6 @@ struct Link FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_INPUT) &&
            verifier.VerifyVector(input()) &&
-           VerifyOffset(verifier, VT_OUTPUT) &&
-           verifier.VerifyVector(output()) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            verifier.EndTable();
@@ -1515,9 +1559,6 @@ struct LinkBuilder {
   flatbuffers::uoffset_t start_;
   void add_input(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> input) {
     fbb_.AddOffset(Link::VT_INPUT, input);
-  }
-  void add_output(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> output) {
-    fbb_.AddOffset(Link::VT_OUTPUT, output);
   }
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(Link::VT_NAME, name);
@@ -1536,11 +1577,9 @@ struct LinkBuilder {
 inline flatbuffers::Offset<Link> CreateLink(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> input = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> output = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0) {
   LinkBuilder builder_(_fbb);
   builder_.add_name(name);
-  builder_.add_output(output);
   builder_.add_input(input);
   return builder_.Finish();
 }
@@ -1553,15 +1592,12 @@ struct Link::Traits {
 inline flatbuffers::Offset<Link> CreateLinkDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<uint32_t> *input = nullptr,
-    const std::vector<uint32_t> *output = nullptr,
     const char *name = nullptr) {
   auto input__ = input ? _fbb.CreateVector<uint32_t>(*input) : 0;
-  auto output__ = output ? _fbb.CreateVector<uint32_t>(*output) : 0;
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return nn::CreateLink(
       _fbb,
       input__,
-      output__,
       name__);
 }
 
@@ -3491,11 +3527,7 @@ struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_VERSION = 4,
     VT_NODE_TYPE = 6,
     VT_NODE = 8,
-    VT_INITIALIZERS_TYPE = 10,
-    VT_INITIALIZERS = 12,
-    VT_INPUTS = 14,
-    VT_QUANT_INFOS = 16,
-    VT_OUTPUTS = 18
+    VT_QUANT_INFOS = 10
   };
   const nn::versionInfo *version() const {
     return GetStruct<const nn::versionInfo *>(VT_VERSION);
@@ -3506,20 +3538,8 @@ struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<void>> *node() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<void>> *>(VT_NODE);
   }
-  const flatbuffers::Vector<nn::Tensor> *initializers_type() const {
-    return GetPointer<const flatbuffers::Vector<nn::Tensor> *>(VT_INITIALIZERS_TYPE);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<void>> *initializers() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<void>> *>(VT_INITIALIZERS);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<nn::Input>> *inputs() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<nn::Input>> *>(VT_INPUTS);
-  }
   const flatbuffers::Vector<flatbuffers::Offset<nn::QuantInfo>> *quant_infos() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<nn::QuantInfo>> *>(VT_QUANT_INFOS);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *outputs() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_OUTPUTS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -3529,20 +3549,9 @@ struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_NODE) &&
            verifier.VerifyVector(node()) &&
            VerifyLayerVector(verifier, node(), node_type()) &&
-           VerifyOffset(verifier, VT_INITIALIZERS_TYPE) &&
-           verifier.VerifyVector(initializers_type()) &&
-           VerifyOffset(verifier, VT_INITIALIZERS) &&
-           verifier.VerifyVector(initializers()) &&
-           VerifyTensorVector(verifier, initializers(), initializers_type()) &&
-           VerifyOffset(verifier, VT_INPUTS) &&
-           verifier.VerifyVector(inputs()) &&
-           verifier.VerifyVectorOfTables(inputs()) &&
            VerifyOffset(verifier, VT_QUANT_INFOS) &&
            verifier.VerifyVector(quant_infos()) &&
            verifier.VerifyVectorOfTables(quant_infos()) &&
-           VerifyOffset(verifier, VT_OUTPUTS) &&
-           verifier.VerifyVector(outputs()) &&
-           verifier.VerifyVectorOfStrings(outputs()) &&
            verifier.EndTable();
   }
 };
@@ -3560,20 +3569,8 @@ struct GraphBuilder {
   void add_node(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> node) {
     fbb_.AddOffset(Graph::VT_NODE, node);
   }
-  void add_initializers_type(flatbuffers::Offset<flatbuffers::Vector<nn::Tensor>> initializers_type) {
-    fbb_.AddOffset(Graph::VT_INITIALIZERS_TYPE, initializers_type);
-  }
-  void add_initializers(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> initializers) {
-    fbb_.AddOffset(Graph::VT_INITIALIZERS, initializers);
-  }
-  void add_inputs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::Input>>> inputs) {
-    fbb_.AddOffset(Graph::VT_INPUTS, inputs);
-  }
   void add_quant_infos(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::QuantInfo>>> quant_infos) {
     fbb_.AddOffset(Graph::VT_QUANT_INFOS, quant_infos);
-  }
-  void add_outputs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> outputs) {
-    fbb_.AddOffset(Graph::VT_OUTPUTS, outputs);
   }
   explicit GraphBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -3591,17 +3588,9 @@ inline flatbuffers::Offset<Graph> CreateGraph(
     const nn::versionInfo *version = nullptr,
     flatbuffers::Offset<flatbuffers::Vector<nn::Layer>> node_type = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> node = 0,
-    flatbuffers::Offset<flatbuffers::Vector<nn::Tensor>> initializers_type = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> initializers = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::Input>>> inputs = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::QuantInfo>>> quant_infos = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> outputs = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::QuantInfo>>> quant_infos = 0) {
   GraphBuilder builder_(_fbb);
-  builder_.add_outputs(outputs);
   builder_.add_quant_infos(quant_infos);
-  builder_.add_inputs(inputs);
-  builder_.add_initializers(initializers);
-  builder_.add_initializers_type(initializers_type);
   builder_.add_node(node);
   builder_.add_node_type(node_type);
   builder_.add_version(version);
@@ -3618,79 +3607,54 @@ inline flatbuffers::Offset<Graph> CreateGraphDirect(
     const nn::versionInfo *version = nullptr,
     const std::vector<nn::Layer> *node_type = nullptr,
     const std::vector<flatbuffers::Offset<void>> *node = nullptr,
-    const std::vector<nn::Tensor> *initializers_type = nullptr,
-    const std::vector<flatbuffers::Offset<void>> *initializers = nullptr,
-    const std::vector<flatbuffers::Offset<nn::Input>> *inputs = nullptr,
-    const std::vector<flatbuffers::Offset<nn::QuantInfo>> *quant_infos = nullptr,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *outputs = nullptr) {
+    const std::vector<flatbuffers::Offset<nn::QuantInfo>> *quant_infos = nullptr) {
   auto node_type__ = node_type ? _fbb.CreateVector<nn::Layer>(*node_type) : 0;
   auto node__ = node ? _fbb.CreateVector<flatbuffers::Offset<void>>(*node) : 0;
-  auto initializers_type__ = initializers_type ? _fbb.CreateVector<nn::Tensor>(*initializers_type) : 0;
-  auto initializers__ = initializers ? _fbb.CreateVector<flatbuffers::Offset<void>>(*initializers) : 0;
-  auto inputs__ = inputs ? _fbb.CreateVector<flatbuffers::Offset<nn::Input>>(*inputs) : 0;
   auto quant_infos__ = quant_infos ? _fbb.CreateVector<flatbuffers::Offset<nn::QuantInfo>>(*quant_infos) : 0;
-  auto outputs__ = outputs ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*outputs) : 0;
   return nn::CreateGraph(
       _fbb,
       version,
       node_type__,
       node__,
-      initializers_type__,
-      initializers__,
-      inputs__,
-      quant_infos__,
-      outputs__);
-}
-
-inline bool VerifyTensor(flatbuffers::Verifier &verifier, const void *obj, Tensor type) {
-  switch (type) {
-    case Tensor::NONE: {
-      return true;
-    }
-    case Tensor::ubyteTensor: {
-      auto ptr = reinterpret_cast<const nn::ubyteTensor *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case Tensor::ushortTensor: {
-      auto ptr = reinterpret_cast<const nn::ushortTensor *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case Tensor::uintTensor: {
-      auto ptr = reinterpret_cast<const nn::uintTensor *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case Tensor::intTensor: {
-      auto ptr = reinterpret_cast<const nn::intTensor *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case Tensor::floatTensor: {
-      auto ptr = reinterpret_cast<const nn::floatTensor *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case Tensor::doubleTensor: {
-      auto ptr = reinterpret_cast<const nn::doubleTensor *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    default: return true;
-  }
-}
-
-inline bool VerifyTensorVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<Tensor> *types) {
-  if (!values || !types) return !values && !types;
-  if (values->size() != types->size()) return false;
-  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
-    if (!VerifyTensor(
-        verifier,  values->Get(i), types->GetEnum<Tensor>(i))) {
-      return false;
-    }
-  }
-  return true;
+      quant_infos__);
 }
 
 inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer type) {
   switch (type) {
     case Layer::NONE: {
       return true;
+    }
+    case Layer::InputTensor: {
+      auto ptr = reinterpret_cast<const nn::InputTensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::OutputTensor: {
+      auto ptr = reinterpret_cast<const nn::OutputTensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::ubyteTensor: {
+      auto ptr = reinterpret_cast<const nn::ubyteTensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::ushortTensor: {
+      auto ptr = reinterpret_cast<const nn::ushortTensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::uintTensor: {
+      auto ptr = reinterpret_cast<const nn::uintTensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::intTensor: {
+      auto ptr = reinterpret_cast<const nn::intTensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::floatTensor: {
+      auto ptr = reinterpret_cast<const nn::floatTensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::doubleTensor: {
+      auto ptr = reinterpret_cast<const nn::doubleTensor *>(obj);
+      return verifier.VerifyTable(ptr);
     }
     case Layer::CONV_2D: {
       auto ptr = reinterpret_cast<const nn::CONV_2D *>(obj);
