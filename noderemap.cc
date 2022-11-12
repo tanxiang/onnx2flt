@@ -359,7 +359,7 @@ struct OpRReMap
 
     std::vector<const onnx::NodeProto *> needs;
     switch (context.inputNodeMap.count(input)) {
-    case 1: 
+    case 1:
       std::cout << '\t' << nodeID(*node) << " to " << nodeID(inputNode->second)
                 << " output " << inputNode->second.output()[0] << std::endl;
 
@@ -436,4 +436,28 @@ createNodeVVFromOutputs(const std::vector<std::string> outputs,
     needNodes.pop_front();
   }
   return vvRemap;
+}
+
+void writeFlNode(  std::vector<nn::Layer> &nodeTypes,
+  std::vector<flatbuffers::Offset<void>> &nodeVals,mapContext &context,std::string output){
+
+  }
+
+std::pair<std::vector<nn::Layer>, std::vector<flatbuffers::Offset<void>>>
+writeFlNodeFromOutputs(const std::vector<std::string> outputs,
+                       mapContext &context) {
+
+  std::vector<nn::Layer> nodeTypes;
+  std::vector<flatbuffers::Offset<void>> nodeVals;
+  std::deque<std::string> outputsNeed{outputs.begin(),outputs.end()};
+
+  while (!outputsNeed.empty()){
+        auto outputName = outputsNeed.front();
+writeFlNode(nodeTypes,nodeVals,context,outputName);
+
+    outputsNeed.pop_front();
+
+  }
+  
+  return std::make_pair(nodeTypes, nodeVals);
 }

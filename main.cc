@@ -140,6 +140,7 @@ int main(int argc, char *argv[]) {
         if (nodeRemapd)
           break;
       }
+      
       if (!nodeRemapd) {
         ++conventNodeNum;
         std::cout << nodeID(node) << " need to tensor:" << conventNodeNum
