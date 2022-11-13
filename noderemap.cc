@@ -438,10 +438,9 @@ createNodeVVFromOutputs(const std::vector<std::string> outputs,
   return vvRemap;
 }
 
-void writeFlNode(  std::vector<nn::Layer> &nodeTypes,
-  std::vector<flatbuffers::Offset<void>> &nodeVals,mapContext &context,std::string output){
-
-  }
+void writeFlNode(std::vector<nn::Layer> &nodeTypes,
+                 std::vector<flatbuffers::Offset<void>> &nodeVals,
+                 mapContext &context, const std::string output) {}
 
 std::pair<std::vector<nn::Layer>, std::vector<flatbuffers::Offset<void>>>
 writeFlNodeFromOutputs(const std::vector<std::string> outputs,
@@ -449,15 +448,14 @@ writeFlNodeFromOutputs(const std::vector<std::string> outputs,
 
   std::vector<nn::Layer> nodeTypes;
   std::vector<flatbuffers::Offset<void>> nodeVals;
-  std::deque<std::string> outputsNeed{outputs.begin(),outputs.end()};
+  std::deque<std::string> outputsNeed{outputs.begin(), outputs.end()};
 
-  while (!outputsNeed.empty()){
-        auto outputName = outputsNeed.front();
-writeFlNode(nodeTypes,nodeVals,context,outputName);
+  while (!outputsNeed.empty()) {
+    auto outputName = outputsNeed.front();
+    writeFlNode(nodeTypes, nodeVals, context, outputName);
 
     outputsNeed.pop_front();
-
   }
-  
+
   return std::make_pair(nodeTypes, nodeVals);
 }
