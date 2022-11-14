@@ -438,24 +438,44 @@ createNodeVVFromOutputs(const std::vector<std::string> outputs,
   return vvRemap;
 }
 
-void writeFlNode(std::vector<nn::Layer> &nodeTypes,
+auto writeFlNode(std::vector<nn::Layer> &nodeTypes,
                  std::vector<flatbuffers::Offset<void>> &nodeVals,
-                 mapContext &context, const std::string output) {}
+                 mapContext &context, const std::string output,
+                 std::map<std::string, int> &symbols) {
+  auto tensorIndex = nodeTypes.size();
+  symbols.emplace(output, tensorIndex);
+  
+  if (auto nodeItrByOP = context.outputNodeMap.find(output);nodeItrByOP != context.outputNodeMap.end()) {
+  }
+  else if(auto dataItrByOP = context.tensorMap.find(output);dataItrByOP != context.tensorMap.end()){
 
-std::pair<std::vector<nn::Layer>, std::vector<flatbuffers::Offset<void>>>
+  }else if(auto inpouItrByName= context.graphsInputs.find(output);inpouItrByName!=context.graphsInputs.end()){
+
+  }
+  //nodeTypes.emplace_back();
+  //nodeVals.emplace_back();
+  return tensorIndex;
+}
+
+  std::map<int,std::tuple<nn::Layer,flatbuffers::Offset<void>>> 
 writeFlNodeFromOutputs(const std::vector<std::string> outputs,
                        mapContext &context) {
 
   std::vector<nn::Layer> nodeTypes;
   std::vector<flatbuffers::Offset<void>> nodeVals;
   std::deque<std::string> outputsNeed{outputs.begin(), outputs.end()};
+  std::map<std::string, int> symbols;
+  std::map<int,std::tuple<nn::Layer,flatbuffers::Offset<void>>> nodesData;
 
   while (!outputsNeed.empty()) {
     auto outputName = outputsNeed.front();
-    writeFlNode(nodeTypes, nodeVals, context, outputName);
-
+    auto nodeIndex =
+        writeFlNode(nodeTypes, nodeVals, context, outputName, symbols);
     outputsNeed.pop_front();
+
+    // outputsNeed.insert(outputsNeed.end(), needNodeNames.begin(),
+    //                    needNodeNames.end());
   }
 
-  return std::make_pair(nodeTypes, nodeVals);
+  return nodesData;
 }

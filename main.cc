@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     flatbuffers::FlatBufferBuilder flatbuffers;
     auto graph = model_proto.graph();
 
-    for (const auto &tensor : model_proto.graph().initializer()) {
+    for (const auto &tensor : graph.initializer()) {
       if (tensor.has_name()) {
         context.tensorMap.emplace(tensor.name(), tensor);
       }
@@ -61,16 +61,16 @@ int main(int argc, char *argv[]) {
       };
     }
 
-    for (const auto &tensor : model_proto.graph().sparse_initializer()) {
+    for (const auto &tensor : graph.sparse_initializer()) {
       std::cout << "graph().sparse_initializer() " << &tensor;
 
       //     if (tensor.has_name()) {
       // context.sparseTensorMap.emplace(tensor.name(), tensor);
       //}
     }
-    std::cout << "model_proto.graph().node_size() = "
-              << model_proto.graph().node_size() << std::endl;
-    for (const auto &node : model_proto.graph().node()) {
+    std::cout << "model_proto.graph().node_size() = " << graph.node_size()
+              << std::endl;
+    for (const auto &node : graph.node()) {
       if (node.has_name() && !node.name().empty()) {
         if (!context.nodeMap.emplace(node.name(), node).second) {
           std::cerr << "context.nodeMap.emplace error same name : "
@@ -86,10 +86,16 @@ int main(int argc, char *argv[]) {
                     << output << " in " << &node << " not support\n";
         }
       }
-      if(node.output_size()>1){
-         std::cerr << nodeID(node)<<node.DebugString();
+      if (node.output_size() > 1) {
+        std::cerr << nodeID(node) << node.DebugString();
       }
     }
+
+    for (auto input : graph.input()) {
+        context.graphsInputs.emplace(input.name(),input);
+
+    }
+
 #ifdef REMAP_FOMR_INPUT
 
     std::vector<std::vector<const onnx::NodeProto *>> vvRRemap;
@@ -140,7 +146,7 @@ int main(int argc, char *argv[]) {
         if (nodeRemapd)
           break;
       }
-      
+
       if (!nodeRemapd) {
         ++conventNodeNum;
         std::cout << nodeID(node) << " need to tensor:" << conventNodeNum
@@ -159,23 +165,22 @@ int main(int argc, char *argv[]) {
     }
 
     for (auto &vRemap : vvRRemap) {
-      for(auto input : (*vRemap.begin())->input()){
+      for (auto input : (*vRemap.begin())->input()) {
         auto tensorItr = context.tensorMap.find(input);
-        if(tensorItr!=context.tensorMap.end()){
-            std::cout << "get  : input <" <<input<<"> "<<tensorItr->second.name()<<"\n";
+        if (tensorItr != context.tensorMap.end()) {
+          std::cout << "get  : input <" << input << "> "
+                    << tensorItr->second.name() << "\n";
+        } else {
+          std::cerr << "error: input <" << input << "> not found\n";
         }
-        else{
-            std::cerr << "error: input <" <<input<<"> not found\n";
-        }
-
       }
-      for(auto output : (*vRemap.rbegin())->output()){
+      for (auto output : (*vRemap.rbegin())->output()) {
         auto tensorItr = context.tensorMap.find(output);
-        if(tensorItr!=context.tensorMap.end()){
-            std::cout << "get : output <" <<output<<"> "<<tensorItr->second.name()<<"\n";
-        }
-        else{
-            std::cerr << "error: output <" <<output<<"> not found\n";
+        if (tensorItr != context.tensorMap.end()) {
+          std::cout << "get : output <" << output << "> "
+                    << tensorItr->second.name() << "\n";
+        } else {
+          std::cerr << "error: output <" << output << "> not found\n";
         }
       }
     }
