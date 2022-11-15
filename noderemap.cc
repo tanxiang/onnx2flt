@@ -438,39 +438,71 @@ createNodeVVFromOutputs(const std::vector<std::string> outputs,
   return vvRemap;
 }
 
-auto writeFlNode(std::vector<nn::Layer> &nodeTypes,
-                 std::vector<flatbuffers::Offset<void>> &nodeVals,
-                 mapContext &context, const std::string output,
-                 std::map<std::string, int> &symbols) {
-  auto tensorIndex = nodeTypes.size();
-  symbols.emplace(output, tensorIndex);
+auto writeFlNode(
+    std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> &nodesData,
+    mapContext &context, const onnx::NodeProto &node,
+    std::map<std::string, int> &symbols) {
+
+  auto tensorIndex = symbols.size();
+  symbols.emplace(node.output()[0], tensorIndex);
   
-  if (auto nodeItrByOP = context.outputNodeMap.find(output);nodeItrByOP != context.outputNodeMap.end()) {
-  }
-  else if(auto dataItrByOP = context.tensorMap.find(output);dataItrByOP != context.tensorMap.end()){
-
-  }else if(auto inpouItrByName= context.graphsInputs.find(output);inpouItrByName!=context.graphsInputs.end()){
-
-  }
-  //nodeTypes.emplace_back();
-  //nodeVals.emplace_back();
   return tensorIndex;
 }
 
-  std::map<int,std::tuple<nn::Layer,flatbuffers::Offset<void>>> 
+auto writeFlNode(
+    std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> &nodesData,
+    mapContext &context, const onnx::TensorProto &tensor,
+    std::map<std::string, int> &symbols) {
+
+  auto tensorIndex = symbols.size();
+  symbols.emplace(tensor.name(), tensorIndex);
+
+  return tensorIndex;
+}
+
+auto writeFlNode(
+    std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> &nodesData,
+    mapContext &context, const onnx::ValueInfoProto &valueInfo,
+    std::map<std::string, int> &symbols) {
+
+  auto tensorIndex = symbols.size();
+  symbols.emplace(valueInfo.name(), tensorIndex);
+
+  return tensorIndex;
+}
+
+auto writeFlNode(
+    std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> &nodesData,
+    mapContext &context, const std::string output,
+    std::map<std::string, int> &symbols) {
+
+  if (auto nodeItrByOP = context.outputNodeMap.find(output);
+      nodeItrByOP != context.outputNodeMap.end()) {
+    return writeFlNode(nodesData, context, nodeItrByOP->second, symbols);
+  } else if (auto dataItrByOP = context.tensorMap.find(output);
+             dataItrByOP != context.tensorMap.end()) {
+    return writeFlNode(nodesData, context, dataItrByOP->second, symbols);
+
+  } else if (auto inpouItrByName = context.graphsInputs.find(output);
+             inpouItrByName != context.graphsInputs.end()) {
+    return writeFlNode(nodesData, context, inpouItrByName->second, symbols);
+  }
+  // nodeTypes.emplace_back();
+  // nodeVals.emplace_back();
+  throw std::logic_error{"need output not found!"};
+}
+
+std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>>
 writeFlNodeFromOutputs(const std::vector<std::string> outputs,
                        mapContext &context) {
 
-  std::vector<nn::Layer> nodeTypes;
-  std::vector<flatbuffers::Offset<void>> nodeVals;
   std::deque<std::string> outputsNeed{outputs.begin(), outputs.end()};
   std::map<std::string, int> symbols;
-  std::map<int,std::tuple<nn::Layer,flatbuffers::Offset<void>>> nodesData;
+  std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> nodesData;
 
   while (!outputsNeed.empty()) {
     auto outputName = outputsNeed.front();
-    auto nodeIndex =
-        writeFlNode(nodeTypes, nodeVals, context, outputName, symbols);
+    auto nodeIndex = writeFlNode(nodesData, context, outputName, symbols);
     outputsNeed.pop_front();
 
     // outputsNeed.insert(outputsNeed.end(), needNodeNames.begin(),
