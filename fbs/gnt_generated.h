@@ -1535,18 +1535,24 @@ struct Link FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INPUT = 4,
-    VT_NAME = 6
+    VT_EXT_OUTPUT = 6,
+    VT_NAME = 8
   };
   const flatbuffers::Vector<uint32_t> *input() const {
     return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_INPUT);
+  }
+  const flatbuffers::Vector<uint32_t> *ext_output() const {
+    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_EXT_OUTPUT);
   }
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_INPUT) &&
+           VerifyOffsetRequired(verifier, VT_INPUT) &&
            verifier.VerifyVector(input()) &&
+           VerifyOffset(verifier, VT_EXT_OUTPUT) &&
+           verifier.VerifyVector(ext_output()) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            verifier.EndTable();
@@ -1560,6 +1566,9 @@ struct LinkBuilder {
   void add_input(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> input) {
     fbb_.AddOffset(Link::VT_INPUT, input);
   }
+  void add_ext_output(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> ext_output) {
+    fbb_.AddOffset(Link::VT_EXT_OUTPUT, ext_output);
+  }
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(Link::VT_NAME, name);
   }
@@ -1570,6 +1579,7 @@ struct LinkBuilder {
   flatbuffers::Offset<Link> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<Link>(end);
+    fbb_.Required(o, Link::VT_INPUT);
     return o;
   }
 };
@@ -1577,9 +1587,11 @@ struct LinkBuilder {
 inline flatbuffers::Offset<Link> CreateLink(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> input = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> ext_output = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0) {
   LinkBuilder builder_(_fbb);
   builder_.add_name(name);
+  builder_.add_ext_output(ext_output);
   builder_.add_input(input);
   return builder_.Finish();
 }
@@ -1592,12 +1604,15 @@ struct Link::Traits {
 inline flatbuffers::Offset<Link> CreateLinkDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<uint32_t> *input = nullptr,
+    const std::vector<uint32_t> *ext_output = nullptr,
     const char *name = nullptr) {
   auto input__ = input ? _fbb.CreateVector<uint32_t>(*input) : 0;
+  auto ext_output__ = ext_output ? _fbb.CreateVector<uint32_t>(*ext_output) : 0;
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return nn::CreateLink(
       _fbb,
       input__,
+      ext_output__,
       name__);
 }
 

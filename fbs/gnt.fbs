@@ -69,7 +69,8 @@ table LinkOd{
 }
 
 table Link{
-    input: [uint];
+    input: [uint](required);
+    ext_output: [uint];
     name: string;
 }
 

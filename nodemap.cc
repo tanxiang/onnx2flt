@@ -12,7 +12,7 @@ auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
     // flatOutputs.emplace_back(flatbuffers.CreateString(nodeOutput));
   }
   if (node.has_name() && !node.name().empty())
-    return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
+    return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),0,
                           flatbuffers.CreateString(node.name()));
   else
     return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs));
@@ -32,7 +32,7 @@ auto getNodeLink(flatbuffers::FlatBufferBuilder &flatbuffers,
     // flatOutputs.emplace_back(flatbuffers.CreateString(nodeOutput));
   }
   if ((*startItr)->has_name() && !(*startItr)->name().empty())
-    return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),
+    return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs),0,
                           flatbuffers.CreateString((*startItr)->name()));
   else
     return nn::CreateLink(flatbuffers, flatbuffers.CreateVector(flatInputs));
