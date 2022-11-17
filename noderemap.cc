@@ -474,6 +474,7 @@ auto writeFlNode(
   auto tensorIndex = symbols.size();
   symbols.emplace(tensor.name(), tensorIndex);
 
+  nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
 
@@ -485,7 +486,8 @@ auto writeFlNode(
 
   auto tensorIndex = symbols.size();
   symbols.emplace(valueInfo.name(), tensorIndex);
-
+  
+  nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
 
