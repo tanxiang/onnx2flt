@@ -438,25 +438,36 @@ createNodeVVFromOutputs(const std::vector<std::string> outputs,
   return vvRemap;
 }
 
-auto writeFlNode(flatbuffers::FlatBufferBuilder& builder,
-    std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> &nodesData,
-    mapContext &context, const std::string output,
-    std::map<std::string, int> &symbols) ;
+struct uLayerData //: public flatbuffers::Offset<void> , nn::Layer
+{
+  nn::Layer type;
+  flatbuffers::Offset<void> data;
+  /* data */
+};
 
-auto writeFlNode(flatbuffers::FlatBufferBuilder& builder,
-    std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> &nodesData,
+auto writeFlNode(
+    flatbuffers::FlatBufferBuilder &builder,
+    std::map<int, uLayerData> &nodesData,
+    mapContext &context, const std::string output,
+    std::map<std::string, int> &symbols);
+
+auto writeFlNode(
+    flatbuffers::FlatBufferBuilder &builder,
+    std::map<int, uLayerData> &nodesData,
     mapContext &context, const onnx::NodeProto &node,
     std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
   symbols.emplace(node.output()[0], tensorIndex);
-  //builder.
-  
+  // builder.
+
+  nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
 
-auto writeFlNode(flatbuffers::FlatBufferBuilder& builder,
-    std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> &nodesData,
+auto writeFlNode(
+    flatbuffers::FlatBufferBuilder &builder,
+    std::map<int, uLayerData> &nodesData,
     mapContext &context, const onnx::TensorProto &tensor,
     std::map<std::string, int> &symbols) {
 
@@ -466,8 +477,9 @@ auto writeFlNode(flatbuffers::FlatBufferBuilder& builder,
   return tensorIndex;
 }
 
-auto writeFlNode(flatbuffers::FlatBufferBuilder& builder,
-    std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> &nodesData,
+auto writeFlNode(
+    flatbuffers::FlatBufferBuilder &builder,
+    std::map<int, uLayerData> &nodesData,
     mapContext &context, const onnx::ValueInfoProto &valueInfo,
     std::map<std::string, int> &symbols) {
 
@@ -477,39 +489,44 @@ auto writeFlNode(flatbuffers::FlatBufferBuilder& builder,
   return tensorIndex;
 }
 
-auto writeFlNode(flatbuffers::FlatBufferBuilder& builder,
-    std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> &nodesData,
+auto writeFlNode(
+    flatbuffers::FlatBufferBuilder &builder,
+    std::map<int, uLayerData> &nodesData,
     mapContext &context, const std::string output,
     std::map<std::string, int> &symbols) {
 
   if (auto nodeItrByOP = context.outputNodeMap.find(output);
       nodeItrByOP != context.outputNodeMap.end()) {
-    return writeFlNode(builder,nodesData, context, nodeItrByOP->second, symbols);
+    return writeFlNode(builder, nodesData, context, nodeItrByOP->second,
+                       symbols);
   } else if (auto dataItrByOP = context.tensorMap.find(output);
              dataItrByOP != context.tensorMap.end()) {
-    return writeFlNode(builder,nodesData, context, dataItrByOP->second, symbols);
+    return writeFlNode(builder, nodesData, context, dataItrByOP->second,
+                       symbols);
 
   } else if (auto inpouItrByName = context.graphsInputs.find(output);
              inpouItrByName != context.graphsInputs.end()) {
-    return writeFlNode(builder,nodesData, context, inpouItrByName->second, symbols);
+    return writeFlNode(builder, nodesData, context, inpouItrByName->second,
+                       symbols);
   }
   // nodeTypes.emplace_back();
   // nodeVals.emplace_back();
   throw std::logic_error{"need output not found!"};
 }
 
-std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>>
-writeFlNodeFromOutputs(
-   flatbuffers::FlatBufferBuilder& builder,const std::vector<std::string> outputs,
+std::map<int,uLayerData>
+writeFlNodeFromOutputs(flatbuffers::FlatBufferBuilder &builder,
+                       const std::vector<std::string> outputs,
                        mapContext &context) {
 
   std::deque<std::string> outputsNeed{outputs.begin(), outputs.end()};
   std::map<std::string, int> symbols;
-  std::map<int, std::tuple<nn::Layer, flatbuffers::Offset<void>>> nodesData;
+  std::map<int, uLayerData> nodesData;
 
   while (!outputsNeed.empty()) {
     auto outputName = outputsNeed.front();
-    auto nodeIndex = writeFlNode(builder,nodesData, context, outputName, symbols);
+    auto nodeIndex =
+        writeFlNode(builder, nodesData, context, outputName, symbols);
     outputsNeed.pop_front();
 
     // outputsNeed.insert(outputsNeed.end(), needNodeNames.begin(),
