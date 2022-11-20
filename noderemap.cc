@@ -445,31 +445,193 @@ struct uLayerData //: public flatbuffers::Offset<void> , nn::Layer
   /* data */
 };
 
-auto writeFlNode(
-    flatbuffers::FlatBufferBuilder &builder,
-    std::map<int, uLayerData> &nodesData,
-    mapContext &context, const std::string output,
-    std::map<std::string, int> &symbols);
+uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+                     std::map<int, uLayerData> &nodesData, mapContext &context,
+                     const std::string output,
+                     std::map<std::string, int> &symbols);
 
-auto writeFlNode(
-    flatbuffers::FlatBufferBuilder &builder,
-    std::map<int, uLayerData> &nodesData,
-    mapContext &context, const onnx::NodeProto &node,
-    std::map<std::string, int> &symbols) {
+template <typename NodeTypeBuilder>
+auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder& flBuilder,
+                       flatbuffers::Offset<nn::Link> link,
+                       onnx::NodeProto &node, nn::FuseCode *fuseCode) {
+  NodeTypeBuilder builder{flBuilder};
+  builder.add_link(link);
+
+  for (const auto &attribute : node.attribute()) {
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Pads & pads) {
+                    builder.add_padding(&pads);
+                  }) {
+      if (attribute.name() == "pads" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 4) {
+        nn::Pads pads{
+            static_cast<int32_t>(attribute.ints()[0]),
+            static_cast<int32_t>(attribute.ints()[1]),
+            static_cast<int32_t>(attribute.ints()[2]),
+            static_cast<int32_t>(attribute.ints()[3]),
+        };
+        builder.add_padding(&pads);
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Stride & strides) {
+                    builder.add_stride(&strides);
+                  }) {
+      if (attribute.name() == "strides" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 2) {
+        nn::Stride strides{
+            static_cast<int32_t>(attribute.ints()[0]),
+            static_cast<int32_t>(attribute.ints()[1]),
+        };
+        builder.add_stride(&strides);
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Group & group) {
+                    builder.add_group(&group);
+                  }) {
+      if (attribute.name() == "group" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+        nn::Group group{
+            static_cast<int32_t>(attribute.i()),
+        };
+        builder.add_group(&group);
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Dilation & dilation) {
+                    builder.add_dilation(&dilation);
+                  }) {
+      if (attribute.name() == "dilations" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 2) {
+        nn::Dilation dilation{
+            static_cast<int32_t>(attribute.ints()[0]),
+            static_cast<int32_t>(attribute.ints()[1]),
+        };
+        builder.add_dilation(&dilation);
+        continue;
+      }
+    }
+    if constexpr (requires(
+                      NodeTypeBuilder & builder,
+                      flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes) {
+                    builder.add_axes(axes);
+                  }) {
+      if (attribute.name() == "axes" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS) {
+        std::vector<int32_t> axesv(attribute.ints().begin(),
+                                   attribute.ints().end());
+        builder.add_axes(builder.fbb_.CreateVector(axesv));
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, int32_t & axis) {
+                    builder.add_axis(axis);
+                  }) {
+      if (attribute.name() == "axis" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+
+        builder.add_axis(static_cast<int32_t>(attribute.i()));
+        continue;
+      }
+    }
+
+    if constexpr (std::same_as<NodeTypeBuilder, nn::FULLY_CONNECTEDBuilder>) {
+      if (attribute.name() == "alpha" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT &&
+          attribute.f() == 1.f) {
+
+        // builder.add_bias(attribute.f());
+        continue;
+      }
+      if (attribute.name() == "beta" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT &&
+          attribute.f() == 1.f) {
+
+        // builder.add_bias(attribute.f());
+        continue;
+      }
+      if (attribute.name() == "transB" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+
+        // builder.add_bias(attribute.f());
+        continue;
+      }
+    }
+
+    if (attribute.name() == "kernel_shape") {
+      continue;
+    }
+    std::cout << nodeID(node) << " attr " << attribute.DebugString();
+  }
+  if constexpr (requires(NodeTypeBuilder & builder, nn::FuseCode & fuseCode) {
+                  builder.add_fuse_code(fuseCode);
+                }) {
+    // std::cout << nodes[1]->DebugString();
+    if (fuseCode)
+      builder.add_fuse_code(*fuseCode);
+  }
+  return builder.Finish();
+}
+
+template <typename Layer>
+inline auto UnionPair(flatbuffers::Offset<Layer> &layer) {
+  return std::pair<nn::Layer, flatbuffers::Offset<void>>{
+      nn::LayerTraits<Layer>::enum_value, layer.Union()};
+}
+
+struct OpToLayerBuilderMap
+    : public std::map<
+          std::string,
+          std::function<std::pair<nn::Layer, flatbuffers::Offset<void>>(
+              flatbuffers::FlatBufferBuilder&, flatbuffers::Offset<nn::Link>,
+              onnx::NodeProto &, nn::FuseCode *)>> {
+  OpToLayerBuilderMap() {
+    emplace("Conv", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                       flatbuffers::Offset<nn::Link> link,
+                       onnx::NodeProto &node, nn::FuseCode *fuseCode) {
+      auto flNode = writeFlNodeFinish<nn::CONV_2DBuilder>(flatbuffers, link,
+                                                          node, fuseCode);
+      return UnionPair(flNode);
+    });
+  }
+};
+
+uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+                     std::map<int, uLayerData> &nodesData, mapContext &context,
+                     const onnx::NodeProto &node,
+                     std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
   symbols.emplace(node.output()[0], tensorIndex);
   // builder.
+  if (node.op_type() == "Relu" ||
+      node.op_type() == "Clip") { // relu clip to tensor fuse
+  }
+
+  auto link = nn::CreateLink(
+      builder,
+      builder.CreateVector(node.input_size(),
+                           std::function<uint32_t(size_t)>{[&](size_t i) {
+                             return writeFlNode(builder, nodesData, context,
+                                                node.input()[i], symbols);
+                           }}));
 
   nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
 
-auto writeFlNode(
-    flatbuffers::FlatBufferBuilder &builder,
-    std::map<int, uLayerData> &nodesData,
-    mapContext &context, const onnx::TensorProto &tensor,
-    std::map<std::string, int> &symbols) {
+uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+                     std::map<int, uLayerData> &nodesData, mapContext &context,
+                     const onnx::TensorProto &tensor,
+                     std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
   symbols.emplace(tensor.name(), tensorIndex);
@@ -478,24 +640,22 @@ auto writeFlNode(
   return tensorIndex;
 }
 
-auto writeFlNode(
-    flatbuffers::FlatBufferBuilder &builder,
-    std::map<int, uLayerData> &nodesData,
-    mapContext &context, const onnx::ValueInfoProto &valueInfo,
-    std::map<std::string, int> &symbols) {
+uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+                     std::map<int, uLayerData> &nodesData, mapContext &context,
+                     const onnx::ValueInfoProto &valueInfo,
+                     std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
   symbols.emplace(valueInfo.name(), tensorIndex);
-  
+
   nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
 
-auto writeFlNode(
-    flatbuffers::FlatBufferBuilder &builder,
-    std::map<int, uLayerData> &nodesData,
-    mapContext &context, const std::string output,
-    std::map<std::string, int> &symbols) {
+uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+                     std::map<int, uLayerData> &nodesData, mapContext &context,
+                     const std::string output,
+                     std::map<std::string, int> &symbols) {
 
   if (auto nodeItrByOP = context.outputNodeMap.find(output);
       nodeItrByOP != context.outputNodeMap.end()) {
@@ -511,12 +671,10 @@ auto writeFlNode(
     return writeFlNode(builder, nodesData, context, inpouItrByName->second,
                        symbols);
   }
-  // nodeTypes.emplace_back();
-  // nodeVals.emplace_back();
   throw std::logic_error{"need output not found!"};
 }
 
-std::map<int,uLayerData>
+std::map<int, uLayerData>
 writeFlNodeFromOutputs(flatbuffers::FlatBufferBuilder &builder,
                        const std::vector<std::string> outputs,
                        mapContext &context) {
