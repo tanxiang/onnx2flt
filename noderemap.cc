@@ -706,8 +706,11 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   auto opItr = opMap.find(node.op_type());
   if (opItr != opMap.end()) {
     auto ftnode = opItr->second(builder, link, node, nullptr);
-  nodesData.emplace(tensorIndex, uLayerData{ftnode.first,ftnode.second});
+    nodesData.emplace(tensorIndex, uLayerData{ftnode.first, ftnode.second});
+  } else {
 
+    std::cerr << "error: " << node.op_type() << " is not support!\n"
+              << node.DebugString();
   }
   return tensorIndex;
 }
