@@ -690,27 +690,29 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   auto tensorIndex = symbols.size();
   symbols.emplace(node.output()[0], tensorIndex);
   // builder.
-  if (node.op_type() == "Relu" ||
-      node.op_type() == "Clip") { // relu clip to tensor fuse
+  const onnx::NodeProto *nodeP = &node;
+#ifndef NO_FUSE_CODE
+  if (nodeP->op_type() == "Relu" ||
+      nodeP->op_type() == "Clip") { // relu clip to tensor fuse
   }
+#endif
 
   auto link = nn::CreateLink(
       builder,
-      builder.CreateVector(node.input_size(),
+      builder.CreateVector(nodeP->input_size(),
                            std::function<uint32_t(size_t)>{[&](size_t i) {
                              return writeFlNode(builder, nodesData, context,
-                                                node.input()[i], symbols);
+                                                nodeP->input()[i], symbols);
                            }}));
 
   static OpToLayerBuilderMap opMap{};
-  auto opItr = opMap.find(node.op_type());
+  auto opItr = opMap.find(nodeP->op_type());
   if (opItr != opMap.end()) {
-    auto ftnode = opItr->second(builder, link, node, nullptr);
+    auto ftnode = opItr->second(builder, link, *nodeP, nullptr);
     nodesData.emplace(tensorIndex, uLayerData{ftnode.first, ftnode.second});
   } else {
-
-    std::cerr << "error: " << node.op_type() << " is not support!\n"
-              << node.DebugString();
+    std::cerr << "error: " << nodeP->op_type() << " is not support!\n"
+              << nodeP->DebugString();
   }
   return tensorIndex;
 }
