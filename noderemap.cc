@@ -691,9 +691,12 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   symbols.emplace(node.output()[0], tensorIndex);
   // builder.
   const onnx::NodeProto *nodeP = &node;
+  nn::FuseCode *fuseCodeP{nullptr};
 #ifndef NO_FUSE_CODE
+  nn::FuseCode fuseCode;
   if (nodeP->op_type() == "Relu" ||
       nodeP->op_type() == "Clip") { // relu clip to tensor fuse
+    fuseCode = nn::FuseCode::Relu;
   }
 #endif
 
@@ -708,7 +711,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   static OpToLayerBuilderMap opMap{};
   auto opItr = opMap.find(nodeP->op_type());
   if (opItr != opMap.end()) {
-    auto ftnode = opItr->second(builder, link, *nodeP, nullptr);
+    auto ftnode = opItr->second(builder, link, *nodeP, fuseCodeP);
     nodesData.emplace(tensorIndex, uLayerData{ftnode.first, ftnode.second});
   } else {
     std::cerr << "error: " << nodeP->op_type() << " is not support!\n"
