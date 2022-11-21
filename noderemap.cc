@@ -694,10 +694,19 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   nn::FuseCode *fuseCodeP{nullptr};
 #ifndef NO_FUSE_CODE
   nn::FuseCode fuseCode;
-  if (nodeP->op_type() == "Relu" ||
-      nodeP->op_type() == "Clip") { // relu clip to tensor fuse
-    fuseCode = nn::FuseCode::Relu;
-  }
+  if (nodeP->input_size() == 1)
+    if (nodeP->op_type() == "Relu" ||
+        nodeP->op_type() == "Clip") { // relu clip to tensor fuse
+      if (nodeP->input_size() != 1) {
+        std::cerr << "error: " << nodeP->op_type() << " mult input\n"
+                  << nodeP->DebugString();
+      }
+      fuseCode = nn::FuseCode::Relu;
+      auto nodeItr = context.outputNodeMap.find(nodeP->input()[0]);
+      if(nodeItr!=context.outputNodeMap.end()){
+        nodeP = &nodeItr->second;
+      }
+    }
 #endif
 
   auto link = nn::CreateLink(
