@@ -704,7 +704,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
       fuseCode = nn::FuseCode::Relu;
       auto nodeItr = context.outputNodeMap.find(nodeP->input()[0]);
       if(nodeItr!=context.outputNodeMap.end()){
-        nodeP = &nodeItr->second;
+        nodeP = &(nodeItr->second);
       }
     }
 #endif
