@@ -448,6 +448,7 @@ auto writeFlTensorFinish(flatbuffers::FlatBufferBuilder &flBuilder,
                          const onnx::TensorProto &Tensor,
                          nn::FuseCode *fuseCode) {
   NodeTensorBuilder builder{flBuilder};
+  return builder.Finish();
 }
 
 template <typename NodeTypeBuilder>
@@ -688,11 +689,13 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
-  symbols.emplace(node.output()[0], tensorIndex);
+  auto emItr = symbols.emplace(node.output()[0], tensorIndex);
+  if(!emItr.second){
+    return symbols[node.output()[0]];
+  }
   // builder.
   const onnx::NodeProto *nodeP = &node;
   nn::FuseCode *fuseCodeP{nullptr};
-#ifndef NO_FUSE_CODE
   nn::FuseCode fuseCode;
   if (nodeP->input_size() == 1)
     if (nodeP->op_type() == "Relu" ||
@@ -707,8 +710,6 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
         nodeP = &(nodeItr->second);
       }
     }
-#endif
-
   auto link = nn::CreateLink(
       builder,
       builder.CreateVector(nodeP->input_size(),
@@ -735,8 +736,10 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
-  symbols.emplace(tensor.name(), tensorIndex);
-
+  auto emItr = symbols.emplace(tensor.name(), tensorIndex);
+  if(!emItr.second){
+    return symbols[tensor.name()];
+  }
   nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
@@ -747,8 +750,10 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
-  symbols.emplace(valueInfo.name(), tensorIndex);
-
+  auto emItr = symbols.emplace(valueInfo.name(), tensorIndex);
+  if(!emItr.second){
+    return symbols[valueInfo.name()];
+  }
   nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
