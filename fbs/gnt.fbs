@@ -13,33 +13,33 @@ table TensorInfo{
     data_fuse:FuseCode;
     dim: [ushort];
 }
-table ubyteTensor{
+table UbyteTensor{
     info:TensorInfo;
     data :[ubyte];
 }
 
-table ushortTensor{
+table UshortTensor{
     info:TensorInfo;
     data :[ushort];
 }
 
 
-table uintTensor{
+table UintTensor{
     info:TensorInfo;
     data :[uint];
 }
 
-table intTensor{
+table IntTensor{
     info:TensorInfo;
     data :[int];
 }
 
-table floatTensor{
+table FloatTensor{
     info:TensorInfo;
     data :[float];
 }
 
-table doubleTensor{
+table DoubleTensor{
     info:TensorInfo;
     data :[double];
 }
@@ -53,11 +53,6 @@ table QuantInfo {
 }
 
 table InputTensor {
-    type: DataType;
-    dim: [ushort];
-}
-
-table OutputTensor {
     type: DataType;
     dim: [ushort];
 }
@@ -267,9 +262,9 @@ table RESHAPE {
 }
 
 union Layer {
-    InputTensor,OutputTensor,
+    InputTensor,
 
-    ubyteTensor,ushortTensor,uintTensor,intTensor,floatTensor,doubleTensor,
+    UbyteTensor,UshortTensor,UintTensor,IntTensor,FloatTensor,DoubleTensor,
     
 CONV_2D,AVERAGE_POOL_2D,MAX_POOL_2D,RELU,SOFTMAX,FULLY_CONNECTED,
 ADD,CONCATENATION,DEPTHWISE_CONV_2D,BATCH_TO_SPACE_ND,SPACE_TO_BATCH_ND,
@@ -279,6 +274,7 @@ PRELU,POW,NEG,MINIMUM,MAXIMUM,LOG,ABS,EXP,SUB,GATHER,RESHAPE
 
 table Graph {
     version:versionInfo;
+    link:Link;
     node:[Layer];
     quant_infos:[QuantInfo];
 }

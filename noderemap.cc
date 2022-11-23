@@ -438,17 +438,17 @@ createNodeVVFromOutputs(const std::vector<std::string> outputs,
   return vvRemap;
 }
 
-struct uLayerData //: public flatbuffers::Offset<void> , nn::Layer
-{
-  nn::Layer type;
-  flatbuffers::Offset<void> data;
-  /* data */
-};
-
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::map<int, uLayerData> &nodesData, mapContext &context,
                      const std::string output,
                      std::map<std::string, int> &symbols);
+
+template <typename NodeTensorBuilder>
+auto writeFlTensorFinish(flatbuffers::FlatBufferBuilder &flBuilder,
+                         const onnx::TensorProto &Tensor,
+                         nn::FuseCode *fuseCode) {
+  NodeTensorBuilder builder{flBuilder};
+}
 
 template <typename NodeTypeBuilder>
 auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flBuilder,
@@ -703,7 +703,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
       }
       fuseCode = nn::FuseCode::Relu;
       auto nodeItr = context.outputNodeMap.find(nodeP->input()[0]);
-      if(nodeItr!=context.outputNodeMap.end()){
+      if (nodeItr != context.outputNodeMap.end()) {
         nodeP = &(nodeItr->second);
       }
     }
@@ -760,15 +760,18 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
 
   if (auto nodeItrByOP = context.outputNodeMap.find(output);
       nodeItrByOP != context.outputNodeMap.end()) {
+    std::cerr << __func__ << " node output " << output << std::endl;
     return writeFlNode(builder, nodesData, context, nodeItrByOP->second,
                        symbols);
   } else if (auto dataItrByOP = context.tensorMap.find(output);
              dataItrByOP != context.tensorMap.end()) {
+    std::cerr << __func__ << " tensor " << output << std::endl;
     return writeFlNode(builder, nodesData, context, dataItrByOP->second,
                        symbols);
 
   } else if (auto inpouItrByName = context.graphsInputs.find(output);
              inpouItrByName != context.graphsInputs.end()) {
+    std::cerr << __func__ << " input " << output << std::endl;
     return writeFlNode(builder, nodesData, context, inpouItrByName->second,
                        symbols);
   }
