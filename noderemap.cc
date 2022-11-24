@@ -689,10 +689,8 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
-  auto emItr = symbols.emplace(node.output()[0], tensorIndex);
-  if(!emItr.second){
-    return symbols[node.output()[0]];
-  }
+  symbols.emplace(node.output()[0], tensorIndex);
+
   // builder.
   const onnx::NodeProto *nodeP = &node;
   nn::FuseCode *fuseCodeP{nullptr};
@@ -736,10 +734,8 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
-  auto emItr = symbols.emplace(tensor.name(), tensorIndex);
-  if(!emItr.second){
-    return symbols[tensor.name()];
-  }
+  symbols.emplace(tensor.name(), tensorIndex);
+
   nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
@@ -748,12 +744,9 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::map<int, uLayerData> &nodesData, mapContext &context,
                      const onnx::ValueInfoProto &valueInfo,
                      std::map<std::string, int> &symbols) {
-
   auto tensorIndex = symbols.size();
-  auto emItr = symbols.emplace(valueInfo.name(), tensorIndex);
-  if(!emItr.second){
-    return symbols[valueInfo.name()];
-  }
+  symbols.emplace(valueInfo.name(), tensorIndex);
+
   nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
@@ -762,7 +755,9 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::map<int, uLayerData> &nodesData, mapContext &context,
                      const std::string output,
                      std::map<std::string, int> &symbols) {
-
+  if (auto itr = symbols.find(output); itr != symbols.end()) {
+    return itr->second;
+  }
   if (auto nodeItrByOP = context.outputNodeMap.find(output);
       nodeItrByOP != context.outputNodeMap.end()) {
     std::cerr << __func__ << " node output " << output << std::endl;
@@ -776,7 +771,8 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
 
   } else if (auto inpouItrByName = context.graphsInputs.find(output);
              inpouItrByName != context.graphsInputs.end()) {
-    std::cerr << __func__ << " input " << output << std::endl;
+    std::cerr << __func__ << " input " << output << " : "
+              << inpouItrByName->second.name() << std::endl;
     return writeFlNode(builder, nodesData, context, inpouItrByName->second,
                        symbols);
   }

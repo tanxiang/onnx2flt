@@ -9,6 +9,6 @@ struct mapContext {
   std::map<std::string, const onnx::NodeProto &> nodeMap;
   std::multimap<std::string, const onnx::NodeProto &> inputNodeMap;
   std::map<std::string, const onnx::NodeProto &> outputNodeMap;
-  std::map<std::string,const onnx::ValueInfoProto&> graphsInputs;
+  std::map<std::string,const onnx::ValueInfoProto &> graphsInputs;
 };
 
