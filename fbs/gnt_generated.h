@@ -147,6 +147,9 @@ struct GATHERBuilder;
 struct RESHAPE;
 struct RESHAPEBuilder;
 
+struct Configure;
+struct ConfigureBuilder;
+
 struct Graph;
 struct GraphBuilder;
 
@@ -260,11 +263,12 @@ enum class Layer : uint8_t {
   SUB = 34,
   GATHER = 35,
   RESHAPE = 36,
+  Configure = 37,
   MIN = NONE,
-  MAX = RESHAPE
+  MAX = Configure
 };
 
-inline const Layer (&EnumValuesLayer())[37] {
+inline const Layer (&EnumValuesLayer())[38] {
   static const Layer values[] = {
     Layer::NONE,
     Layer::InputTensor,
@@ -302,13 +306,14 @@ inline const Layer (&EnumValuesLayer())[37] {
     Layer::EXP,
     Layer::SUB,
     Layer::GATHER,
-    Layer::RESHAPE
+    Layer::RESHAPE,
+    Layer::Configure
   };
   return values;
 }
 
 inline const char * const *EnumNamesLayer() {
-  static const char * const names[38] = {
+  static const char * const names[39] = {
     "NONE",
     "InputTensor",
     "UbyteTensor",
@@ -346,13 +351,14 @@ inline const char * const *EnumNamesLayer() {
     "SUB",
     "GATHER",
     "RESHAPE",
+    "Configure",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameLayer(Layer e) {
-  if (flatbuffers::IsOutRange(e, Layer::NONE, Layer::RESHAPE)) return "";
+  if (flatbuffers::IsOutRange(e, Layer::NONE, Layer::Configure)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesLayer()[index];
 }
@@ -503,6 +509,10 @@ template<> struct LayerTraits<nn::GATHER> {
 
 template<> struct LayerTraits<nn::RESHAPE> {
   static const Layer enum_value = Layer::RESHAPE;
+};
+
+template<> struct LayerTraits<nn::Configure> {
+  static const Layer enum_value = Layer::Configure;
 };
 
 bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer type);
@@ -3456,6 +3466,77 @@ inline flatbuffers::Offset<RESHAPE> CreateRESHAPEDirect(
       axes__);
 }
 
+struct Configure FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ConfigureBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_LINK = 4,
+    VT_AXES = 6
+  };
+  const nn::Link *link() const {
+    return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  const flatbuffers::Vector<int32_t> *axes() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_AXES);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_LINK) &&
+           verifier.VerifyTable(link()) &&
+           VerifyOffset(verifier, VT_AXES) &&
+           verifier.VerifyVector(axes()) &&
+           verifier.EndTable();
+  }
+};
+
+struct ConfigureBuilder {
+  typedef Configure Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_link(flatbuffers::Offset<nn::Link> link) {
+    fbb_.AddOffset(Configure::VT_LINK, link);
+  }
+  void add_axes(flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes) {
+    fbb_.AddOffset(Configure::VT_AXES, axes);
+  }
+  explicit ConfigureBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Configure> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Configure>(end);
+    fbb_.Required(o, Configure::VT_LINK);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Configure> CreateConfigure(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::Link> link = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes = 0) {
+  ConfigureBuilder builder_(_fbb);
+  builder_.add_axes(axes);
+  builder_.add_link(link);
+  return builder_.Finish();
+}
+
+struct Configure::Traits {
+  using type = Configure;
+  static auto constexpr Create = CreateConfigure;
+};
+
+inline flatbuffers::Offset<Configure> CreateConfigureDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::Link> link = 0,
+    const std::vector<int32_t> *axes = nullptr) {
+  auto axes__ = axes ? _fbb.CreateVector<int32_t>(*axes) : 0;
+  return nn::CreateConfigure(
+      _fbb,
+      link,
+      axes__);
+}
+
 struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef GraphBuilder Builder;
   struct Traits;
@@ -3715,6 +3796,10 @@ inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer 
     }
     case Layer::RESHAPE: {
       auto ptr = reinterpret_cast<const nn::RESHAPE *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::Configure: {
+      auto ptr = reinterpret_cast<const nn::Configure *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;

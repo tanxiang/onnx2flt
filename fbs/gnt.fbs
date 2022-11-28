@@ -261,15 +261,28 @@ table RESHAPE {
     axes:[int];
 }
 
+table Configure {
+    link:Link (required);
+    GatherIndices:int;
+    GatherAxis:int;
+
+    UnsqueezeAxes:[int];
+    ConcatAxis:int;
+    Concat:[int];
+}
+
+
 union Layer {
     InputTensor,
 
     UbyteTensor,UshortTensor,UintTensor,IntTensor,FloatTensor,DoubleTensor,
+
     
 CONV_2D,AVERAGE_POOL_2D,MAX_POOL_2D,RELU,SOFTMAX,FULLY_CONNECTED,
 ADD,CONCATENATION,DEPTHWISE_CONV_2D,BATCH_TO_SPACE_ND,SPACE_TO_BATCH_ND,
 STRIDED_SLICE,MUL,DEQUANTIZE,LOCAL_RESPONSE_NORMALIZATION,TANH,FLOOR,LOGISTIC,
-PRELU,POW,NEG,MINIMUM,MAXIMUM,LOG,ABS,EXP,SUB,GATHER,RESHAPE
+PRELU,POW,NEG,MINIMUM,MAXIMUM,LOG,ABS,EXP,SUB,GATHER,RESHAPE,
+Configure
 }
 
 table Graph {
