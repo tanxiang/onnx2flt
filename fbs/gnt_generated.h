@@ -3471,20 +3471,42 @@ struct Configure FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_AXES = 6
+    VT_GATHER_INDICES = 6,
+    VT_GATHER_AXIS = 8,
+    VT_UNSQUEEZE_AXES = 10,
+    VT_CONCAT_AXIS = 12,
+    VT_CONCAT = 14
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
   }
-  const flatbuffers::Vector<int32_t> *axes() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_AXES);
+  const flatbuffers::Vector<int32_t> *gather_indices() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_GATHER_INDICES);
+  }
+  int32_t gather_axis() const {
+    return GetField<int32_t>(VT_GATHER_AXIS, 0);
+  }
+  const flatbuffers::Vector<int32_t> *unsqueeze_axes() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_UNSQUEEZE_AXES);
+  }
+  int32_t concat_axis() const {
+    return GetField<int32_t>(VT_CONCAT_AXIS, 0);
+  }
+  const flatbuffers::Vector<int32_t> *concat() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_CONCAT);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
-           VerifyOffset(verifier, VT_AXES) &&
-           verifier.VerifyVector(axes()) &&
+           VerifyOffset(verifier, VT_GATHER_INDICES) &&
+           verifier.VerifyVector(gather_indices()) &&
+           VerifyField<int32_t>(verifier, VT_GATHER_AXIS, 4) &&
+           VerifyOffset(verifier, VT_UNSQUEEZE_AXES) &&
+           verifier.VerifyVector(unsqueeze_axes()) &&
+           VerifyField<int32_t>(verifier, VT_CONCAT_AXIS, 4) &&
+           VerifyOffset(verifier, VT_CONCAT) &&
+           verifier.VerifyVector(concat()) &&
            verifier.EndTable();
   }
 };
@@ -3496,8 +3518,20 @@ struct ConfigureBuilder {
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(Configure::VT_LINK, link);
   }
-  void add_axes(flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes) {
-    fbb_.AddOffset(Configure::VT_AXES, axes);
+  void add_gather_indices(flatbuffers::Offset<flatbuffers::Vector<int32_t>> gather_indices) {
+    fbb_.AddOffset(Configure::VT_GATHER_INDICES, gather_indices);
+  }
+  void add_gather_axis(int32_t gather_axis) {
+    fbb_.AddElement<int32_t>(Configure::VT_GATHER_AXIS, gather_axis, 0);
+  }
+  void add_unsqueeze_axes(flatbuffers::Offset<flatbuffers::Vector<int32_t>> unsqueeze_axes) {
+    fbb_.AddOffset(Configure::VT_UNSQUEEZE_AXES, unsqueeze_axes);
+  }
+  void add_concat_axis(int32_t concat_axis) {
+    fbb_.AddElement<int32_t>(Configure::VT_CONCAT_AXIS, concat_axis, 0);
+  }
+  void add_concat(flatbuffers::Offset<flatbuffers::Vector<int32_t>> concat) {
+    fbb_.AddOffset(Configure::VT_CONCAT, concat);
   }
   explicit ConfigureBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -3514,9 +3548,17 @@ struct ConfigureBuilder {
 inline flatbuffers::Offset<Configure> CreateConfigure(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> gather_indices = 0,
+    int32_t gather_axis = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> unsqueeze_axes = 0,
+    int32_t concat_axis = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> concat = 0) {
   ConfigureBuilder builder_(_fbb);
-  builder_.add_axes(axes);
+  builder_.add_concat(concat);
+  builder_.add_concat_axis(concat_axis);
+  builder_.add_unsqueeze_axes(unsqueeze_axes);
+  builder_.add_gather_axis(gather_axis);
+  builder_.add_gather_indices(gather_indices);
   builder_.add_link(link);
   return builder_.Finish();
 }
@@ -3529,12 +3571,22 @@ struct Configure::Traits {
 inline flatbuffers::Offset<Configure> CreateConfigureDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    const std::vector<int32_t> *axes = nullptr) {
-  auto axes__ = axes ? _fbb.CreateVector<int32_t>(*axes) : 0;
+    const std::vector<int32_t> *gather_indices = nullptr,
+    int32_t gather_axis = 0,
+    const std::vector<int32_t> *unsqueeze_axes = nullptr,
+    int32_t concat_axis = 0,
+    const std::vector<int32_t> *concat = nullptr) {
+  auto gather_indices__ = gather_indices ? _fbb.CreateVector<int32_t>(*gather_indices) : 0;
+  auto unsqueeze_axes__ = unsqueeze_axes ? _fbb.CreateVector<int32_t>(*unsqueeze_axes) : 0;
+  auto concat__ = concat ? _fbb.CreateVector<int32_t>(*concat) : 0;
   return nn::CreateConfigure(
       _fbb,
       link,
-      axes__);
+      gather_indices__,
+      gather_axis,
+      unsqueeze_axes__,
+      concat_axis,
+      concat__);
 }
 
 struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

@@ -263,12 +263,12 @@ table RESHAPE {
 
 table Configure {
     link:Link (required);
-    GatherIndices:int;
-    GatherAxis:int;
+    gather_indices:[int];
+    gather_axis:int;
 
-    UnsqueezeAxes:[int];
-    ConcatAxis:int;
-    Concat:[int];
+    unsqueeze_axes:[int];
+    concat_axis:int;
+    concat:[int];
 }
 
 

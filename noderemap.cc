@@ -688,11 +688,66 @@ struct OpToLayerBuilderMap
   }
 };
 
-auto fuseSGUC(flatbuffers::FlatBufferBuilder &flatbuffers,
+auto fuseSGUC(flatbuffers::FlatBufferBuilder &flatbuffers, mapContext &context,
               flatbuffers::Offset<nn::Link> link, const onnx::NodeProto &Shape,
               const onnx::NodeProto &Gather, const onnx::NodeProto &Unsqueeze,
               const onnx::NodeProto &Concat) {
-                  nn::ConfigureBuilder builder{flatbuffers};
+  nn::ConfigureBuilder builder{flatbuffers};
+  builder.add_link(link);
+  for (auto &attr : Gather.attribute()) {
+    if (attr.name() == "axis" &&
+        attr.type() == onnx::AttributeProto_AttributeType_INT) {
+      builder.add_gather_axis(static_cast<int32_t>(attr.i()));
+    } else {
+      std::cerr << nodeID(Gather) << " attr : \n"
+                << attr.DebugString() << __LINE__ << "not support\n";
+    }
+  }
+  auto constansNode = context.outputNodeMap.at(Gather.input(1));
+  for (auto &attr : constansNode.attribute()) {
+
+    if (attr.name() == "value" &&
+        attr.t().data_type() == onnx::TensorProto_DataType_INT64) {
+      builder.add_gather_indices(flatbuffers.CreateVector(
+          attr.t().int64_data_size(),
+          std::function<int32_t(size_t i)>{
+              [&](size_t i) { return attr.t().int64_data(i); }}));
+    } else {
+      std::cerr << nodeID(constansNode) << " attr : " << attr.type() << "\n"
+                << attr.DebugString() << __LINE__ << "not support\n";
+    }
+  }
+
+  for (auto &attr : Unsqueeze.attribute()) {
+    if (attr.name() == "axes" &&
+        attr.type() == onnx::AttributeProto_AttributeType_INTS) {
+      builder.add_unsqueeze_axes(flatbuffers.CreateVector(
+          attr.ints_size(), std::function<int32_t(size_t i)>{
+                                [&](size_t i) { return attr.ints(i); }}));
+    } else {
+      std::cerr << nodeID(Gather) << " attr : \n"
+                << attr.DebugString() << "not support\n";
+    }
+  }
+  for (auto &attr : Concat.attribute()) {
+    if (attr.name() == "axis" &&
+        attr.type() == onnx::AttributeProto_AttributeType_INT) {
+      builder.add_concat_axis(static_cast<int32_t>(attr.i()));
+    }else {
+      std::cerr << nodeID(Concat) << " attr : \n"
+                << attr.DebugString() << "not support\n";
+    }
+  }
+    auto ConcatTensor = context.tensorMap.at(Concat.input(1));
+    if(ConcatTensor.data_type()==onnx::TensorProto_DataType_INT64){
+
+      builder.add_concat(flatbuffers.CreateVector(
+          ConcatTensor.int32_data_size(), std::function<int32_t(size_t i)>{
+                                [&](size_t i) { return ConcatTensor.int64_data(i); }}));
+    }else {
+      std::cerr << nodeID(Concat) << " Tensor input : \n"
+                << &ConcatTensor << "not support\n";
+    }
 
   return UnionPair(builder.Finish());
 }
@@ -736,10 +791,8 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
         auto &nodeShape =
             context.outputNodeMap.find(nodeGather.input()[0])->second;
         if (nodeShape.op_type() == "Shape") {
-          std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>" << nodeID(nodeShape)
-                    << " idx " << tensorIndex << std::endl
-                    << nodeP->DebugString();
-
+          std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>" << nodeID(*nodeP)
+                    << " idx " << tensorIndex << std::endl;
           auto link = nn::CreateLink(
               builder, builder.CreateVector(
                            nodeShape.input_size(),
@@ -748,7 +801,8 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                                                 nodeShape.input()[i], symbols);
                            }}));
 
-          auto ftnode = fuseSGUC(builder, link,nodeShape,nodeGather,nodeUnsqueeze ,*nodeP);
+          auto ftnode = fuseSGUC(builder, context, link, nodeShape, nodeGather,
+                                 nodeUnsqueeze, *nodeP);
           nodesData.emplace(tensorIndex,
                             uLayerData{ftnode.first, ftnode.second});
 
@@ -757,7 +811,6 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
       }
     }
   }
-  //  exit(-1);
 
   auto link = nn::CreateLink(
       builder,
