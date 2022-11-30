@@ -439,8 +439,8 @@ createNodeVVFromOutputs(const std::vector<std::string> outputs,
 }
 
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
-                     std::map<int, uLayerData> &nodesData, mapContext &context,
-                     const std::string output,
+                     std::set<kLayerData, std::less<>> &nodesData,
+                     mapContext &context, const std::string output,
                      std::map<std::string, int> &symbols);
 
 template <typename NodeTensorBuilder>
@@ -588,9 +588,14 @@ auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flBuilder,
 }
 
 template <typename Layer>
+inline auto UnionType(flatbuffers::Offset<Layer> layer) {
+  return nn::LayerTraits<Layer>::enum_value;
+}
+
+template <typename Layer>
 inline auto UnionPair(flatbuffers::Offset<Layer> layer) {
-  return std::pair<nn::Layer, flatbuffers::Offset<void>>{
-      nn::LayerTraits<Layer>::enum_value, layer.Union()};
+  return std::pair<nn::Layer, flatbuffers::Offset<void>>{UnionType(layer),
+                                                         layer.Union()};
 }
 
 struct OpToLayerBuilderMap
@@ -733,28 +738,29 @@ auto fuseSGUC(flatbuffers::FlatBufferBuilder &flatbuffers, mapContext &context,
     if (attr.name() == "axis" &&
         attr.type() == onnx::AttributeProto_AttributeType_INT) {
       builder.add_concat_axis(static_cast<int32_t>(attr.i()));
-    }else {
+    } else {
       std::cerr << nodeID(Concat) << " attr : \n"
                 << attr.DebugString() << "not support\n";
     }
   }
-    auto ConcatTensor = context.tensorMap.at(Concat.input(1));
-    if(ConcatTensor.data_type()==onnx::TensorProto_DataType_INT64){
+  auto ConcatTensor = context.tensorMap.at(Concat.input(1));
+  if (ConcatTensor.data_type() == onnx::TensorProto_DataType_INT64) {
 
-      builder.add_concat(flatbuffers.CreateVector(
-          ConcatTensor.int32_data_size(), std::function<int32_t(size_t i)>{
-                                [&](size_t i) { return ConcatTensor.int64_data(i); }}));
-    }else {
-      std::cerr << nodeID(Concat) << " Tensor input : \n"
-                << &ConcatTensor << "not support\n";
-    }
+    builder.add_concat(flatbuffers.CreateVector(
+        ConcatTensor.int32_data_size(),
+        std::function<int32_t(size_t i)>{
+            [&](size_t i) { return ConcatTensor.int64_data(i); }}));
+  } else {
+    std::cerr << nodeID(Concat) << " Tensor input : \n"
+              << &ConcatTensor << "not support\n";
+  }
 
-  return UnionPair(builder.Finish());
+  return builder.Finish();
 }
 
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
-                     std::map<int, uLayerData> &nodesData, mapContext &context,
-                     const onnx::NodeProto &node,
+                     std::set<kLayerData, std::less<>> &nodesData,
+                     mapContext &context, const onnx::NodeProto &node,
                      std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
@@ -803,8 +809,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
 
           auto ftnode = fuseSGUC(builder, context, link, nodeShape, nodeGather,
                                  nodeUnsqueeze, *nodeP);
-          nodesData.emplace(tensorIndex,
-                            uLayerData{ftnode.first, ftnode.second});
+          nodesData.emplace(tensorIndex, UnionType(ftnode), ftnode.Union());
 
           return tensorIndex;
         }
@@ -824,7 +829,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   auto opItr = opMap.find(nodeP->op_type());
   if (opItr != opMap.end()) {
     auto ftnode = opItr->second(builder, link, *nodeP, fuseCodeP);
-    nodesData.emplace(tensorIndex, uLayerData{ftnode.first, ftnode.second});
+    nodesData.emplace(tensorIndex, ftnode.first, ftnode.second);
   } else {
     std::cerr << "error: " << nodeP->op_type() << " is not support!\n"
               << nodeP->DebugString();
@@ -834,24 +839,70 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   return tensorIndex;
 }
 
-uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
-                     std::map<int, uLayerData> &nodesData, mapContext &context,
-                     const onnx::TensorProto &tensor,
+uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
+                     std::set<kLayerData, std::less<>> &nodesData,
+                     mapContext &context, const onnx::TensorProto &tensor,
                      std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
   symbols.emplace(tensor.name(), tensorIndex);
+  switch (tensor.data_type()) {
+  case onnx::TensorProto_DataType_FLOAT: {
+    nn::FloatTensorBuilder builder{flbuilder};
+    auto flnode = builder.Finish();
+    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
 
+  } break;
+  case onnx::TensorProto_DataType_FLOAT16: {
+    nn::FloatTensorBuilder builder{flbuilder};
+    auto flnode = builder.Finish();
+    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+  } break;
+  case onnx::TensorProto_DataType_DOUBLE: {
+
+    nn::FloatTensorBuilder builder{flbuilder};
+    auto flnode = builder.Finish();
+    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+  } break;
+  case onnx::TensorProto_DataType_INT8: {
+    nn::FloatTensorBuilder builder{flbuilder};
+    auto flnode = builder.Finish();
+    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+  } break;
+  case onnx::TensorProto_DataType_INT16: {
+    nn::FloatTensorBuilder builder{flbuilder};
+    auto flnode = builder.Finish();
+    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+  } break;
+  case onnx::TensorProto_DataType_INT32: {
+    nn::FloatTensorBuilder builder{flbuilder};
+    auto flnode = builder.Finish();
+    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+  } break;
+  case onnx::TensorProto_DataType_INT64: {
+    nn::FloatTensorBuilder builder{flbuilder};
+    auto flnode = builder.Finish();
+    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+  } break;
+  default:
+    std::cerr << "onnx::TensorProto_DataType " << tensor.data_type()
+              << " not support\n";
+    {
+      nn::FloatTensorBuilder builder{flbuilder};
+      auto flnode = builder.Finish();
+      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+      return -1;
+    }
+  }
   std::cout << "tensor idx:" << tensorIndex << " id " << tensor.name()
             << std::endl;
 
-  nodesData.emplace(tensorIndex, uLayerData{});
   return tensorIndex;
 }
 
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
-                     std::map<int, uLayerData> &nodesData, mapContext &context,
-                     const onnx::ValueInfoProto &valueInfo,
+                     std::set<kLayerData, std::less<>> &nodesData,
+                     mapContext &context, const onnx::ValueInfoProto &valueInfo,
                      std::map<std::string, int> &symbols) {
   auto tensorIndex = symbols.size();
   symbols.emplace(valueInfo.name(), tensorIndex);
@@ -859,13 +910,13 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   std::cout << "input idx:" << tensorIndex << " id " << valueInfo.name()
             << std::endl;
 
-  nodesData.emplace(tensorIndex, uLayerData{});
+  nodesData.emplace(tensorIndex);
   return tensorIndex;
 }
 
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
-                     std::map<int, uLayerData> &nodesData, mapContext &context,
-                     const std::string output,
+                     std::set<kLayerData, std::less<>> &nodesData,
+                     mapContext &context, const std::string output,
                      std::map<std::string, int> &symbols) {
   if (auto itr = symbols.find(output); itr != symbols.end()) {
     return itr->second;
@@ -891,14 +942,14 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   throw std::logic_error{"need output not found!"};
 }
 
-std::map<int, uLayerData>
+std::set<kLayerData, std::less<>>
 writeFlNodeFromOutputs(flatbuffers::FlatBufferBuilder &builder,
                        const std::vector<std::string> outputs,
                        mapContext &context) {
 
   std::deque<std::string> outputsNeed{outputs.begin(), outputs.end()};
   std::map<std::string, int> symbols;
-  std::map<int, uLayerData> nodesData;
+  std::set<kLayerData, std::less<>> nodesData;
 
   while (!outputsNeed.empty()) {
     auto outputName = outputsNeed.front();

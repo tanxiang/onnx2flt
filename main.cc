@@ -190,13 +190,13 @@ int main(int argc, char *argv[]) {
         flatbuffers.CreateVector(
             nodesMap.size(), std::function<nn::Layer(size_t)>{[&](size_t i) {
               std::cout << "get type:" <<nodesMap.size() <<" at "<< i << std::endl;
-              return nodesMap.at(i).type;
+              return nodesMap.find(i)->type;
             }}),
         flatbuffers.CreateVector(
             nodesMap.size(),
             std::function<flatbuffers::Offset<void>(size_t i)>{[&](size_t i) {
               std::cout << "get data:" << i << std::endl;
-              return nodesMap.at(i).data;
+              return nodesMap.find(i)->data;
             }}));
     flatbuffers.Finish(flatbuffersGraph);
     {

@@ -10,14 +10,21 @@ std::vector<std::vector<const onnx::NodeProto *>>
 createNodeVVFromOutputs(const std::vector<std::string> output,
                         mapContext &context);
 
-struct uLayerData //: public flatbuffers::Offset<void> , nn::Layer
+
+
+struct kLayerData //: public flatbuffers::Offset<void> , nn::Layer
 {
+    size_t key;
   nn::Layer type;
   flatbuffers::Offset<void> data;
   /* data */
 };
 
-std::map<int, uLayerData>
+inline bool operator<(const kLayerData& l, const kLayerData& r) { return l.key < r.key; }
+inline bool operator<(const kLayerData& l, const size_t& r) { return l.key < r; }
+inline bool operator<(const size_t& l, const kLayerData& r) { return l < r.key; }
+
+std::set<kLayerData,std::less<>>
 writeFlNodeFromOutputs(flatbuffers::FlatBufferBuilder &builder,
                        const std::vector<std::string> outputs,
                        mapContext &context);
