@@ -13,36 +13,49 @@ table TensorInfo{
     data_fuse:FuseCode;
     dim: [ushort];
 }
-table UbyteTensor{
-    info:TensorInfo;
-    data :[ubyte];
-}
 
-table UshortTensor{
+table rawTensor{
     info:TensorInfo;
-    data :[ushort];
+    data :string;
 }
 
 
-table UintTensor{
+table i8Tensor{
     info:TensorInfo;
-    data :[uint];
+    data :[byte];
 }
 
-table IntTensor{
+table i16Tensor{
+    info:TensorInfo;
+    data :[short];
+}
+
+
+table i32Tensor{
     info:TensorInfo;
     data :[int];
 }
 
-table FloatTensor{
+table i64Tensor{
+    info:TensorInfo;
+    data :[long];
+}
+
+table f16Tensor{
+    info:TensorInfo;
+    data :[ushort];
+}
+
+table f32Tensor{
     info:TensorInfo;
     data :[float];
 }
 
-table DoubleTensor{
+table f64Tensor{
     info:TensorInfo;
     data :[double];
 }
+
 
 table QuantInfo {
     name: string(required);
@@ -273,9 +286,9 @@ table Configure {
 
 
 union Layer {
-    InputTensor,
+    InputTensor,rawTensor,
 
-    UbyteTensor,UshortTensor,UintTensor,IntTensor,FloatTensor,DoubleTensor,
+    i8Tensor,i16Tensor,i32Tensor,i64Tensor,f16Tensor,f32Tensor,f64Tensor,
 
     
 CONV_2D,AVERAGE_POOL_2D,MAX_POOL_2D,RELU,SOFTMAX,FULLY_CONNECTED,

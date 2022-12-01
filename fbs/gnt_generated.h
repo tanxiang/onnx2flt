@@ -20,23 +20,29 @@ struct versionInfo;
 struct TensorInfo;
 struct TensorInfoBuilder;
 
-struct UbyteTensor;
-struct UbyteTensorBuilder;
+struct rawTensor;
+struct rawTensorBuilder;
 
-struct UshortTensor;
-struct UshortTensorBuilder;
+struct i8Tensor;
+struct i8TensorBuilder;
 
-struct UintTensor;
-struct UintTensorBuilder;
+struct i16Tensor;
+struct i16TensorBuilder;
 
-struct IntTensor;
-struct IntTensorBuilder;
+struct i32Tensor;
+struct i32TensorBuilder;
 
-struct FloatTensor;
-struct FloatTensorBuilder;
+struct i64Tensor;
+struct i64TensorBuilder;
 
-struct DoubleTensor;
-struct DoubleTensorBuilder;
+struct f16Tensor;
+struct f16TensorBuilder;
+
+struct f32Tensor;
+struct f32TensorBuilder;
+
+struct f64Tensor;
+struct f64TensorBuilder;
 
 struct QuantInfo;
 struct QuantInfoBuilder;
@@ -228,56 +234,60 @@ inline const char *EnumNameFuseCode(FuseCode e) {
 enum class Layer : uint8_t {
   NONE = 0,
   InputTensor = 1,
-  UbyteTensor = 2,
-  UshortTensor = 3,
-  UintTensor = 4,
-  IntTensor = 5,
-  FloatTensor = 6,
-  DoubleTensor = 7,
-  CONV_2D = 8,
-  AVERAGE_POOL_2D = 9,
-  MAX_POOL_2D = 10,
-  RELU = 11,
-  SOFTMAX = 12,
-  FULLY_CONNECTED = 13,
-  ADD = 14,
-  CONCATENATION = 15,
-  DEPTHWISE_CONV_2D = 16,
-  BATCH_TO_SPACE_ND = 17,
-  SPACE_TO_BATCH_ND = 18,
-  STRIDED_SLICE = 19,
-  MUL = 20,
-  DEQUANTIZE = 21,
-  LOCAL_RESPONSE_NORMALIZATION = 22,
-  TANH = 23,
-  FLOOR = 24,
-  LOGISTIC = 25,
-  PRELU = 26,
-  POW = 27,
-  NEG = 28,
-  MINIMUM = 29,
-  MAXIMUM = 30,
-  LOG = 31,
-  ABS = 32,
-  EXP = 33,
-  SUB = 34,
-  GATHER = 35,
-  RESHAPE = 36,
-  Configure = 37,
+  rawTensor = 2,
+  i8Tensor = 3,
+  i16Tensor = 4,
+  i32Tensor = 5,
+  i64Tensor = 6,
+  f16Tensor = 7,
+  f32Tensor = 8,
+  f64Tensor = 9,
+  CONV_2D = 10,
+  AVERAGE_POOL_2D = 11,
+  MAX_POOL_2D = 12,
+  RELU = 13,
+  SOFTMAX = 14,
+  FULLY_CONNECTED = 15,
+  ADD = 16,
+  CONCATENATION = 17,
+  DEPTHWISE_CONV_2D = 18,
+  BATCH_TO_SPACE_ND = 19,
+  SPACE_TO_BATCH_ND = 20,
+  STRIDED_SLICE = 21,
+  MUL = 22,
+  DEQUANTIZE = 23,
+  LOCAL_RESPONSE_NORMALIZATION = 24,
+  TANH = 25,
+  FLOOR = 26,
+  LOGISTIC = 27,
+  PRELU = 28,
+  POW = 29,
+  NEG = 30,
+  MINIMUM = 31,
+  MAXIMUM = 32,
+  LOG = 33,
+  ABS = 34,
+  EXP = 35,
+  SUB = 36,
+  GATHER = 37,
+  RESHAPE = 38,
+  Configure = 39,
   MIN = NONE,
   MAX = Configure
 };
 
-inline const Layer (&EnumValuesLayer())[38] {
+inline const Layer (&EnumValuesLayer())[40] {
   static const Layer values[] = {
     Layer::NONE,
     Layer::InputTensor,
-    Layer::UbyteTensor,
-    Layer::UshortTensor,
-    Layer::UintTensor,
-    Layer::IntTensor,
-    Layer::FloatTensor,
-    Layer::DoubleTensor,
+    Layer::rawTensor,
+    Layer::i8Tensor,
+    Layer::i16Tensor,
+    Layer::i32Tensor,
+    Layer::i64Tensor,
+    Layer::f16Tensor,
+    Layer::f32Tensor,
+    Layer::f64Tensor,
     Layer::CONV_2D,
     Layer::AVERAGE_POOL_2D,
     Layer::MAX_POOL_2D,
@@ -313,15 +323,17 @@ inline const Layer (&EnumValuesLayer())[38] {
 }
 
 inline const char * const *EnumNamesLayer() {
-  static const char * const names[39] = {
+  static const char * const names[41] = {
     "NONE",
     "InputTensor",
-    "UbyteTensor",
-    "UshortTensor",
-    "UintTensor",
-    "IntTensor",
-    "FloatTensor",
-    "DoubleTensor",
+    "rawTensor",
+    "i8Tensor",
+    "i16Tensor",
+    "i32Tensor",
+    "i64Tensor",
+    "f16Tensor",
+    "f32Tensor",
+    "f64Tensor",
     "CONV_2D",
     "AVERAGE_POOL_2D",
     "MAX_POOL_2D",
@@ -371,28 +383,36 @@ template<> struct LayerTraits<nn::InputTensor> {
   static const Layer enum_value = Layer::InputTensor;
 };
 
-template<> struct LayerTraits<nn::UbyteTensor> {
-  static const Layer enum_value = Layer::UbyteTensor;
+template<> struct LayerTraits<nn::rawTensor> {
+  static const Layer enum_value = Layer::rawTensor;
 };
 
-template<> struct LayerTraits<nn::UshortTensor> {
-  static const Layer enum_value = Layer::UshortTensor;
+template<> struct LayerTraits<nn::i8Tensor> {
+  static const Layer enum_value = Layer::i8Tensor;
 };
 
-template<> struct LayerTraits<nn::UintTensor> {
-  static const Layer enum_value = Layer::UintTensor;
+template<> struct LayerTraits<nn::i16Tensor> {
+  static const Layer enum_value = Layer::i16Tensor;
 };
 
-template<> struct LayerTraits<nn::IntTensor> {
-  static const Layer enum_value = Layer::IntTensor;
+template<> struct LayerTraits<nn::i32Tensor> {
+  static const Layer enum_value = Layer::i32Tensor;
 };
 
-template<> struct LayerTraits<nn::FloatTensor> {
-  static const Layer enum_value = Layer::FloatTensor;
+template<> struct LayerTraits<nn::i64Tensor> {
+  static const Layer enum_value = Layer::i64Tensor;
 };
 
-template<> struct LayerTraits<nn::DoubleTensor> {
-  static const Layer enum_value = Layer::DoubleTensor;
+template<> struct LayerTraits<nn::f16Tensor> {
+  static const Layer enum_value = Layer::f16Tensor;
+};
+
+template<> struct LayerTraits<nn::f32Tensor> {
+  static const Layer enum_value = Layer::f32Tensor;
+};
+
+template<> struct LayerTraits<nn::f64Tensor> {
+  static const Layer enum_value = Layer::f64Tensor;
 };
 
 template<> struct LayerTraits<nn::CONV_2D> {
@@ -775,8 +795,8 @@ inline flatbuffers::Offset<TensorInfo> CreateTensorInfoDirect(
       dim__);
 }
 
-struct UbyteTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef UbyteTensorBuilder Builder;
+struct rawTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef rawTensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -785,8 +805,78 @@ struct UbyteTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::TensorInfo *info() const {
     return GetPointer<const nn::TensorInfo *>(VT_INFO);
   }
-  const flatbuffers::Vector<uint8_t> *data() const {
-    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_DATA);
+  const flatbuffers::String *data() const {
+    return GetPointer<const flatbuffers::String *>(VT_DATA);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_INFO) &&
+           verifier.VerifyTable(info()) &&
+           VerifyOffset(verifier, VT_DATA) &&
+           verifier.VerifyString(data()) &&
+           verifier.EndTable();
+  }
+};
+
+struct rawTensorBuilder {
+  typedef rawTensor Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
+    fbb_.AddOffset(rawTensor::VT_INFO, info);
+  }
+  void add_data(flatbuffers::Offset<flatbuffers::String> data) {
+    fbb_.AddOffset(rawTensor::VT_DATA, data);
+  }
+  explicit rawTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<rawTensor> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<rawTensor>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<rawTensor> CreaterawTensor(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::TensorInfo> info = 0,
+    flatbuffers::Offset<flatbuffers::String> data = 0) {
+  rawTensorBuilder builder_(_fbb);
+  builder_.add_data(data);
+  builder_.add_info(info);
+  return builder_.Finish();
+}
+
+struct rawTensor::Traits {
+  using type = rawTensor;
+  static auto constexpr Create = CreaterawTensor;
+};
+
+inline flatbuffers::Offset<rawTensor> CreaterawTensorDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::TensorInfo> info = 0,
+    const char *data = nullptr) {
+  auto data__ = data ? _fbb.CreateString(data) : 0;
+  return nn::CreaterawTensor(
+      _fbb,
+      info,
+      data__);
+}
+
+struct i8Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef i8TensorBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_INFO = 4,
+    VT_DATA = 6
+  };
+  const nn::TensorInfo *info() const {
+    return GetPointer<const nn::TensorInfo *>(VT_INFO);
+  }
+  const flatbuffers::Vector<int8_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_DATA);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -798,55 +888,55 @@ struct UbyteTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct UbyteTensorBuilder {
-  typedef UbyteTensor Table;
+struct i8TensorBuilder {
+  typedef i8Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(UbyteTensor::VT_INFO, info);
+    fbb_.AddOffset(i8Tensor::VT_INFO, info);
   }
-  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
-    fbb_.AddOffset(UbyteTensor::VT_DATA, data);
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<int8_t>> data) {
+    fbb_.AddOffset(i8Tensor::VT_DATA, data);
   }
-  explicit UbyteTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit i8TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<UbyteTensor> Finish() {
+  flatbuffers::Offset<i8Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<UbyteTensor>(end);
+    auto o = flatbuffers::Offset<i8Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<UbyteTensor> CreateUbyteTensor(
+inline flatbuffers::Offset<i8Tensor> Createi8Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
-  UbyteTensorBuilder builder_(_fbb);
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> data = 0) {
+  i8TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct UbyteTensor::Traits {
-  using type = UbyteTensor;
-  static auto constexpr Create = CreateUbyteTensor;
+struct i8Tensor::Traits {
+  using type = i8Tensor;
+  static auto constexpr Create = Createi8Tensor;
 };
 
-inline flatbuffers::Offset<UbyteTensor> CreateUbyteTensorDirect(
+inline flatbuffers::Offset<i8Tensor> Createi8TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
-    const std::vector<uint8_t> *data = nullptr) {
-  auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
-  return nn::CreateUbyteTensor(
+    const std::vector<int8_t> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<int8_t>(*data) : 0;
+  return nn::Createi8Tensor(
       _fbb,
       info,
       data__);
 }
 
-struct UshortTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef UshortTensorBuilder Builder;
+struct i16Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef i16TensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -855,8 +945,8 @@ struct UshortTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::TensorInfo *info() const {
     return GetPointer<const nn::TensorInfo *>(VT_INFO);
   }
-  const flatbuffers::Vector<uint16_t> *data() const {
-    return GetPointer<const flatbuffers::Vector<uint16_t> *>(VT_DATA);
+  const flatbuffers::Vector<int16_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<int16_t> *>(VT_DATA);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -868,125 +958,55 @@ struct UshortTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct UshortTensorBuilder {
-  typedef UshortTensor Table;
+struct i16TensorBuilder {
+  typedef i16Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(UshortTensor::VT_INFO, info);
+    fbb_.AddOffset(i16Tensor::VT_INFO, info);
   }
-  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint16_t>> data) {
-    fbb_.AddOffset(UshortTensor::VT_DATA, data);
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<int16_t>> data) {
+    fbb_.AddOffset(i16Tensor::VT_DATA, data);
   }
-  explicit UshortTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit i16TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<UshortTensor> Finish() {
+  flatbuffers::Offset<i16Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<UshortTensor>(end);
+    auto o = flatbuffers::Offset<i16Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<UshortTensor> CreateUshortTensor(
+inline flatbuffers::Offset<i16Tensor> Createi16Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint16_t>> data = 0) {
-  UshortTensorBuilder builder_(_fbb);
+    flatbuffers::Offset<flatbuffers::Vector<int16_t>> data = 0) {
+  i16TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct UshortTensor::Traits {
-  using type = UshortTensor;
-  static auto constexpr Create = CreateUshortTensor;
+struct i16Tensor::Traits {
+  using type = i16Tensor;
+  static auto constexpr Create = Createi16Tensor;
 };
 
-inline flatbuffers::Offset<UshortTensor> CreateUshortTensorDirect(
+inline flatbuffers::Offset<i16Tensor> Createi16TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
-    const std::vector<uint16_t> *data = nullptr) {
-  auto data__ = data ? _fbb.CreateVector<uint16_t>(*data) : 0;
-  return nn::CreateUshortTensor(
+    const std::vector<int16_t> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<int16_t>(*data) : 0;
+  return nn::Createi16Tensor(
       _fbb,
       info,
       data__);
 }
 
-struct UintTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef UintTensorBuilder Builder;
-  struct Traits;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INFO = 4,
-    VT_DATA = 6
-  };
-  const nn::TensorInfo *info() const {
-    return GetPointer<const nn::TensorInfo *>(VT_INFO);
-  }
-  const flatbuffers::Vector<uint32_t> *data() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_DATA);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_INFO) &&
-           verifier.VerifyTable(info()) &&
-           VerifyOffset(verifier, VT_DATA) &&
-           verifier.VerifyVector(data()) &&
-           verifier.EndTable();
-  }
-};
-
-struct UintTensorBuilder {
-  typedef UintTensor Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(UintTensor::VT_INFO, info);
-  }
-  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> data) {
-    fbb_.AddOffset(UintTensor::VT_DATA, data);
-  }
-  explicit UintTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<UintTensor> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<UintTensor>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<UintTensor> CreateUintTensor(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::TensorInfo> info = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> data = 0) {
-  UintTensorBuilder builder_(_fbb);
-  builder_.add_data(data);
-  builder_.add_info(info);
-  return builder_.Finish();
-}
-
-struct UintTensor::Traits {
-  using type = UintTensor;
-  static auto constexpr Create = CreateUintTensor;
-};
-
-inline flatbuffers::Offset<UintTensor> CreateUintTensorDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::TensorInfo> info = 0,
-    const std::vector<uint32_t> *data = nullptr) {
-  auto data__ = data ? _fbb.CreateVector<uint32_t>(*data) : 0;
-  return nn::CreateUintTensor(
-      _fbb,
-      info,
-      data__);
-}
-
-struct IntTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef IntTensorBuilder Builder;
+struct i32Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef i32TensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -1008,55 +1028,195 @@ struct IntTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct IntTensorBuilder {
-  typedef IntTensor Table;
+struct i32TensorBuilder {
+  typedef i32Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(IntTensor::VT_INFO, info);
+    fbb_.AddOffset(i32Tensor::VT_INFO, info);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<int32_t>> data) {
-    fbb_.AddOffset(IntTensor::VT_DATA, data);
+    fbb_.AddOffset(i32Tensor::VT_DATA, data);
   }
-  explicit IntTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit i32TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<IntTensor> Finish() {
+  flatbuffers::Offset<i32Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<IntTensor>(end);
+    auto o = flatbuffers::Offset<i32Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<IntTensor> CreateIntTensor(
+inline flatbuffers::Offset<i32Tensor> Createi32Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> data = 0) {
-  IntTensorBuilder builder_(_fbb);
+  i32TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct IntTensor::Traits {
-  using type = IntTensor;
-  static auto constexpr Create = CreateIntTensor;
+struct i32Tensor::Traits {
+  using type = i32Tensor;
+  static auto constexpr Create = Createi32Tensor;
 };
 
-inline flatbuffers::Offset<IntTensor> CreateIntTensorDirect(
+inline flatbuffers::Offset<i32Tensor> Createi32TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     const std::vector<int32_t> *data = nullptr) {
   auto data__ = data ? _fbb.CreateVector<int32_t>(*data) : 0;
-  return nn::CreateIntTensor(
+  return nn::Createi32Tensor(
       _fbb,
       info,
       data__);
 }
 
-struct FloatTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef FloatTensorBuilder Builder;
+struct i64Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef i64TensorBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_INFO = 4,
+    VT_DATA = 6
+  };
+  const nn::TensorInfo *info() const {
+    return GetPointer<const nn::TensorInfo *>(VT_INFO);
+  }
+  const flatbuffers::Vector<int64_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<int64_t> *>(VT_DATA);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_INFO) &&
+           verifier.VerifyTable(info()) &&
+           VerifyOffset(verifier, VT_DATA) &&
+           verifier.VerifyVector(data()) &&
+           verifier.EndTable();
+  }
+};
+
+struct i64TensorBuilder {
+  typedef i64Tensor Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
+    fbb_.AddOffset(i64Tensor::VT_INFO, info);
+  }
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<int64_t>> data) {
+    fbb_.AddOffset(i64Tensor::VT_DATA, data);
+  }
+  explicit i64TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<i64Tensor> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<i64Tensor>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<i64Tensor> Createi64Tensor(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::TensorInfo> info = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int64_t>> data = 0) {
+  i64TensorBuilder builder_(_fbb);
+  builder_.add_data(data);
+  builder_.add_info(info);
+  return builder_.Finish();
+}
+
+struct i64Tensor::Traits {
+  using type = i64Tensor;
+  static auto constexpr Create = Createi64Tensor;
+};
+
+inline flatbuffers::Offset<i64Tensor> Createi64TensorDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::TensorInfo> info = 0,
+    const std::vector<int64_t> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<int64_t>(*data) : 0;
+  return nn::Createi64Tensor(
+      _fbb,
+      info,
+      data__);
+}
+
+struct f16Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef f16TensorBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_INFO = 4,
+    VT_DATA = 6
+  };
+  const nn::TensorInfo *info() const {
+    return GetPointer<const nn::TensorInfo *>(VT_INFO);
+  }
+  const flatbuffers::Vector<uint16_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<uint16_t> *>(VT_DATA);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_INFO) &&
+           verifier.VerifyTable(info()) &&
+           VerifyOffset(verifier, VT_DATA) &&
+           verifier.VerifyVector(data()) &&
+           verifier.EndTable();
+  }
+};
+
+struct f16TensorBuilder {
+  typedef f16Tensor Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
+    fbb_.AddOffset(f16Tensor::VT_INFO, info);
+  }
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint16_t>> data) {
+    fbb_.AddOffset(f16Tensor::VT_DATA, data);
+  }
+  explicit f16TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<f16Tensor> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<f16Tensor>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<f16Tensor> Createf16Tensor(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::TensorInfo> info = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint16_t>> data = 0) {
+  f16TensorBuilder builder_(_fbb);
+  builder_.add_data(data);
+  builder_.add_info(info);
+  return builder_.Finish();
+}
+
+struct f16Tensor::Traits {
+  using type = f16Tensor;
+  static auto constexpr Create = Createf16Tensor;
+};
+
+inline flatbuffers::Offset<f16Tensor> Createf16TensorDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<nn::TensorInfo> info = 0,
+    const std::vector<uint16_t> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<uint16_t>(*data) : 0;
+  return nn::Createf16Tensor(
+      _fbb,
+      info,
+      data__);
+}
+
+struct f32Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef f32TensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -1078,55 +1238,55 @@ struct FloatTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct FloatTensorBuilder {
-  typedef FloatTensor Table;
+struct f32TensorBuilder {
+  typedef f32Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(FloatTensor::VT_INFO, info);
+    fbb_.AddOffset(f32Tensor::VT_INFO, info);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<float>> data) {
-    fbb_.AddOffset(FloatTensor::VT_DATA, data);
+    fbb_.AddOffset(f32Tensor::VT_DATA, data);
   }
-  explicit FloatTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit f32TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<FloatTensor> Finish() {
+  flatbuffers::Offset<f32Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<FloatTensor>(end);
+    auto o = flatbuffers::Offset<f32Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<FloatTensor> CreateFloatTensor(
+inline flatbuffers::Offset<f32Tensor> Createf32Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     flatbuffers::Offset<flatbuffers::Vector<float>> data = 0) {
-  FloatTensorBuilder builder_(_fbb);
+  f32TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct FloatTensor::Traits {
-  using type = FloatTensor;
-  static auto constexpr Create = CreateFloatTensor;
+struct f32Tensor::Traits {
+  using type = f32Tensor;
+  static auto constexpr Create = Createf32Tensor;
 };
 
-inline flatbuffers::Offset<FloatTensor> CreateFloatTensorDirect(
+inline flatbuffers::Offset<f32Tensor> Createf32TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     const std::vector<float> *data = nullptr) {
   auto data__ = data ? _fbb.CreateVector<float>(*data) : 0;
-  return nn::CreateFloatTensor(
+  return nn::Createf32Tensor(
       _fbb,
       info,
       data__);
 }
 
-struct DoubleTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef DoubleTensorBuilder Builder;
+struct f64Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef f64TensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -1148,48 +1308,48 @@ struct DoubleTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct DoubleTensorBuilder {
-  typedef DoubleTensor Table;
+struct f64TensorBuilder {
+  typedef f64Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(DoubleTensor::VT_INFO, info);
+    fbb_.AddOffset(f64Tensor::VT_INFO, info);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<double>> data) {
-    fbb_.AddOffset(DoubleTensor::VT_DATA, data);
+    fbb_.AddOffset(f64Tensor::VT_DATA, data);
   }
-  explicit DoubleTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit f64TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<DoubleTensor> Finish() {
+  flatbuffers::Offset<f64Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<DoubleTensor>(end);
+    auto o = flatbuffers::Offset<f64Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<DoubleTensor> CreateDoubleTensor(
+inline flatbuffers::Offset<f64Tensor> Createf64Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     flatbuffers::Offset<flatbuffers::Vector<double>> data = 0) {
-  DoubleTensorBuilder builder_(_fbb);
+  f64TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct DoubleTensor::Traits {
-  using type = DoubleTensor;
-  static auto constexpr Create = CreateDoubleTensor;
+struct f64Tensor::Traits {
+  using type = f64Tensor;
+  static auto constexpr Create = Createf64Tensor;
 };
 
-inline flatbuffers::Offset<DoubleTensor> CreateDoubleTensorDirect(
+inline flatbuffers::Offset<f64Tensor> Createf64TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     const std::vector<double> *data = nullptr) {
   auto data__ = data ? _fbb.CreateVector<double>(*data) : 0;
-  return nn::CreateDoubleTensor(
+  return nn::Createf64Tensor(
       _fbb,
       info,
       data__);
@@ -3710,28 +3870,36 @@ inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer 
       auto ptr = reinterpret_cast<const nn::InputTensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::UbyteTensor: {
-      auto ptr = reinterpret_cast<const nn::UbyteTensor *>(obj);
+    case Layer::rawTensor: {
+      auto ptr = reinterpret_cast<const nn::rawTensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::UshortTensor: {
-      auto ptr = reinterpret_cast<const nn::UshortTensor *>(obj);
+    case Layer::i8Tensor: {
+      auto ptr = reinterpret_cast<const nn::i8Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::UintTensor: {
-      auto ptr = reinterpret_cast<const nn::UintTensor *>(obj);
+    case Layer::i16Tensor: {
+      auto ptr = reinterpret_cast<const nn::i16Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::IntTensor: {
-      auto ptr = reinterpret_cast<const nn::IntTensor *>(obj);
+    case Layer::i32Tensor: {
+      auto ptr = reinterpret_cast<const nn::i32Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::FloatTensor: {
-      auto ptr = reinterpret_cast<const nn::FloatTensor *>(obj);
+    case Layer::i64Tensor: {
+      auto ptr = reinterpret_cast<const nn::i64Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::DoubleTensor: {
-      auto ptr = reinterpret_cast<const nn::DoubleTensor *>(obj);
+    case Layer::f16Tensor: {
+      auto ptr = reinterpret_cast<const nn::f16Tensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::f32Tensor: {
+      auto ptr = reinterpret_cast<const nn::f32Tensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Layer::f64Tensor: {
+      auto ptr = reinterpret_cast<const nn::f64Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case Layer::CONV_2D: {

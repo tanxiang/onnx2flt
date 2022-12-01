@@ -846,54 +846,109 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
 
   auto tensorIndex = symbols.size();
   symbols.emplace(tensor.name(), tensorIndex);
-  switch (tensor.data_type()) {
-  case onnx::TensorProto_DataType_FLOAT: {
-    nn::FloatTensorBuilder builder{flbuilder};
-    auto flnode = builder.Finish();
-    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+  tensor.dims();
+  nn::TensorInfoBuilder info{flbuilder};
+  info.add_dim(flbuilder.CreateVector(
+      tensor.dims_size(), std::function<uint16_t(size_t)>{
+                              [&](size_t i) { return tensor.dims(i); }}));
 
-  } break;
-  case onnx::TensorProto_DataType_FLOAT16: {
-    nn::FloatTensorBuilder builder{flbuilder};
-    auto flnode = builder.Finish();
-    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-  } break;
-  case onnx::TensorProto_DataType_DOUBLE: {
+  if (tensor.has_raw_data()) {
+    nn::rawTensorBuilder builder{flbuilder};
+          builder.add_info(info.Finish());
 
-    nn::FloatTensorBuilder builder{flbuilder};
-    auto flnode = builder.Finish();
-    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-  } break;
-  case onnx::TensorProto_DataType_INT8: {
-    nn::FloatTensorBuilder builder{flbuilder};
-    auto flnode = builder.Finish();
-    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-  } break;
-  case onnx::TensorProto_DataType_INT16: {
-    nn::FloatTensorBuilder builder{flbuilder};
-    auto flnode = builder.Finish();
-    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-  } break;
-  case onnx::TensorProto_DataType_INT32: {
-    nn::FloatTensorBuilder builder{flbuilder};
-    auto flnode = builder.Finish();
-    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-  } break;
-  case onnx::TensorProto_DataType_INT64: {
-    nn::FloatTensorBuilder builder{flbuilder};
-    auto flnode = builder.Finish();
-    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-  } break;
-  default:
-    std::cerr << "onnx::TensorProto_DataType " << tensor.data_type()
-              << " not support\n";
-    {
-      nn::FloatTensorBuilder builder{flbuilder};
+      builder.add_data(
+          flbuilder.CreateString(tensor.raw_data()));
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-      return -1;
+  } else {
+    std::cout << tensor.DebugString();
+    switch (tensor.data_type()) {
+    case onnx::TensorProto_DataType_FLOAT16: {
+      nn::f16TensorBuilder builder{flbuilder};
+      builder.add_info(info.Finish());
+      builder.add_data(
+          flbuilder.CreateVector(tensor.int32_data_size(),
+                                 std::function<uint16_t(size_t)>{[&](size_t i) {
+                                   return tensor.int32_data(i);
+                                 }}));
+      auto flnode = builder.Finish();
+      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+    } break;
+    case onnx::TensorProto_DataType_FLOAT: {
+
+      nn::f32TensorBuilder builder{flbuilder};
+      builder.add_info(info.Finish());
+      builder.add_data(flbuilder.CreateVector(
+          tensor.float_data_size(), std::function<float(size_t)>{[&](size_t i) {
+            return tensor.float_data(i);
+          }}));
+
+      auto flnode = builder.Finish();
+      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+
+    } break;
+    case onnx::TensorProto_DataType_DOUBLE: {
+      nn::f64TensorBuilder builder{flbuilder};
+      builder.add_info(info.Finish());
+      builder.add_data(
+          flbuilder.CreateVector(tensor.double_data_size(),
+                                 std::function<double(size_t)>{[&](size_t i) {
+                                   return tensor.double_data(i);
+                                 }}));
+      auto flnode = builder.Finish();
+      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+    } break;
+    case onnx::TensorProto_DataType_INT8: {
+      nn::i8TensorBuilder builder{flbuilder};
+      builder.add_info(info.Finish());
+      builder.add_data(
+          flbuilder.CreateVector(tensor.int32_data_size(),
+                                 std::function<int8_t(size_t)>{[&](size_t i) {
+                                   return tensor.int32_data(i);
+                                 }}));
+      auto flnode = builder.Finish();
+      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+    } break;
+    case onnx::TensorProto_DataType_INT16: {
+      nn::i16TensorBuilder builder{flbuilder};
+      builder.add_info(info.Finish());
+      builder.add_data(
+          flbuilder.CreateVector(tensor.int32_data_size(),
+                                 std::function<int16_t(size_t)>{[&](size_t i) {
+                                   return tensor.int32_data(i);
+                                 }}));
+      auto flnode = builder.Finish();
+      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+    } break;
+    case onnx::TensorProto_DataType_INT32: {
+      nn::i32TensorBuilder builder{flbuilder};
+      builder.add_info(info.Finish());
+      builder.add_data(
+          flbuilder.CreateVector(tensor.int32_data_size(),
+                                 std::function<int32_t(size_t)>{[&](size_t i) {
+                                   return tensor.int32_data(i);
+                                 }}));
+      auto flnode = builder.Finish();
+      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+    } break;
+    case onnx::TensorProto_DataType_INT64: {
+      nn::i64TensorBuilder builder{flbuilder};
+      builder.add_info(info.Finish());
+      builder.add_data(
+          flbuilder.CreateVector(tensor.int64_data_size(),
+                                 std::function<int64_t(size_t)>{[&](size_t i) {
+                                   return tensor.int64_data(i);
+                                 }}));
+      auto flnode = builder.Finish();
+      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+    } break;
+    default:
+      std::cerr << "onnx::TensorProto_DataType " << tensor.data_type()
+                << " not support\n";
+      nodesData.emplace(tensorIndex);
     }
   }
+
   std::cout << "tensor idx:" << tensorIndex << " id " << tensor.name()
             << std::endl;
 
