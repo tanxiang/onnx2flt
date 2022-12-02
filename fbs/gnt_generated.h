@@ -160,19 +160,29 @@ struct Graph;
 struct GraphBuilder;
 
 enum class DataType : int8_t {
-  Float = 0,
-  Int = 1,
-  QuantAsymm = 2,
-  QuantSymm = 3,
-  QuantSymmPerChannel = 4,
-  MIN = Float,
+  Float16 = 0,
+  Float32 = 1,
+  Float64 = 2,
+  Int8 = 3,
+  Int16 = 4,
+  Int32 = 5,
+  Int64 = 6,
+  QuantAsymm = 7,
+  QuantSymm = 8,
+  QuantSymmPerChannel = 9,
+  MIN = Float16,
   MAX = QuantSymmPerChannel
 };
 
-inline const DataType (&EnumValuesDataType())[5] {
+inline const DataType (&EnumValuesDataType())[10] {
   static const DataType values[] = {
-    DataType::Float,
-    DataType::Int,
+    DataType::Float16,
+    DataType::Float32,
+    DataType::Float64,
+    DataType::Int8,
+    DataType::Int16,
+    DataType::Int32,
+    DataType::Int64,
     DataType::QuantAsymm,
     DataType::QuantSymm,
     DataType::QuantSymmPerChannel
@@ -181,9 +191,14 @@ inline const DataType (&EnumValuesDataType())[5] {
 }
 
 inline const char * const *EnumNamesDataType() {
-  static const char * const names[6] = {
-    "Float",
-    "Int",
+  static const char * const names[11] = {
+    "Float16",
+    "Float32",
+    "Float64",
+    "Int8",
+    "Int16",
+    "Int32",
+    "Int64",
     "QuantAsymm",
     "QuantSymm",
     "QuantSymmPerChannel",
@@ -193,7 +208,7 @@ inline const char * const *EnumNamesDataType() {
 }
 
 inline const char *EnumNameDataType(DataType e) {
-  if (flatbuffers::IsOutRange(e, DataType::Float, DataType::QuantSymmPerChannel)) return "";
+  if (flatbuffers::IsOutRange(e, DataType::Float16, DataType::QuantSymmPerChannel)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesDataType()[index];
 }
@@ -800,10 +815,14 @@ struct rawTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
-    VT_DATA = 6
+    VT_TYPE = 6,
+    VT_DATA = 8
   };
   const nn::TensorInfo *info() const {
     return GetPointer<const nn::TensorInfo *>(VT_INFO);
+  }
+  nn::DataType type() const {
+    return static_cast<nn::DataType>(GetField<int8_t>(VT_TYPE, 0));
   }
   const flatbuffers::String *data() const {
     return GetPointer<const flatbuffers::String *>(VT_DATA);
@@ -812,6 +831,7 @@ struct rawTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_INFO) &&
            verifier.VerifyTable(info()) &&
+           VerifyField<int8_t>(verifier, VT_TYPE, 1) &&
            VerifyOffset(verifier, VT_DATA) &&
            verifier.VerifyString(data()) &&
            verifier.EndTable();
@@ -824,6 +844,9 @@ struct rawTensorBuilder {
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
     fbb_.AddOffset(rawTensor::VT_INFO, info);
+  }
+  void add_type(nn::DataType type) {
+    fbb_.AddElement<int8_t>(rawTensor::VT_TYPE, static_cast<int8_t>(type), 0);
   }
   void add_data(flatbuffers::Offset<flatbuffers::String> data) {
     fbb_.AddOffset(rawTensor::VT_DATA, data);
@@ -842,10 +865,12 @@ struct rawTensorBuilder {
 inline flatbuffers::Offset<rawTensor> CreaterawTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
+    nn::DataType type = nn::DataType::Float16,
     flatbuffers::Offset<flatbuffers::String> data = 0) {
   rawTensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
+  builder_.add_type(type);
   return builder_.Finish();
 }
 
@@ -857,11 +882,13 @@ struct rawTensor::Traits {
 inline flatbuffers::Offset<rawTensor> CreaterawTensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
+    nn::DataType type = nn::DataType::Float16,
     const char *data = nullptr) {
   auto data__ = data ? _fbb.CreateString(data) : 0;
   return nn::CreaterawTensor(
       _fbb,
       info,
+      type,
       data__);
 }
 
@@ -1427,7 +1454,7 @@ struct QuantInfoBuilder {
 inline flatbuffers::Offset<QuantInfo> CreateQuantInfo(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    nn::DataType type = nn::DataType::Float,
+    nn::DataType type = nn::DataType::Float16,
     uint16_t dim = 0,
     flatbuffers::Offset<flatbuffers::Vector<float>> scales = 0,
     int32_t zero_point = 0) {
@@ -1448,7 +1475,7 @@ struct QuantInfo::Traits {
 inline flatbuffers::Offset<QuantInfo> CreateQuantInfoDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    nn::DataType type = nn::DataType::Float,
+    nn::DataType type = nn::DataType::Float16,
     uint16_t dim = 0,
     const std::vector<float> *scales = nullptr,
     int32_t zero_point = 0) {
@@ -1508,7 +1535,7 @@ struct InputTensorBuilder {
 
 inline flatbuffers::Offset<InputTensor> CreateInputTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
-    nn::DataType type = nn::DataType::Float,
+    nn::DataType type = nn::DataType::Float16,
     flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim = 0) {
   InputTensorBuilder builder_(_fbb);
   builder_.add_dim(dim);
@@ -1523,7 +1550,7 @@ struct InputTensor::Traits {
 
 inline flatbuffers::Offset<InputTensor> CreateInputTensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    nn::DataType type = nn::DataType::Float,
+    nn::DataType type = nn::DataType::Float16,
     const std::vector<uint16_t> *dim = nullptr) {
   auto dim__ = dim ? _fbb.CreateVector<uint16_t>(*dim) : 0;
   return nn::CreateInputTensor(

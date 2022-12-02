@@ -770,18 +770,27 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   const onnx::NodeProto *nodeP = &node;
   nn::FuseCode *fuseCodeP{nullptr};
   nn::FuseCode fuseCode;
-  if (nodeP->input_size() == 1) {
-    if (nodeP->op_type() == "Relu" ||
-        nodeP->op_type() == "Clip") { // relu clip to tensor fuse
-      if (nodeP->input_size() != 1) {
-        std::cerr << "error: " << nodeP->op_type() << " mult input\n"
-                  << nodeP->DebugString();
+  if (nodeP->op_type() == "Clip") { // relu clip to tensor fuse
+    if (nodeP->input_size() != 3) {
+      std::cerr << "error: " << nodeP->op_type() << " mult input\n"
+                << nodeP->DebugString();
+    }
+    if (context.tensorMap.at(nodeP->input()[1]).float_data(0) == 0.0f) {
+      auto max = context.tensorMap.at(nodeP->input()[2]).float_data(0);
+      if (max == 6.0f) {
+        fuseCode = nn::FuseCode::Relu6;
+
+      } else if (max == 1.0f) {
+        fuseCode = nn::FuseCode::Relu1;
+
+      } else {
+          std::cerr << "::::::::::::::::::" << nodeID(*nodeP)
+                    << " idx " << tensorIndex <<" max: "<<max<< std::endl;
       }
-      fuseCode = nn::FuseCode::Relu;
-      auto nodeItr = context.outputNodeMap.find(nodeP->input()[0]);
-      if (nodeItr != context.outputNodeMap.end()) {
-        nodeP = &(nodeItr->second);
-      }
+    }
+    auto nodeItr = context.outputNodeMap.find(nodeP->input()[0]);
+    if (nodeItr != context.outputNodeMap.end()) {
+      nodeP = &(nodeItr->second);
     }
   }
 
@@ -854,12 +863,36 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
 
   if (tensor.has_raw_data()) {
     nn::rawTensorBuilder builder{flbuilder};
-          builder.add_info(info.Finish());
+    builder.add_info(info.Finish());
 
-      builder.add_data(
-          flbuilder.CreateString(tensor.raw_data()));
-      auto flnode = builder.Finish();
-      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
+    builder.add_data(flbuilder.CreateString(tensor.raw_data()));
+    auto flnode = builder.Finish();
+    switch (tensor.data_type()) {
+    case onnx::TensorProto_DataType_FLOAT16:
+      builder.add_type(nn::DataType::Float16);
+      break;
+    case onnx::TensorProto_DataType_FLOAT:
+      builder.add_type(nn::DataType::Float32);
+      break;
+    case onnx::TensorProto_DataType_DOUBLE:
+      builder.add_type(nn::DataType::Float64);
+      break;
+    case onnx::TensorProto_DataType_INT8:
+      builder.add_type(nn::DataType::Int8);
+      break;
+    case onnx::TensorProto_DataType_INT16:
+      builder.add_type(nn::DataType::Int16);
+      break;
+    case onnx::TensorProto_DataType_INT32:
+      builder.add_type(nn::DataType::Int32);
+      break;
+    case onnx::TensorProto_DataType_INT64:
+      builder.add_type(nn::DataType::Int64);
+      break;
+    default:
+      std::cerr << "error: " << tensor.data_type() << " not convert\n";
+    }
+    nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
   } else {
     std::cout << tensor.DebugString();
     switch (tensor.data_type()) {

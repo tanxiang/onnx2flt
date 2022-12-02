@@ -5,7 +5,7 @@ struct versionInfo{
     dataversion:long;
 }
 
-enum DataType:byte { Float, Int, QuantAsymm, QuantSymm, QuantSymmPerChannel}
+enum DataType:byte { Float16,Float32,Float64, Int8,Int16,Int32,Int64, QuantAsymm, QuantSymm, QuantSymmPerChannel}
 enum FuseCode:byte { Relu, Relu1, Relu6 }
 
 table TensorInfo{
@@ -16,6 +16,7 @@ table TensorInfo{
 
 table rawTensor{
     info:TensorInfo;
+    type: DataType;
     data :string;
 }
 
