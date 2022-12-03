@@ -40,25 +40,6 @@ int main(int argc, char *argv[]) {
       if (tensor.has_name()) {
         context.tensorMap.emplace(tensor.name(), tensor);
       }
-
-      switch (tensor.data_type()) {
-      case onnx::TensorProto_DataType_FLOAT:
-        break;
-      case onnx::TensorProto_DataType_FLOAT16:
-        break;
-      case onnx::TensorProto_DataType_INT32:
-        break;
-      case onnx::TensorProto_DataType_INT16:
-        break;
-      case onnx::TensorProto_DataType_INT8:
-        break;
-      case onnx::TensorProto_DataType_INT64:
-        break;
-      default:
-        std::cerr << "onnx::TensorProto_DataType " << tensor.data_type()
-                  << " not support\n";
-        return -1;
-      };
     }
 
     for (const auto &tensor : graph.sparse_initializer()) {
@@ -100,7 +81,7 @@ int main(int argc, char *argv[]) {
       if (output.has_name() && !output.name().empty())
         outputs.emplace_back(output.name());
 
-      std::cout << "graphs output:" << output.name() << std::endl;
+      std::cout << "graphs output:" << output.DebugString() << std::endl;
     }
     /*
         auto vvRRemap = createNodeVVFromOutputs(outputs, context);

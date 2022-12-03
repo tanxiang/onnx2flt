@@ -47,6 +47,11 @@ struct f64TensorBuilder;
 struct QuantInfo;
 struct QuantInfoBuilder;
 
+struct DimValue;
+
+struct DimParam;
+struct DimParamBuilder;
+
 struct InputTensor;
 struct InputTensorBuilder;
 
@@ -170,11 +175,12 @@ enum class DataType : int8_t {
   QuantAsymm = 7,
   QuantSymm = 8,
   QuantSymmPerChannel = 9,
+  Unknown = 10,
   MIN = Float16,
-  MAX = QuantSymmPerChannel
+  MAX = Unknown
 };
 
-inline const DataType (&EnumValuesDataType())[10] {
+inline const DataType (&EnumValuesDataType())[11] {
   static const DataType values[] = {
     DataType::Float16,
     DataType::Float32,
@@ -185,13 +191,14 @@ inline const DataType (&EnumValuesDataType())[10] {
     DataType::Int64,
     DataType::QuantAsymm,
     DataType::QuantSymm,
-    DataType::QuantSymmPerChannel
+    DataType::QuantSymmPerChannel,
+    DataType::Unknown
   };
   return values;
 }
 
 inline const char * const *EnumNamesDataType() {
-  static const char * const names[11] = {
+  static const char * const names[12] = {
     "Float16",
     "Float32",
     "Float64",
@@ -202,13 +209,14 @@ inline const char * const *EnumNamesDataType() {
     "QuantAsymm",
     "QuantSymm",
     "QuantSymmPerChannel",
+    "Unknown",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameDataType(DataType e) {
-  if (flatbuffers::IsOutRange(e, DataType::Float16, DataType::QuantSymmPerChannel)) return "";
+  if (flatbuffers::IsOutRange(e, DataType::Float16, DataType::Unknown)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesDataType()[index];
 }
@@ -245,6 +253,54 @@ inline const char *EnumNameFuseCode(FuseCode e) {
   const size_t index = static_cast<size_t>(e);
   return EnumNamesFuseCode()[index];
 }
+
+enum class Dim : uint8_t {
+  NONE = 0,
+  DimValue = 1,
+  DimParam = 2,
+  MIN = NONE,
+  MAX = DimParam
+};
+
+inline const Dim (&EnumValuesDim())[3] {
+  static const Dim values[] = {
+    Dim::NONE,
+    Dim::DimValue,
+    Dim::DimParam
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesDim() {
+  static const char * const names[4] = {
+    "NONE",
+    "DimValue",
+    "DimParam",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameDim(Dim e) {
+  if (flatbuffers::IsOutRange(e, Dim::NONE, Dim::DimParam)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesDim()[index];
+}
+
+template<typename T> struct DimTraits {
+  static const Dim enum_value = Dim::NONE;
+};
+
+template<> struct DimTraits<nn::DimValue> {
+  static const Dim enum_value = Dim::DimValue;
+};
+
+template<> struct DimTraits<nn::DimParam> {
+  static const Dim enum_value = Dim::DimParam;
+};
+
+bool VerifyDim(flatbuffers::Verifier &verifier, const void *obj, Dim type);
+bool VerifyDimVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<Dim> *types);
 
 enum class Layer : uint8_t {
   NONE = 0,
@@ -579,6 +635,28 @@ FLATBUFFERS_STRUCT_END(versionInfo, 16);
 
 struct versionInfo::Traits {
   using type = versionInfo;
+};
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) DimValue FLATBUFFERS_FINAL_CLASS {
+ private:
+  int32_t val_;
+
+ public:
+  struct Traits;
+  DimValue()
+      : val_(0) {
+  }
+  DimValue(int32_t _val)
+      : val_(flatbuffers::EndianScalar(_val)) {
+  }
+  int32_t val() const {
+    return flatbuffers::EndianScalar(val_);
+  }
+};
+FLATBUFFERS_STRUCT_END(DimValue, 4);
+
+struct DimValue::Traits {
+  using type = DimValue;
 };
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Pads FLATBUFFERS_FINAL_CLASS {
@@ -1490,24 +1568,88 @@ inline flatbuffers::Offset<QuantInfo> CreateQuantInfoDirect(
       zero_point);
 }
 
+struct DimParam FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef DimParamBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           verifier.EndTable();
+  }
+};
+
+struct DimParamBuilder {
+  typedef DimParam Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(DimParam::VT_NAME, name);
+  }
+  explicit DimParamBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<DimParam> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<DimParam>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<DimParam> CreateDimParam(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0) {
+  DimParamBuilder builder_(_fbb);
+  builder_.add_name(name);
+  return builder_.Finish();
+}
+
+struct DimParam::Traits {
+  using type = DimParam;
+  static auto constexpr Create = CreateDimParam;
+};
+
+inline flatbuffers::Offset<DimParam> CreateDimParamDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return nn::CreateDimParam(
+      _fbb,
+      name__);
+}
+
 struct InputTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef InputTensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TYPE = 4,
-    VT_DIM = 6
+    VT_DIMS_TYPE = 6,
+    VT_DIMS = 8
   };
   nn::DataType type() const {
     return static_cast<nn::DataType>(GetField<int8_t>(VT_TYPE, 0));
   }
-  const flatbuffers::Vector<uint16_t> *dim() const {
-    return GetPointer<const flatbuffers::Vector<uint16_t> *>(VT_DIM);
+  const flatbuffers::Vector<nn::Dim> *dims_type() const {
+    return GetPointer<const flatbuffers::Vector<nn::Dim> *>(VT_DIMS_TYPE);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<void>> *dims() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<void>> *>(VT_DIMS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int8_t>(verifier, VT_TYPE, 1) &&
-           VerifyOffset(verifier, VT_DIM) &&
-           verifier.VerifyVector(dim()) &&
+           VerifyOffset(verifier, VT_DIMS_TYPE) &&
+           verifier.VerifyVector(dims_type()) &&
+           VerifyOffset(verifier, VT_DIMS) &&
+           verifier.VerifyVector(dims()) &&
+           VerifyDimVector(verifier, dims(), dims_type()) &&
            verifier.EndTable();
   }
 };
@@ -1519,8 +1661,11 @@ struct InputTensorBuilder {
   void add_type(nn::DataType type) {
     fbb_.AddElement<int8_t>(InputTensor::VT_TYPE, static_cast<int8_t>(type), 0);
   }
-  void add_dim(flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim) {
-    fbb_.AddOffset(InputTensor::VT_DIM, dim);
+  void add_dims_type(flatbuffers::Offset<flatbuffers::Vector<nn::Dim>> dims_type) {
+    fbb_.AddOffset(InputTensor::VT_DIMS_TYPE, dims_type);
+  }
+  void add_dims(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> dims) {
+    fbb_.AddOffset(InputTensor::VT_DIMS, dims);
   }
   explicit InputTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1536,9 +1681,11 @@ struct InputTensorBuilder {
 inline flatbuffers::Offset<InputTensor> CreateInputTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     nn::DataType type = nn::DataType::Float16,
-    flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<nn::Dim>> dims_type = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> dims = 0) {
   InputTensorBuilder builder_(_fbb);
-  builder_.add_dim(dim);
+  builder_.add_dims(dims);
+  builder_.add_dims_type(dims_type);
   builder_.add_type(type);
   return builder_.Finish();
 }
@@ -1551,12 +1698,15 @@ struct InputTensor::Traits {
 inline flatbuffers::Offset<InputTensor> CreateInputTensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     nn::DataType type = nn::DataType::Float16,
-    const std::vector<uint16_t> *dim = nullptr) {
-  auto dim__ = dim ? _fbb.CreateVector<uint16_t>(*dim) : 0;
+    const std::vector<nn::Dim> *dims_type = nullptr,
+    const std::vector<flatbuffers::Offset<void>> *dims = nullptr) {
+  auto dims_type__ = dims_type ? _fbb.CreateVector<nn::Dim>(*dims_type) : 0;
+  auto dims__ = dims ? _fbb.CreateVector<flatbuffers::Offset<void>>(*dims) : 0;
   return nn::CreateInputTensor(
       _fbb,
       type,
-      dim__);
+      dims_type__,
+      dims__);
 }
 
 struct LinkOd FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -3886,6 +4036,34 @@ inline flatbuffers::Offset<Graph> CreateGraphDirect(
       node_type__,
       node__,
       quant_infos__);
+}
+
+inline bool VerifyDim(flatbuffers::Verifier &verifier, const void *obj, Dim type) {
+  switch (type) {
+    case Dim::NONE: {
+      return true;
+    }
+    case Dim::DimValue: {
+      return verifier.VerifyField<nn::DimValue>(static_cast<const uint8_t *>(obj), 0, 4);
+    }
+    case Dim::DimParam: {
+      auto ptr = reinterpret_cast<const nn::DimParam *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    default: return true;
+  }
+}
+
+inline bool VerifyDimVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<Dim> *types) {
+  if (!values || !types) return !values && !types;
+  if (values->size() != types->size()) return false;
+  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyDim(
+        verifier,  values->Get(i), types->GetEnum<Dim>(i))) {
+      return false;
+    }
+  }
+  return true;
 }
 
 inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer type) {

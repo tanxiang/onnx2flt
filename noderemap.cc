@@ -779,13 +779,11 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
       auto max = context.tensorMap.at(nodeP->input()[2]).float_data(0);
       if (max == 6.0f) {
         fuseCode = nn::FuseCode::Relu6;
-
       } else if (max == 1.0f) {
         fuseCode = nn::FuseCode::Relu1;
-
       } else {
-          std::cerr << "::::::::::::::::::" << nodeID(*nodeP)
-                    << " idx " << tensorIndex <<" max: "<<max<< std::endl;
+        std::cerr << "::::::::::::::::::" << nodeID(*nodeP) << " idx "
+                  << tensorIndex << " max: " << max << std::endl;
       }
     }
     auto nodeItr = context.outputNodeMap.find(nodeP->input()[0]);
@@ -848,6 +846,29 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   return tensorIndex;
 }
 
+auto onnxDataTypeTonn(int32_t onnxType) {
+  switch (onnxType) {
+
+  case onnx::TensorProto_DataType_FLOAT16:
+    return nn::DataType::Float16;
+  case onnx::TensorProto_DataType_FLOAT:
+    return nn::DataType::Float32;
+  case onnx::TensorProto_DataType_DOUBLE:
+    return nn::DataType::Float64;
+  case onnx::TensorProto_DataType_INT8:
+    return nn::DataType::Int8;
+  case onnx::TensorProto_DataType_INT16:
+    return nn::DataType::Int16;
+  case onnx::TensorProto_DataType_INT32:
+    return nn::DataType::Int32;
+  case onnx::TensorProto_DataType_INT64:
+    return nn::DataType::Int64;
+  default:
+    std::cerr << "error: " << onnxType << " not convert\n";
+    return nn::DataType::Unknown;
+  }
+}
+
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                      std::set<kLayerData, std::less<>> &nodesData,
                      mapContext &context, const onnx::TensorProto &tensor,
@@ -864,34 +885,10 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
   if (tensor.has_raw_data()) {
     nn::rawTensorBuilder builder{flbuilder};
     builder.add_info(info.Finish());
-
     builder.add_data(flbuilder.CreateString(tensor.raw_data()));
+    builder.add_type(onnxDataTypeTonn(tensor.data_type()));
     auto flnode = builder.Finish();
-    switch (tensor.data_type()) {
-    case onnx::TensorProto_DataType_FLOAT16:
-      builder.add_type(nn::DataType::Float16);
-      break;
-    case onnx::TensorProto_DataType_FLOAT:
-      builder.add_type(nn::DataType::Float32);
-      break;
-    case onnx::TensorProto_DataType_DOUBLE:
-      builder.add_type(nn::DataType::Float64);
-      break;
-    case onnx::TensorProto_DataType_INT8:
-      builder.add_type(nn::DataType::Int8);
-      break;
-    case onnx::TensorProto_DataType_INT16:
-      builder.add_type(nn::DataType::Int16);
-      break;
-    case onnx::TensorProto_DataType_INT32:
-      builder.add_type(nn::DataType::Int32);
-      break;
-    case onnx::TensorProto_DataType_INT64:
-      builder.add_type(nn::DataType::Int64);
-      break;
-    default:
-      std::cerr << "error: " << tensor.data_type() << " not convert\n";
-    }
+
     nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
   } else {
     std::cout << tensor.DebugString();
@@ -988,17 +985,46 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
   return tensorIndex;
 }
 
-uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                      std::set<kLayerData, std::less<>> &nodesData,
                      mapContext &context, const onnx::ValueInfoProto &valueInfo,
                      std::map<std::string, int> &symbols) {
   auto tensorIndex = symbols.size();
   symbols.emplace(valueInfo.name(), tensorIndex);
+  nn::InputTensorBuilder builder{flbuilder};
 
   std::cout << "input idx:" << tensorIndex << " id " << valueInfo.name()
-            << std::endl;
+            << std::endl
+            << valueInfo.DebugString();
+  builder.add_type(
+      onnxDataTypeTonn(valueInfo.type().tensor_type().elem_type()));
 
-  nodesData.emplace(tensorIndex);
+  builder.add_dims_type(flbuilder.CreateVector(
+      valueInfo.type().tensor_type().shape().dim_size(),
+      std::function<nn::Dim(size_t)>{[&](size_t i) {
+        switch (valueInfo.type().tensor_type().shape().dim(i).value_case()) {
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimParam:
+          return nn::Dim::DimParam;
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimValue:
+          return nn::Dim::DimValue;
+        default:
+          return nn::Dim::NONE;
+        }
+      }}));
+  builder.add_dims(flbuilder.CreateVector(
+      valueInfo.type().tensor_type().shape().dim_size(),
+      std::function<flatbuffers::Offset<void>(size_t)>{[&](size_t i) {
+        switch (valueInfo.type().tensor_type().shape().dim(i).value_case()) {
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimParam:
+          return nn::CreateDimParam(flbuilder,flbuilder.CreateString(valueInfo.type().tensor_type().shape().dim(i).dim_param())).Union();
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimValue:
+          return flbuilder.CreateStruct<nn::DimValue>(valueInfo.type().tensor_type().shape().dim(i).dim_value()).Union();
+        default:
+          return flbuilder.CreateStruct<nn::DimValue>(-1).Union();
+        }
+      }}));
+  auto flNode = builder.Finish();
+  nodesData.emplace(tensorIndex, UnionType(flNode), flNode.Union());
   return tensorIndex;
 }
 

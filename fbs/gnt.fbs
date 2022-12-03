@@ -5,7 +5,7 @@ struct versionInfo{
     dataversion:long;
 }
 
-enum DataType:byte { Float16,Float32,Float64, Int8,Int16,Int32,Int64, QuantAsymm, QuantSymm, QuantSymmPerChannel}
+enum DataType:byte { Float16,Float32,Float64, Int8,Int16,Int32,Int64, QuantAsymm, QuantSymm, QuantSymmPerChannel,Unknown}
 enum FuseCode:byte { Relu, Relu1, Relu6 }
 
 table TensorInfo{
@@ -66,9 +66,20 @@ table QuantInfo {
     zero_point: int32;
 }
 
+struct DimValue{
+    val:int;
+}
+
+table DimParam{
+    name:string;
+}
+union Dim{
+    DimValue,DimParam
+}
+
 table InputTensor {
     type: DataType;
-    dim: [ushort];
+    dims: [Dim];
 }
 
 table LinkOd{
