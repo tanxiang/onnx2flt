@@ -985,13 +985,57 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
   return tensorIndex;
 }
 
+auto TensorShapeHelper(flatbuffers::FlatBufferBuilder &flbuilder,
+                       const onnx::ValueInfoProto &valueInfo) {
+  nn::TensorShapeBuilder builder{flbuilder};
+
+  builder.add_type(
+      onnxDataTypeTonn(valueInfo.type().tensor_type().elem_type()));
+
+  builder.add_dims_type(flbuilder.CreateVector(
+      valueInfo.type().tensor_type().shape().dim_size(),
+      std::function<nn::Dim(size_t)>{[&](size_t i) {
+        switch (valueInfo.type().tensor_type().shape().dim(i).value_case()) {
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimParam:
+          return nn::Dim::DimParam;
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimValue:
+          return nn::Dim::DimValue;
+        default:
+          return nn::Dim::NONE;
+        }
+      }}));
+  builder.add_dims(flbuilder.CreateVector(
+      valueInfo.type().tensor_type().shape().dim_size(),
+      std::function<flatbuffers::Offset<void>(size_t)>{[&](size_t i) {
+        switch (valueInfo.type().tensor_type().shape().dim(i).value_case()) {
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimParam:
+          return nn::CreateDimParam(flbuilder,
+                                    flbuilder.CreateString(valueInfo.type()
+                                                               .tensor_type()
+                                                               .shape()
+                                                               .dim(i)
+                                                               .dim_param()))
+              .Union();
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimValue:
+          return flbuilder
+              .CreateStruct<nn::DimValue>(
+                  valueInfo.type().tensor_type().shape().dim(i).dim_value())
+              .Union();
+        default:
+          return flbuilder.CreateStruct<nn::DimValue>(-1).Union();
+        }
+      }}));
+
+  return builder.Finish();
+}
+
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                      std::set<kLayerData, std::less<>> &nodesData,
                      mapContext &context, const onnx::ValueInfoProto &valueInfo,
                      std::map<std::string, int> &symbols) {
   auto tensorIndex = symbols.size();
   symbols.emplace(valueInfo.name(), tensorIndex);
-  nn::InputTensorBuilder builder{flbuilder};
+ /* nn::TensorShapeBuilder builder{flbuilder};
 
   std::cout << "input idx:" << tensorIndex << " id " << valueInfo.name()
             << std::endl
@@ -1016,14 +1060,26 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
       std::function<flatbuffers::Offset<void>(size_t)>{[&](size_t i) {
         switch (valueInfo.type().tensor_type().shape().dim(i).value_case()) {
         case onnx::TensorShapeProto_Dimension::ValueCase::kDimParam:
-          return nn::CreateDimParam(flbuilder,flbuilder.CreateString(valueInfo.type().tensor_type().shape().dim(i).dim_param())).Union();
+          return nn::CreateDimParam(flbuilder,
+                                    flbuilder.CreateString(valueInfo.type()
+                                                               .tensor_type()
+                                                               .shape()
+                                                               .dim(i)
+                                                               .dim_param()))
+              .Union();
         case onnx::TensorShapeProto_Dimension::ValueCase::kDimValue:
-          return flbuilder.CreateStruct<nn::DimValue>(valueInfo.type().tensor_type().shape().dim(i).dim_value()).Union();
+          return flbuilder
+              .CreateStruct<nn::DimValue>(
+                  valueInfo.type().tensor_type().shape().dim(i).dim_value())
+              .Union();
         default:
           return flbuilder.CreateStruct<nn::DimValue>(-1).Union();
         }
       }}));
-  auto flNode = builder.Finish();
+      */
+
+  auto flNode = nn::CreateInputTensor(flbuilder,TensorShapeHelper(flbuilder,valueInfo));
+
   nodesData.emplace(tensorIndex, UnionType(flNode), flNode.Union());
   return tensorIndex;
 }
@@ -1059,10 +1115,10 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
 std::set<kLayerData, std::less<>>
 writeFlNodeFromOutputs(flatbuffers::FlatBufferBuilder &builder,
                        const std::vector<std::string> outputs,
-                       mapContext &context) {
+                       mapContext &context,
+                       std::map<std::string, int> &symbols) {
 
   std::deque<std::string> outputsNeed{outputs.begin(), outputs.end()};
-  std::map<std::string, int> symbols;
   std::set<kLayerData, std::less<>> nodesData;
 
   while (!outputsNeed.empty()) {
@@ -1076,4 +1132,12 @@ writeFlNodeFromOutputs(flatbuffers::FlatBufferBuilder &builder,
   }
 
   return nodesData;
+}
+
+flatbuffers::Offset<nn::Output>
+writeFlOutputs(flatbuffers::FlatBufferBuilder &flBuilder,
+               const onnx::ValueInfoProto &output,
+               std::map<std::string, int> &symbols) {
+    return nn::CreateOutput(flBuilder,symbols.at(output.name()),TensorShapeHelper(flBuilder,output));
+
 }

@@ -83,94 +83,21 @@ int main(int argc, char *argv[]) {
 
       std::cout << "graphs output:" << output.DebugString() << std::endl;
     }
-    /*
-        auto vvRRemap = createNodeVVFromOutputs(outputs, context);
 
-        std::cout << "vvRemap size = " << vvRRemap.size() << std::endl;
-        int allSize{0};
-        for (auto &vRemap : vvRRemap) {
-          allSize += vRemap.size();
-        }
-        std::cout << "vvRemap allSize = " << allSize << std::endl;
-
-        int conventNodeNum{0};
-        for (const auto &node : model_proto.graph().node()) {
-          bool nodeRemapd = false;
-          for (auto &vRemap : vvRRemap) {
-            for (auto &Remap : vRemap) {
-              if (&node == Remap) {
-                nodeRemapd = true;
-                break;
-              }
-            }
-            if (nodeRemapd)
-              break;
-          }
-
-          if (!nodeRemapd) {
-            ++conventNodeNum;
-            std::cout << nodeID(node) << " need to tensor:" << conventNodeNum
-                      << '\n'
-                      << node.DebugString();
-            for (auto &input : node.input()) {
-              if (context.tensorMap.contains(input))
-                std::cout << '<' << input << "> ";
-              else if (context.outputNodeMap.contains(input))
-                std::cout << '[' << nodeID(context.outputNodeMap.at(input)) <<
-       "] "; else std::cout << '{' << input << "} ";
-            }
-            std::cout << std::endl;
-          }
-        }
-
-        for (auto &vRemap : vvRRemap) {
-          for (auto input : (*vRemap.begin())->input()) {
-            auto tensorItr = context.tensorMap.find(input);
-            if (tensorItr != context.tensorMap.end()) {
-              std::cout << "get  : input <" << input << "> "
-                        << tensorItr->second.name() << "\n";
-            } else {
-              std::cerr << "error: input <" << input << "> not found\n";
-            }
-          }
-          for (auto output : (*vRemap.rbegin())->output()) {
-            auto tensorItr = context.tensorMap.find(output);
-            if (tensorItr != context.tensorMap.end()) {
-              std::cout << "get : output <" << output << "> "
-                        << tensorItr->second.name() << "\n";
-            } else {
-              std::cerr << "error: output <" << output << "> not found\n";
-            }
-          }
-        }
-
-        std::vector<nn::Layer> nodeTypes;
-        std::vector<flatbuffers::Offset<void>> nodeVals;
-        for (auto &vRemap : vvRRemap) {
-          auto opItr = mapOpFunc.find(vRemap[0]->op_type());
-          if (opItr != mapOpFunc.end()) {
-            auto ftnode = opItr->second(flatbuffers, vRemap, context);
-            nodeTypes.emplace_back(nn::Layer{ftnode.first});
-            nodeVals.emplace_back(ftnode.second);
-          } else {
-            std::cerr << "error: " << vRemap[0]->op_type() << " is not
-       support!\n"
-                      << vRemap[0]->DebugString();
-          }
-        }
-        */
-
-    auto nodesMap = writeFlNodeFromOutputs(flatbuffers, outputs, context);
+    std::map<std::string, int> symbols;
+    auto nodesMap =
+        writeFlNodeFromOutputs(flatbuffers, outputs, context, symbols);
 
     nn::versionInfo version{FLATBUFFERS_VERSION_MAJOR * 10000 +
                                 FLATBUFFERS_VERSION_MINOR * 100 +
                                 FLATBUFFERS_VERSION_REVISION,
                             model_proto.ir_version()};
     auto flatbuffersGraph = nn::CreateGraph(
-        flatbuffers, &version, 0,
+        flatbuffers, &version,
         flatbuffers.CreateVector(
             nodesMap.size(), std::function<nn::Layer(size_t)>{[&](size_t i) {
-              std::cout << "get type:" <<nodesMap.size() <<" at "<< i << std::endl;
+              std::cout << "get type:" << nodesMap.size() << " at " << i
+                        << std::endl;
               return nodesMap.find(i)->type;
             }}),
         flatbuffers.CreateVector(
@@ -178,7 +105,13 @@ int main(int argc, char *argv[]) {
             std::function<flatbuffers::Offset<void>(size_t i)>{[&](size_t i) {
               std::cout << "get data:" << i << std::endl;
               return nodesMap.find(i)->data;
+            }}),
+        flatbuffers.CreateVector(
+            graph.output_size(),
+            std::function<flatbuffers::Offset<nn::Output>(size_t i)>{[&](size_t i) {
+              return writeFlOutputs(flatbuffers, graph.output(i), symbols);
             }}));
+
     flatbuffers.Finish(flatbuffersGraph);
     {
 

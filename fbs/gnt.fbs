@@ -77,9 +77,13 @@ union Dim{
     DimValue,DimParam
 }
 
-table InputTensor {
+table TensorShape {
     type: DataType;
     dims: [Dim];
+}
+
+table InputTensor {
+    shape:TensorShape;
 }
 
 table LinkOd{
@@ -310,10 +314,15 @@ PRELU,POW,NEG,MINIMUM,MAXIMUM,LOG,ABS,EXP,SUB,GATHER,RESHAPE,
 Configure
 }
 
+table Output{
+    node_idx:int;
+    shape:TensorShape;
+}
+
 table Graph {
     version:versionInfo;
-    link:Link;
     node:[Layer];
+    outputs:[Output];
     quant_infos:[QuantInfo];
 }
 

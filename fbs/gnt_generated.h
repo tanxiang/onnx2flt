@@ -9,8 +9,8 @@
 // Ensure the included flatbuffers.h is the same version as when this file was
 // generated, otherwise it may not be compatible.
 static_assert(FLATBUFFERS_VERSION_MAJOR == 22 &&
-              FLATBUFFERS_VERSION_MINOR == 10 &&
-              FLATBUFFERS_VERSION_REVISION == 26,
+              FLATBUFFERS_VERSION_MINOR == 11 &&
+              FLATBUFFERS_VERSION_REVISION == 23,
              "Non-compatible flatbuffers version included");
 
 namespace nn {
@@ -51,6 +51,9 @@ struct DimValue;
 
 struct DimParam;
 struct DimParamBuilder;
+
+struct TensorShape;
+struct TensorShapeBuilder;
 
 struct InputTensor;
 struct InputTensorBuilder;
@@ -160,6 +163,9 @@ struct RESHAPEBuilder;
 
 struct Configure;
 struct ConfigureBuilder;
+
+struct Output;
+struct OutputBuilder;
 
 struct Graph;
 struct GraphBuilder;
@@ -1625,8 +1631,8 @@ inline flatbuffers::Offset<DimParam> CreateDimParamDirect(
       name__);
 }
 
-struct InputTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef InputTensorBuilder Builder;
+struct TensorShape FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TensorShapeBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TYPE = 4,
@@ -1654,18 +1660,84 @@ struct InputTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
+struct TensorShapeBuilder {
+  typedef TensorShape Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_type(nn::DataType type) {
+    fbb_.AddElement<int8_t>(TensorShape::VT_TYPE, static_cast<int8_t>(type), 0);
+  }
+  void add_dims_type(flatbuffers::Offset<flatbuffers::Vector<nn::Dim>> dims_type) {
+    fbb_.AddOffset(TensorShape::VT_DIMS_TYPE, dims_type);
+  }
+  void add_dims(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> dims) {
+    fbb_.AddOffset(TensorShape::VT_DIMS, dims);
+  }
+  explicit TensorShapeBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<TensorShape> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<TensorShape>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TensorShape> CreateTensorShape(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    nn::DataType type = nn::DataType::Float16,
+    flatbuffers::Offset<flatbuffers::Vector<nn::Dim>> dims_type = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> dims = 0) {
+  TensorShapeBuilder builder_(_fbb);
+  builder_.add_dims(dims);
+  builder_.add_dims_type(dims_type);
+  builder_.add_type(type);
+  return builder_.Finish();
+}
+
+struct TensorShape::Traits {
+  using type = TensorShape;
+  static auto constexpr Create = CreateTensorShape;
+};
+
+inline flatbuffers::Offset<TensorShape> CreateTensorShapeDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    nn::DataType type = nn::DataType::Float16,
+    const std::vector<nn::Dim> *dims_type = nullptr,
+    const std::vector<flatbuffers::Offset<void>> *dims = nullptr) {
+  auto dims_type__ = dims_type ? _fbb.CreateVector<nn::Dim>(*dims_type) : 0;
+  auto dims__ = dims ? _fbb.CreateVector<flatbuffers::Offset<void>>(*dims) : 0;
+  return nn::CreateTensorShape(
+      _fbb,
+      type,
+      dims_type__,
+      dims__);
+}
+
+struct InputTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef InputTensorBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_SHAPE = 4
+  };
+  const nn::TensorShape *shape() const {
+    return GetPointer<const nn::TensorShape *>(VT_SHAPE);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_SHAPE) &&
+           verifier.VerifyTable(shape()) &&
+           verifier.EndTable();
+  }
+};
+
 struct InputTensorBuilder {
   typedef InputTensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_type(nn::DataType type) {
-    fbb_.AddElement<int8_t>(InputTensor::VT_TYPE, static_cast<int8_t>(type), 0);
-  }
-  void add_dims_type(flatbuffers::Offset<flatbuffers::Vector<nn::Dim>> dims_type) {
-    fbb_.AddOffset(InputTensor::VT_DIMS_TYPE, dims_type);
-  }
-  void add_dims(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> dims) {
-    fbb_.AddOffset(InputTensor::VT_DIMS, dims);
+  void add_shape(flatbuffers::Offset<nn::TensorShape> shape) {
+    fbb_.AddOffset(InputTensor::VT_SHAPE, shape);
   }
   explicit InputTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1680,13 +1752,9 @@ struct InputTensorBuilder {
 
 inline flatbuffers::Offset<InputTensor> CreateInputTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
-    nn::DataType type = nn::DataType::Float16,
-    flatbuffers::Offset<flatbuffers::Vector<nn::Dim>> dims_type = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> dims = 0) {
+    flatbuffers::Offset<nn::TensorShape> shape = 0) {
   InputTensorBuilder builder_(_fbb);
-  builder_.add_dims(dims);
-  builder_.add_dims_type(dims_type);
-  builder_.add_type(type);
+  builder_.add_shape(shape);
   return builder_.Finish();
 }
 
@@ -1694,20 +1762,6 @@ struct InputTensor::Traits {
   using type = InputTensor;
   static auto constexpr Create = CreateInputTensor;
 };
-
-inline flatbuffers::Offset<InputTensor> CreateInputTensorDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    nn::DataType type = nn::DataType::Float16,
-    const std::vector<nn::Dim> *dims_type = nullptr,
-    const std::vector<flatbuffers::Offset<void>> *dims = nullptr) {
-  auto dims_type__ = dims_type ? _fbb.CreateVector<nn::Dim>(*dims_type) : 0;
-  auto dims__ = dims ? _fbb.CreateVector<flatbuffers::Offset<void>>(*dims) : 0;
-  return nn::CreateInputTensor(
-      _fbb,
-      type,
-      dims_type__,
-      dims__);
-}
 
 struct LinkOd FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LinkOdBuilder Builder;
@@ -3926,21 +3980,76 @@ inline flatbuffers::Offset<Configure> CreateConfigureDirect(
       concat__);
 }
 
+struct Output FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef OutputBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NODE_IDX = 4,
+    VT_SHAPE = 6
+  };
+  int32_t node_idx() const {
+    return GetField<int32_t>(VT_NODE_IDX, 0);
+  }
+  const nn::TensorShape *shape() const {
+    return GetPointer<const nn::TensorShape *>(VT_SHAPE);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_NODE_IDX, 4) &&
+           VerifyOffset(verifier, VT_SHAPE) &&
+           verifier.VerifyTable(shape()) &&
+           verifier.EndTable();
+  }
+};
+
+struct OutputBuilder {
+  typedef Output Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_node_idx(int32_t node_idx) {
+    fbb_.AddElement<int32_t>(Output::VT_NODE_IDX, node_idx, 0);
+  }
+  void add_shape(flatbuffers::Offset<nn::TensorShape> shape) {
+    fbb_.AddOffset(Output::VT_SHAPE, shape);
+  }
+  explicit OutputBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Output> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Output>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Output> CreateOutput(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t node_idx = 0,
+    flatbuffers::Offset<nn::TensorShape> shape = 0) {
+  OutputBuilder builder_(_fbb);
+  builder_.add_shape(shape);
+  builder_.add_node_idx(node_idx);
+  return builder_.Finish();
+}
+
+struct Output::Traits {
+  using type = Output;
+  static auto constexpr Create = CreateOutput;
+};
+
 struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef GraphBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VERSION = 4,
-    VT_LINK = 6,
-    VT_NODE_TYPE = 8,
-    VT_NODE = 10,
+    VT_NODE_TYPE = 6,
+    VT_NODE = 8,
+    VT_OUTPUTS = 10,
     VT_QUANT_INFOS = 12
   };
   const nn::versionInfo *version() const {
     return GetStruct<const nn::versionInfo *>(VT_VERSION);
-  }
-  const nn::Link *link() const {
-    return GetPointer<const nn::Link *>(VT_LINK);
   }
   const flatbuffers::Vector<nn::Layer> *node_type() const {
     return GetPointer<const flatbuffers::Vector<nn::Layer> *>(VT_NODE_TYPE);
@@ -3948,19 +4057,23 @@ struct Graph FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<void>> *node() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<void>> *>(VT_NODE);
   }
+  const flatbuffers::Vector<flatbuffers::Offset<nn::Output>> *outputs() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<nn::Output>> *>(VT_OUTPUTS);
+  }
   const flatbuffers::Vector<flatbuffers::Offset<nn::QuantInfo>> *quant_infos() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<nn::QuantInfo>> *>(VT_QUANT_INFOS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<nn::versionInfo>(verifier, VT_VERSION, 8) &&
-           VerifyOffset(verifier, VT_LINK) &&
-           verifier.VerifyTable(link()) &&
            VerifyOffset(verifier, VT_NODE_TYPE) &&
            verifier.VerifyVector(node_type()) &&
            VerifyOffset(verifier, VT_NODE) &&
            verifier.VerifyVector(node()) &&
            VerifyLayerVector(verifier, node(), node_type()) &&
+           VerifyOffset(verifier, VT_OUTPUTS) &&
+           verifier.VerifyVector(outputs()) &&
+           verifier.VerifyVectorOfTables(outputs()) &&
            VerifyOffset(verifier, VT_QUANT_INFOS) &&
            verifier.VerifyVector(quant_infos()) &&
            verifier.VerifyVectorOfTables(quant_infos()) &&
@@ -3975,14 +4088,14 @@ struct GraphBuilder {
   void add_version(const nn::versionInfo *version) {
     fbb_.AddStruct(Graph::VT_VERSION, version);
   }
-  void add_link(flatbuffers::Offset<nn::Link> link) {
-    fbb_.AddOffset(Graph::VT_LINK, link);
-  }
   void add_node_type(flatbuffers::Offset<flatbuffers::Vector<nn::Layer>> node_type) {
     fbb_.AddOffset(Graph::VT_NODE_TYPE, node_type);
   }
   void add_node(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> node) {
     fbb_.AddOffset(Graph::VT_NODE, node);
+  }
+  void add_outputs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::Output>>> outputs) {
+    fbb_.AddOffset(Graph::VT_OUTPUTS, outputs);
   }
   void add_quant_infos(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::QuantInfo>>> quant_infos) {
     fbb_.AddOffset(Graph::VT_QUANT_INFOS, quant_infos);
@@ -4001,15 +4114,15 @@ struct GraphBuilder {
 inline flatbuffers::Offset<Graph> CreateGraph(
     flatbuffers::FlatBufferBuilder &_fbb,
     const nn::versionInfo *version = nullptr,
-    flatbuffers::Offset<nn::Link> link = 0,
     flatbuffers::Offset<flatbuffers::Vector<nn::Layer>> node_type = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> node = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::Output>>> outputs = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<nn::QuantInfo>>> quant_infos = 0) {
   GraphBuilder builder_(_fbb);
   builder_.add_quant_infos(quant_infos);
+  builder_.add_outputs(outputs);
   builder_.add_node(node);
   builder_.add_node_type(node_type);
-  builder_.add_link(link);
   builder_.add_version(version);
   return builder_.Finish();
 }
@@ -4022,19 +4135,20 @@ struct Graph::Traits {
 inline flatbuffers::Offset<Graph> CreateGraphDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const nn::versionInfo *version = nullptr,
-    flatbuffers::Offset<nn::Link> link = 0,
     const std::vector<nn::Layer> *node_type = nullptr,
     const std::vector<flatbuffers::Offset<void>> *node = nullptr,
+    const std::vector<flatbuffers::Offset<nn::Output>> *outputs = nullptr,
     const std::vector<flatbuffers::Offset<nn::QuantInfo>> *quant_infos = nullptr) {
   auto node_type__ = node_type ? _fbb.CreateVector<nn::Layer>(*node_type) : 0;
   auto node__ = node ? _fbb.CreateVector<flatbuffers::Offset<void>>(*node) : 0;
+  auto outputs__ = outputs ? _fbb.CreateVector<flatbuffers::Offset<nn::Output>>(*outputs) : 0;
   auto quant_infos__ = quant_infos ? _fbb.CreateVector<flatbuffers::Offset<nn::QuantInfo>>(*quant_infos) : 0;
   return nn::CreateGraph(
       _fbb,
       version,
-      link,
       node_type__,
       node__,
+      outputs__,
       quant_infos__);
 }
 
