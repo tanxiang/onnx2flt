@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
 project(onnx2flt)
 
@@ -7,7 +6,7 @@ find_package(protobuf REQUIRED)
 add_subdirectory(fbs)
 configure_onnx()
 
-add_executable(onnx2flt main.cc nodemap.cc noderemap.cc)
+add_executable(onnx2flt main.cc noderemap.cc)
 
 target_link_libraries(onnx2flt
     flatbuffers

@@ -1,6 +1,5 @@
 
 #include "context.hh"
-#include "nodemap.hh"
 #include "noderemap.hh"
 #include <fstream>
 #include <iostream>
@@ -27,8 +26,6 @@ int main(int argc, char *argv[]) {
   model_proto.ParseFromString(ss.str());
   std::cout << "model_proto.ir_version = " << model_proto.ir_version()
             << std::endl;
-
-  static OpToFuncMap mapOpFunc;
 
   mapContext context;
 
@@ -96,14 +93,14 @@ int main(int argc, char *argv[]) {
         flatbuffers, &version,
         flatbuffers.CreateVector(
             nodesMap.size(), std::function<nn::Layer(size_t)>{[&](size_t i) {
-              std::cout << "get type:" << nodesMap.size() << " at " << i
-                        << std::endl;
+              //std::cout << "get type:" << nodesMap.size() << " at " << i
+              //          << std::endl;
               return nodesMap.find(i)->type;
             }}),
         flatbuffers.CreateVector(
             nodesMap.size(),
             std::function<flatbuffers::Offset<void>(size_t i)>{[&](size_t i) {
-              std::cout << "get data:" << i << std::endl;
+              //std::cout << "get data:" << i << std::endl;
               return nodesMap.find(i)->data;
             }}),
         flatbuffers.CreateVector(
