@@ -23,12 +23,10 @@ std::string tensorID(const onnx::TensorProto &tensor) {
   return id.str();
 }
 
-
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::set<kLayerData, std::less<>> &nodesData,
                      mapContext &context, const std::string output,
                      std::map<std::string, int> &symbols);
-
 
 template <typename NodeTypeBuilder>
 auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flBuilder,
@@ -342,9 +340,6 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      mapContext &context, const onnx::NodeProto &node,
                      std::map<std::string, int> &symbols) {
 
-  auto tensorIndex = symbols.size();
-  symbols.emplace(node.output()[0], tensorIndex);
-
   // builder.
   const onnx::NodeProto *nodeP = &node;
   nn::FuseCode *fuseCodeP{nullptr};
@@ -362,7 +357,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
         fuseCode = nn::FuseCode::Relu1;
       } else {
         std::cerr << "::::::::::::::::::" << nodeID(*nodeP) << " idx "
-                  << tensorIndex << " max: " << max << std::endl;
+                  << " max: " << max << std::endl;
       }
     }
     auto nodeItr = context.outputNodeMap.find(nodeP->input()[0]);
@@ -384,7 +379,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
             context.outputNodeMap.find(nodeGather.input()[0])->second;
         if (nodeShape.op_type() == "Shape") {
           std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>" << nodeID(*nodeP)
-                    << " idx " << tensorIndex << std::endl;
+                    << " idx " << std::endl;
           auto link = nn::CreateLink(
               builder, builder.CreateVector(
                            nodeShape.input_size(),
@@ -395,8 +390,12 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
 
           auto ftnode = fuseSGUC(builder, context, link, nodeShape, nodeGather,
                                  nodeUnsqueeze, *nodeP);
-          nodesData.emplace(tensorIndex, UnionType(ftnode), ftnode.Union());
 
+          auto tensorIndex = symbols.size();
+          symbols.emplace(node.output()[0], tensorIndex);
+          nodesData.emplace(tensorIndex, UnionType(ftnode), ftnode.Union());
+          std::cout << "node idx:" << tensorIndex << " id " << nodeID(*nodeP)
+                    << std::endl;
           return tensorIndex;
         }
       }
@@ -410,6 +409,9 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                              return writeFlNode(builder, nodesData, context,
                                                 nodeP->input()[i], symbols);
                            }}));
+
+  auto tensorIndex = symbols.size();
+  symbols.emplace(node.output()[0], tensorIndex);
 
   static OpToLayerBuilderMap opMap{};
   auto opItr = opMap.find(nodeP->op_type());
@@ -454,7 +456,6 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
 
   auto tensorIndex = symbols.size();
   symbols.emplace(tensor.name(), tensorIndex);
-  tensor.dims();
   nn::TensorInfoBuilder info{flbuilder};
   info.add_dim(flbuilder.CreateVector(
       tensor.dims_size(), std::function<uint16_t(size_t)>{
@@ -612,9 +613,12 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                      std::map<std::string, int> &symbols) {
   auto tensorIndex = symbols.size();
   symbols.emplace(valueInfo.name(), tensorIndex);
-  auto flNode = nn::CreateInputTensor(flbuilder,TensorShapeHelper(flbuilder,valueInfo));
+  auto flNode =
+      nn::CreateInputTensor(flbuilder, TensorShapeHelper(flbuilder, valueInfo));
 
   nodesData.emplace(tensorIndex, UnionType(flNode), flNode.Union());
+    std::cout << "input idx:" << tensorIndex << " id " << valueInfo.name()
+            << std::endl;
   return tensorIndex;
 }
 
@@ -672,6 +676,6 @@ flatbuffers::Offset<nn::Output>
 writeFlOutputs(flatbuffers::FlatBufferBuilder &flBuilder,
                const onnx::ValueInfoProto &output,
                std::map<std::string, int> &symbols) {
-    return nn::CreateOutput(flBuilder,symbols.at(output.name()),TensorShapeHelper(flBuilder,output));
-
+  return nn::CreateOutput(flBuilder, symbols.at(output.name()),
+                          TensorShapeHelper(flBuilder, output));
 }
