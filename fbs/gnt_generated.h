@@ -20,29 +20,29 @@ struct versionInfo;
 struct TensorInfo;
 struct TensorInfoBuilder;
 
-struct rawTensor;
-struct rawTensorBuilder;
+struct RawTensor;
+struct RawTensorBuilder;
 
-struct i8Tensor;
-struct i8TensorBuilder;
+struct I32Scalar;
 
-struct i16Tensor;
-struct i16TensorBuilder;
+struct U32Scalar;
 
-struct i32Tensor;
-struct i32TensorBuilder;
+struct F32Scalar;
 
-struct i64Tensor;
-struct i64TensorBuilder;
+struct I32Tensor;
+struct I32TensorBuilder;
 
-struct f16Tensor;
-struct f16TensorBuilder;
+struct U32Tensor;
+struct U32TensorBuilder;
 
-struct f32Tensor;
-struct f32TensorBuilder;
+struct F16Tensor;
+struct F16TensorBuilder;
 
-struct f64Tensor;
-struct f64TensorBuilder;
+struct F32Tensor;
+struct F32TensorBuilder;
+
+struct F64Tensor;
+struct F64TensorBuilder;
 
 struct QuantInfo;
 struct QuantInfoBuilder;
@@ -164,6 +164,8 @@ struct RESHAPEBuilder;
 struct Configure;
 struct ConfigureBuilder;
 
+struct FuseNode;
+
 struct Output;
 struct OutputBuilder;
 
@@ -228,15 +230,17 @@ inline const char *EnumNameDataType(DataType e) {
 }
 
 enum class FuseCode : int8_t {
-  Relu = 0,
-  Relu1 = 1,
-  Relu6 = 2,
-  MIN = Relu,
+  None = 0,
+  Relu = 1,
+  Relu1 = 2,
+  Relu6 = 3,
+  MIN = None,
   MAX = Relu6
 };
 
-inline const FuseCode (&EnumValuesFuseCode())[3] {
+inline const FuseCode (&EnumValuesFuseCode())[4] {
   static const FuseCode values[] = {
+    FuseCode::None,
     FuseCode::Relu,
     FuseCode::Relu1,
     FuseCode::Relu6
@@ -245,7 +249,8 @@ inline const FuseCode (&EnumValuesFuseCode())[3] {
 }
 
 inline const char * const *EnumNamesFuseCode() {
-  static const char * const names[4] = {
+  static const char * const names[5] = {
+    "None",
     "Relu",
     "Relu1",
     "Relu6",
@@ -255,7 +260,7 @@ inline const char * const *EnumNamesFuseCode() {
 }
 
 inline const char *EnumNameFuseCode(FuseCode e) {
-  if (flatbuffers::IsOutRange(e, FuseCode::Relu, FuseCode::Relu6)) return "";
+  if (flatbuffers::IsOutRange(e, FuseCode::None, FuseCode::Relu6)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesFuseCode()[index];
 }
@@ -310,61 +315,63 @@ bool VerifyDimVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<
 
 enum class Layer : uint8_t {
   NONE = 0,
-  InputTensor = 1,
-  rawTensor = 2,
-  i8Tensor = 3,
-  i16Tensor = 4,
-  i32Tensor = 5,
-  i64Tensor = 6,
-  f16Tensor = 7,
-  f32Tensor = 8,
-  f64Tensor = 9,
-  CONV_2D = 10,
-  AVERAGE_POOL_2D = 11,
-  MAX_POOL_2D = 12,
-  RELU = 13,
-  SOFTMAX = 14,
-  FULLY_CONNECTED = 15,
-  ADD = 16,
-  CONCATENATION = 17,
-  DEPTHWISE_CONV_2D = 18,
-  BATCH_TO_SPACE_ND = 19,
-  SPACE_TO_BATCH_ND = 20,
-  STRIDED_SLICE = 21,
-  MUL = 22,
-  DEQUANTIZE = 23,
-  LOCAL_RESPONSE_NORMALIZATION = 24,
-  TANH = 25,
-  FLOOR = 26,
-  LOGISTIC = 27,
-  PRELU = 28,
-  POW = 29,
-  NEG = 30,
-  MINIMUM = 31,
-  MAXIMUM = 32,
-  LOG = 33,
-  ABS = 34,
-  EXP = 35,
-  SUB = 36,
-  GATHER = 37,
-  RESHAPE = 38,
-  Configure = 39,
+  FuseNode = 1,
+  InputTensor = 2,
+  RawTensor = 3,
+  I32Scalar = 4,
+  U32Scalar = 5,
+  I32Tensor = 6,
+  U32Tensor = 7,
+  F16Tensor = 8,
+  F32Tensor = 9,
+  F64Tensor = 10,
+  CONV_2D = 11,
+  AVERAGE_POOL_2D = 12,
+  MAX_POOL_2D = 13,
+  RELU = 14,
+  SOFTMAX = 15,
+  FULLY_CONNECTED = 16,
+  ADD = 17,
+  CONCATENATION = 18,
+  DEPTHWISE_CONV_2D = 19,
+  BATCH_TO_SPACE_ND = 20,
+  SPACE_TO_BATCH_ND = 21,
+  STRIDED_SLICE = 22,
+  MUL = 23,
+  DEQUANTIZE = 24,
+  LOCAL_RESPONSE_NORMALIZATION = 25,
+  TANH = 26,
+  FLOOR = 27,
+  LOGISTIC = 28,
+  PRELU = 29,
+  POW = 30,
+  NEG = 31,
+  MINIMUM = 32,
+  MAXIMUM = 33,
+  LOG = 34,
+  ABS = 35,
+  EXP = 36,
+  SUB = 37,
+  GATHER = 38,
+  RESHAPE = 39,
+  Configure = 40,
   MIN = NONE,
   MAX = Configure
 };
 
-inline const Layer (&EnumValuesLayer())[40] {
+inline const Layer (&EnumValuesLayer())[41] {
   static const Layer values[] = {
     Layer::NONE,
+    Layer::FuseNode,
     Layer::InputTensor,
-    Layer::rawTensor,
-    Layer::i8Tensor,
-    Layer::i16Tensor,
-    Layer::i32Tensor,
-    Layer::i64Tensor,
-    Layer::f16Tensor,
-    Layer::f32Tensor,
-    Layer::f64Tensor,
+    Layer::RawTensor,
+    Layer::I32Scalar,
+    Layer::U32Scalar,
+    Layer::I32Tensor,
+    Layer::U32Tensor,
+    Layer::F16Tensor,
+    Layer::F32Tensor,
+    Layer::F64Tensor,
     Layer::CONV_2D,
     Layer::AVERAGE_POOL_2D,
     Layer::MAX_POOL_2D,
@@ -400,17 +407,18 @@ inline const Layer (&EnumValuesLayer())[40] {
 }
 
 inline const char * const *EnumNamesLayer() {
-  static const char * const names[41] = {
+  static const char * const names[42] = {
     "NONE",
+    "FuseNode",
     "InputTensor",
-    "rawTensor",
-    "i8Tensor",
-    "i16Tensor",
-    "i32Tensor",
-    "i64Tensor",
-    "f16Tensor",
-    "f32Tensor",
-    "f64Tensor",
+    "RawTensor",
+    "I32Scalar",
+    "U32Scalar",
+    "I32Tensor",
+    "U32Tensor",
+    "F16Tensor",
+    "F32Tensor",
+    "F64Tensor",
     "CONV_2D",
     "AVERAGE_POOL_2D",
     "MAX_POOL_2D",
@@ -456,40 +464,44 @@ template<typename T> struct LayerTraits {
   static const Layer enum_value = Layer::NONE;
 };
 
+template<> struct LayerTraits<nn::FuseNode> {
+  static const Layer enum_value = Layer::FuseNode;
+};
+
 template<> struct LayerTraits<nn::InputTensor> {
   static const Layer enum_value = Layer::InputTensor;
 };
 
-template<> struct LayerTraits<nn::rawTensor> {
-  static const Layer enum_value = Layer::rawTensor;
+template<> struct LayerTraits<nn::RawTensor> {
+  static const Layer enum_value = Layer::RawTensor;
 };
 
-template<> struct LayerTraits<nn::i8Tensor> {
-  static const Layer enum_value = Layer::i8Tensor;
+template<> struct LayerTraits<nn::I32Scalar> {
+  static const Layer enum_value = Layer::I32Scalar;
 };
 
-template<> struct LayerTraits<nn::i16Tensor> {
-  static const Layer enum_value = Layer::i16Tensor;
+template<> struct LayerTraits<nn::U32Scalar> {
+  static const Layer enum_value = Layer::U32Scalar;
 };
 
-template<> struct LayerTraits<nn::i32Tensor> {
-  static const Layer enum_value = Layer::i32Tensor;
+template<> struct LayerTraits<nn::I32Tensor> {
+  static const Layer enum_value = Layer::I32Tensor;
 };
 
-template<> struct LayerTraits<nn::i64Tensor> {
-  static const Layer enum_value = Layer::i64Tensor;
+template<> struct LayerTraits<nn::U32Tensor> {
+  static const Layer enum_value = Layer::U32Tensor;
 };
 
-template<> struct LayerTraits<nn::f16Tensor> {
-  static const Layer enum_value = Layer::f16Tensor;
+template<> struct LayerTraits<nn::F16Tensor> {
+  static const Layer enum_value = Layer::F16Tensor;
 };
 
-template<> struct LayerTraits<nn::f32Tensor> {
-  static const Layer enum_value = Layer::f32Tensor;
+template<> struct LayerTraits<nn::F32Tensor> {
+  static const Layer enum_value = Layer::F32Tensor;
 };
 
-template<> struct LayerTraits<nn::f64Tensor> {
-  static const Layer enum_value = Layer::f64Tensor;
+template<> struct LayerTraits<nn::F64Tensor> {
+  static const Layer enum_value = Layer::F64Tensor;
 };
 
 template<> struct LayerTraits<nn::CONV_2D> {
@@ -641,6 +653,72 @@ FLATBUFFERS_STRUCT_END(versionInfo, 16);
 
 struct versionInfo::Traits {
   using type = versionInfo;
+};
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) I32Scalar FLATBUFFERS_FINAL_CLASS {
+ private:
+  int32_t data_;
+
+ public:
+  struct Traits;
+  I32Scalar()
+      : data_(0) {
+  }
+  I32Scalar(int32_t _data)
+      : data_(flatbuffers::EndianScalar(_data)) {
+  }
+  int32_t data() const {
+    return flatbuffers::EndianScalar(data_);
+  }
+};
+FLATBUFFERS_STRUCT_END(I32Scalar, 4);
+
+struct I32Scalar::Traits {
+  using type = I32Scalar;
+};
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) U32Scalar FLATBUFFERS_FINAL_CLASS {
+ private:
+  uint32_t data_;
+
+ public:
+  struct Traits;
+  U32Scalar()
+      : data_(0) {
+  }
+  U32Scalar(uint32_t _data)
+      : data_(flatbuffers::EndianScalar(_data)) {
+  }
+  uint32_t data() const {
+    return flatbuffers::EndianScalar(data_);
+  }
+};
+FLATBUFFERS_STRUCT_END(U32Scalar, 4);
+
+struct U32Scalar::Traits {
+  using type = U32Scalar;
+};
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) F32Scalar FLATBUFFERS_FINAL_CLASS {
+ private:
+  float data_;
+
+ public:
+  struct Traits;
+  F32Scalar()
+      : data_(0) {
+  }
+  F32Scalar(float _data)
+      : data_(flatbuffers::EndianScalar(_data)) {
+  }
+  float data() const {
+    return flatbuffers::EndianScalar(data_);
+  }
+};
+FLATBUFFERS_STRUCT_END(F32Scalar, 4);
+
+struct F32Scalar::Traits {
+  using type = F32Scalar;
 };
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) DimValue FLATBUFFERS_FINAL_CLASS {
@@ -811,19 +889,37 @@ struct Group::Traits {
   using type = Group;
 };
 
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(1) FuseNode FLATBUFFERS_FINAL_CLASS {
+ private:
+  int8_t code_;
+
+ public:
+  struct Traits;
+  FuseNode()
+      : code_(0) {
+  }
+  FuseNode(nn::FuseCode _code)
+      : code_(flatbuffers::EndianScalar(static_cast<int8_t>(_code))) {
+  }
+  nn::FuseCode code() const {
+    return static_cast<nn::FuseCode>(flatbuffers::EndianScalar(code_));
+  }
+};
+FLATBUFFERS_STRUCT_END(FuseNode, 1);
+
+struct FuseNode::Traits {
+  using type = FuseNode;
+};
+
 struct TensorInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef TensorInfoBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
-    VT_DATA_FUSE = 6,
-    VT_DIM = 8
+    VT_DIM = 6
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
-  }
-  nn::FuseCode data_fuse() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_DATA_FUSE, 0));
   }
   const flatbuffers::Vector<uint16_t> *dim() const {
     return GetPointer<const flatbuffers::Vector<uint16_t> *>(VT_DIM);
@@ -832,7 +928,6 @@ struct TensorInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
-           VerifyField<int8_t>(verifier, VT_DATA_FUSE, 1) &&
            VerifyOffset(verifier, VT_DIM) &&
            verifier.VerifyVector(dim()) &&
            verifier.EndTable();
@@ -845,9 +940,6 @@ struct TensorInfoBuilder {
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(TensorInfo::VT_NAME, name);
-  }
-  void add_data_fuse(nn::FuseCode data_fuse) {
-    fbb_.AddElement<int8_t>(TensorInfo::VT_DATA_FUSE, static_cast<int8_t>(data_fuse), 0);
   }
   void add_dim(flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim) {
     fbb_.AddOffset(TensorInfo::VT_DIM, dim);
@@ -866,12 +958,10 @@ struct TensorInfoBuilder {
 inline flatbuffers::Offset<TensorInfo> CreateTensorInfo(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    nn::FuseCode data_fuse = nn::FuseCode::Relu,
     flatbuffers::Offset<flatbuffers::Vector<uint16_t>> dim = 0) {
   TensorInfoBuilder builder_(_fbb);
   builder_.add_dim(dim);
   builder_.add_name(name);
-  builder_.add_data_fuse(data_fuse);
   return builder_.Finish();
 }
 
@@ -883,19 +973,17 @@ struct TensorInfo::Traits {
 inline flatbuffers::Offset<TensorInfo> CreateTensorInfoDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    nn::FuseCode data_fuse = nn::FuseCode::Relu,
     const std::vector<uint16_t> *dim = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto dim__ = dim ? _fbb.CreateVector<uint16_t>(*dim) : 0;
   return nn::CreateTensorInfo(
       _fbb,
       name__,
-      data_fuse,
       dim__);
 }
 
-struct rawTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef rawTensorBuilder Builder;
+struct RawTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef RawTensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -922,202 +1010,62 @@ struct rawTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct rawTensorBuilder {
-  typedef rawTensor Table;
+struct RawTensorBuilder {
+  typedef RawTensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(rawTensor::VT_INFO, info);
+    fbb_.AddOffset(RawTensor::VT_INFO, info);
   }
   void add_type(nn::DataType type) {
-    fbb_.AddElement<int8_t>(rawTensor::VT_TYPE, static_cast<int8_t>(type), 0);
+    fbb_.AddElement<int8_t>(RawTensor::VT_TYPE, static_cast<int8_t>(type), 0);
   }
   void add_data(flatbuffers::Offset<flatbuffers::String> data) {
-    fbb_.AddOffset(rawTensor::VT_DATA, data);
+    fbb_.AddOffset(RawTensor::VT_DATA, data);
   }
-  explicit rawTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit RawTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<rawTensor> Finish() {
+  flatbuffers::Offset<RawTensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<rawTensor>(end);
+    auto o = flatbuffers::Offset<RawTensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<rawTensor> CreaterawTensor(
+inline flatbuffers::Offset<RawTensor> CreateRawTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     nn::DataType type = nn::DataType::Float16,
     flatbuffers::Offset<flatbuffers::String> data = 0) {
-  rawTensorBuilder builder_(_fbb);
+  RawTensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   builder_.add_type(type);
   return builder_.Finish();
 }
 
-struct rawTensor::Traits {
-  using type = rawTensor;
-  static auto constexpr Create = CreaterawTensor;
+struct RawTensor::Traits {
+  using type = RawTensor;
+  static auto constexpr Create = CreateRawTensor;
 };
 
-inline flatbuffers::Offset<rawTensor> CreaterawTensorDirect(
+inline flatbuffers::Offset<RawTensor> CreateRawTensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     nn::DataType type = nn::DataType::Float16,
     const char *data = nullptr) {
   auto data__ = data ? _fbb.CreateString(data) : 0;
-  return nn::CreaterawTensor(
+  return nn::CreateRawTensor(
       _fbb,
       info,
       type,
       data__);
 }
 
-struct i8Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef i8TensorBuilder Builder;
-  struct Traits;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INFO = 4,
-    VT_DATA = 6
-  };
-  const nn::TensorInfo *info() const {
-    return GetPointer<const nn::TensorInfo *>(VT_INFO);
-  }
-  const flatbuffers::Vector<int8_t> *data() const {
-    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_DATA);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_INFO) &&
-           verifier.VerifyTable(info()) &&
-           VerifyOffset(verifier, VT_DATA) &&
-           verifier.VerifyVector(data()) &&
-           verifier.EndTable();
-  }
-};
-
-struct i8TensorBuilder {
-  typedef i8Tensor Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(i8Tensor::VT_INFO, info);
-  }
-  void add_data(flatbuffers::Offset<flatbuffers::Vector<int8_t>> data) {
-    fbb_.AddOffset(i8Tensor::VT_DATA, data);
-  }
-  explicit i8TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<i8Tensor> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<i8Tensor>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<i8Tensor> Createi8Tensor(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::TensorInfo> info = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int8_t>> data = 0) {
-  i8TensorBuilder builder_(_fbb);
-  builder_.add_data(data);
-  builder_.add_info(info);
-  return builder_.Finish();
-}
-
-struct i8Tensor::Traits {
-  using type = i8Tensor;
-  static auto constexpr Create = Createi8Tensor;
-};
-
-inline flatbuffers::Offset<i8Tensor> Createi8TensorDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::TensorInfo> info = 0,
-    const std::vector<int8_t> *data = nullptr) {
-  auto data__ = data ? _fbb.CreateVector<int8_t>(*data) : 0;
-  return nn::Createi8Tensor(
-      _fbb,
-      info,
-      data__);
-}
-
-struct i16Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef i16TensorBuilder Builder;
-  struct Traits;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INFO = 4,
-    VT_DATA = 6
-  };
-  const nn::TensorInfo *info() const {
-    return GetPointer<const nn::TensorInfo *>(VT_INFO);
-  }
-  const flatbuffers::Vector<int16_t> *data() const {
-    return GetPointer<const flatbuffers::Vector<int16_t> *>(VT_DATA);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_INFO) &&
-           verifier.VerifyTable(info()) &&
-           VerifyOffset(verifier, VT_DATA) &&
-           verifier.VerifyVector(data()) &&
-           verifier.EndTable();
-  }
-};
-
-struct i16TensorBuilder {
-  typedef i16Tensor Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(i16Tensor::VT_INFO, info);
-  }
-  void add_data(flatbuffers::Offset<flatbuffers::Vector<int16_t>> data) {
-    fbb_.AddOffset(i16Tensor::VT_DATA, data);
-  }
-  explicit i16TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<i16Tensor> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<i16Tensor>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<i16Tensor> Createi16Tensor(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::TensorInfo> info = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int16_t>> data = 0) {
-  i16TensorBuilder builder_(_fbb);
-  builder_.add_data(data);
-  builder_.add_info(info);
-  return builder_.Finish();
-}
-
-struct i16Tensor::Traits {
-  using type = i16Tensor;
-  static auto constexpr Create = Createi16Tensor;
-};
-
-inline flatbuffers::Offset<i16Tensor> Createi16TensorDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::TensorInfo> info = 0,
-    const std::vector<int16_t> *data = nullptr) {
-  auto data__ = data ? _fbb.CreateVector<int16_t>(*data) : 0;
-  return nn::Createi16Tensor(
-      _fbb,
-      info,
-      data__);
-}
-
-struct i32Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef i32TensorBuilder Builder;
+struct I32Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef I32TensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -1139,55 +1087,55 @@ struct i32Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct i32TensorBuilder {
-  typedef i32Tensor Table;
+struct I32TensorBuilder {
+  typedef I32Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(i32Tensor::VT_INFO, info);
+    fbb_.AddOffset(I32Tensor::VT_INFO, info);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<int32_t>> data) {
-    fbb_.AddOffset(i32Tensor::VT_DATA, data);
+    fbb_.AddOffset(I32Tensor::VT_DATA, data);
   }
-  explicit i32TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit I32TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<i32Tensor> Finish() {
+  flatbuffers::Offset<I32Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<i32Tensor>(end);
+    auto o = flatbuffers::Offset<I32Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<i32Tensor> Createi32Tensor(
+inline flatbuffers::Offset<I32Tensor> CreateI32Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> data = 0) {
-  i32TensorBuilder builder_(_fbb);
+  I32TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct i32Tensor::Traits {
-  using type = i32Tensor;
-  static auto constexpr Create = Createi32Tensor;
+struct I32Tensor::Traits {
+  using type = I32Tensor;
+  static auto constexpr Create = CreateI32Tensor;
 };
 
-inline flatbuffers::Offset<i32Tensor> Createi32TensorDirect(
+inline flatbuffers::Offset<I32Tensor> CreateI32TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     const std::vector<int32_t> *data = nullptr) {
   auto data__ = data ? _fbb.CreateVector<int32_t>(*data) : 0;
-  return nn::Createi32Tensor(
+  return nn::CreateI32Tensor(
       _fbb,
       info,
       data__);
 }
 
-struct i64Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef i64TensorBuilder Builder;
+struct U32Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef U32TensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -1196,8 +1144,8 @@ struct i64Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::TensorInfo *info() const {
     return GetPointer<const nn::TensorInfo *>(VT_INFO);
   }
-  const flatbuffers::Vector<int64_t> *data() const {
-    return GetPointer<const flatbuffers::Vector<int64_t> *>(VT_DATA);
+  const flatbuffers::Vector<uint32_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_DATA);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1209,55 +1157,55 @@ struct i64Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct i64TensorBuilder {
-  typedef i64Tensor Table;
+struct U32TensorBuilder {
+  typedef U32Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(i64Tensor::VT_INFO, info);
+    fbb_.AddOffset(U32Tensor::VT_INFO, info);
   }
-  void add_data(flatbuffers::Offset<flatbuffers::Vector<int64_t>> data) {
-    fbb_.AddOffset(i64Tensor::VT_DATA, data);
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> data) {
+    fbb_.AddOffset(U32Tensor::VT_DATA, data);
   }
-  explicit i64TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit U32TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<i64Tensor> Finish() {
+  flatbuffers::Offset<U32Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<i64Tensor>(end);
+    auto o = flatbuffers::Offset<U32Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<i64Tensor> Createi64Tensor(
+inline flatbuffers::Offset<U32Tensor> CreateU32Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int64_t>> data = 0) {
-  i64TensorBuilder builder_(_fbb);
+    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> data = 0) {
+  U32TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct i64Tensor::Traits {
-  using type = i64Tensor;
-  static auto constexpr Create = Createi64Tensor;
+struct U32Tensor::Traits {
+  using type = U32Tensor;
+  static auto constexpr Create = CreateU32Tensor;
 };
 
-inline flatbuffers::Offset<i64Tensor> Createi64TensorDirect(
+inline flatbuffers::Offset<U32Tensor> CreateU32TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
-    const std::vector<int64_t> *data = nullptr) {
-  auto data__ = data ? _fbb.CreateVector<int64_t>(*data) : 0;
-  return nn::Createi64Tensor(
+    const std::vector<uint32_t> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<uint32_t>(*data) : 0;
+  return nn::CreateU32Tensor(
       _fbb,
       info,
       data__);
 }
 
-struct f16Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef f16TensorBuilder Builder;
+struct F16Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef F16TensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -1279,55 +1227,55 @@ struct f16Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct f16TensorBuilder {
-  typedef f16Tensor Table;
+struct F16TensorBuilder {
+  typedef F16Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(f16Tensor::VT_INFO, info);
+    fbb_.AddOffset(F16Tensor::VT_INFO, info);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<uint16_t>> data) {
-    fbb_.AddOffset(f16Tensor::VT_DATA, data);
+    fbb_.AddOffset(F16Tensor::VT_DATA, data);
   }
-  explicit f16TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit F16TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<f16Tensor> Finish() {
+  flatbuffers::Offset<F16Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<f16Tensor>(end);
+    auto o = flatbuffers::Offset<F16Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<f16Tensor> Createf16Tensor(
+inline flatbuffers::Offset<F16Tensor> CreateF16Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint16_t>> data = 0) {
-  f16TensorBuilder builder_(_fbb);
+  F16TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct f16Tensor::Traits {
-  using type = f16Tensor;
-  static auto constexpr Create = Createf16Tensor;
+struct F16Tensor::Traits {
+  using type = F16Tensor;
+  static auto constexpr Create = CreateF16Tensor;
 };
 
-inline flatbuffers::Offset<f16Tensor> Createf16TensorDirect(
+inline flatbuffers::Offset<F16Tensor> CreateF16TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     const std::vector<uint16_t> *data = nullptr) {
   auto data__ = data ? _fbb.CreateVector<uint16_t>(*data) : 0;
-  return nn::Createf16Tensor(
+  return nn::CreateF16Tensor(
       _fbb,
       info,
       data__);
 }
 
-struct f32Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef f32TensorBuilder Builder;
+struct F32Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef F32TensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -1349,55 +1297,55 @@ struct f32Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct f32TensorBuilder {
-  typedef f32Tensor Table;
+struct F32TensorBuilder {
+  typedef F32Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(f32Tensor::VT_INFO, info);
+    fbb_.AddOffset(F32Tensor::VT_INFO, info);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<float>> data) {
-    fbb_.AddOffset(f32Tensor::VT_DATA, data);
+    fbb_.AddOffset(F32Tensor::VT_DATA, data);
   }
-  explicit f32TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit F32TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<f32Tensor> Finish() {
+  flatbuffers::Offset<F32Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<f32Tensor>(end);
+    auto o = flatbuffers::Offset<F32Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<f32Tensor> Createf32Tensor(
+inline flatbuffers::Offset<F32Tensor> CreateF32Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     flatbuffers::Offset<flatbuffers::Vector<float>> data = 0) {
-  f32TensorBuilder builder_(_fbb);
+  F32TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct f32Tensor::Traits {
-  using type = f32Tensor;
-  static auto constexpr Create = Createf32Tensor;
+struct F32Tensor::Traits {
+  using type = F32Tensor;
+  static auto constexpr Create = CreateF32Tensor;
 };
 
-inline flatbuffers::Offset<f32Tensor> Createf32TensorDirect(
+inline flatbuffers::Offset<F32Tensor> CreateF32TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     const std::vector<float> *data = nullptr) {
   auto data__ = data ? _fbb.CreateVector<float>(*data) : 0;
-  return nn::Createf32Tensor(
+  return nn::CreateF32Tensor(
       _fbb,
       info,
       data__);
 }
 
-struct f64Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef f64TensorBuilder Builder;
+struct F64Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef F64TensorBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INFO = 4,
@@ -1419,48 +1367,48 @@ struct f64Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct f64TensorBuilder {
-  typedef f64Tensor Table;
+struct F64TensorBuilder {
+  typedef F64Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_info(flatbuffers::Offset<nn::TensorInfo> info) {
-    fbb_.AddOffset(f64Tensor::VT_INFO, info);
+    fbb_.AddOffset(F64Tensor::VT_INFO, info);
   }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<double>> data) {
-    fbb_.AddOffset(f64Tensor::VT_DATA, data);
+    fbb_.AddOffset(F64Tensor::VT_DATA, data);
   }
-  explicit f64TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit F64TensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<f64Tensor> Finish() {
+  flatbuffers::Offset<F64Tensor> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<f64Tensor>(end);
+    auto o = flatbuffers::Offset<F64Tensor>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<f64Tensor> Createf64Tensor(
+inline flatbuffers::Offset<F64Tensor> CreateF64Tensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     flatbuffers::Offset<flatbuffers::Vector<double>> data = 0) {
-  f64TensorBuilder builder_(_fbb);
+  F64TensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
   return builder_.Finish();
 }
 
-struct f64Tensor::Traits {
-  using type = f64Tensor;
-  static auto constexpr Create = Createf64Tensor;
+struct F64Tensor::Traits {
+  using type = F64Tensor;
+  static auto constexpr Create = CreateF64Tensor;
 };
 
-inline flatbuffers::Offset<f64Tensor> Createf64TensorDirect(
+inline flatbuffers::Offset<F64Tensor> CreateF64TensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     const std::vector<double> *data = nullptr) {
   auto data__ = data ? _fbb.CreateVector<double>(*data) : 0;
-  return nn::Createf64Tensor(
+  return nn::CreateF64Tensor(
       _fbb,
       info,
       data__);
@@ -1946,8 +1894,7 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_PADDING = 6,
     VT_STRIDE = 8,
     VT_DILATION = 10,
-    VT_GROUP = 12,
-    VT_FUSE_CODE = 14
+    VT_GROUP = 12
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -1964,9 +1911,6 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::Group *group() const {
     return GetStruct<const nn::Group *>(VT_GROUP);
   }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
@@ -1975,7 +1919,6 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<nn::Dilation>(verifier, VT_DILATION, 4) &&
            VerifyField<nn::Group>(verifier, VT_GROUP, 4) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
 };
@@ -1999,9 +1942,6 @@ struct CONV_2DBuilder {
   void add_group(const nn::Group *group) {
     fbb_.AddStruct(CONV_2D::VT_GROUP, group);
   }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(CONV_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
-  }
   explicit CONV_2DBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2020,15 +1960,13 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::Dilation *dilation = nullptr,
-    const nn::Group *group = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
+    const nn::Group *group = nullptr) {
   CONV_2DBuilder builder_(_fbb);
   builder_.add_group(group);
   builder_.add_dilation(dilation);
   builder_.add_stride(stride);
   builder_.add_padding(padding);
   builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
@@ -2044,8 +1982,7 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LINK = 4,
     VT_PADDING = 6,
     VT_STRIDE = 8,
-    VT_KERNEL_SHAPE = 10,
-    VT_FUSE_CODE = 12
+    VT_KERNEL_SHAPE = 10
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -2059,9 +1996,6 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::KernelShape *kernel_shape() const {
     return GetStruct<const nn::KernelShape *>(VT_KERNEL_SHAPE);
   }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
@@ -2069,7 +2003,6 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<nn::KernelShape>(verifier, VT_KERNEL_SHAPE, 4) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
 };
@@ -2090,9 +2023,6 @@ struct AVERAGE_POOL_2DBuilder {
   void add_kernel_shape(const nn::KernelShape *kernel_shape) {
     fbb_.AddStruct(AVERAGE_POOL_2D::VT_KERNEL_SHAPE, kernel_shape);
   }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(AVERAGE_POOL_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
-  }
   explicit AVERAGE_POOL_2DBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2110,14 +2040,12 @@ inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
     flatbuffers::Offset<nn::Link> link = 0,
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
-    const nn::KernelShape *kernel_shape = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
+    const nn::KernelShape *kernel_shape = nullptr) {
   AVERAGE_POOL_2DBuilder builder_(_fbb);
   builder_.add_kernel_shape(kernel_shape);
   builder_.add_stride(stride);
   builder_.add_padding(padding);
   builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
@@ -2133,8 +2061,7 @@ struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LINK = 4,
     VT_PADDING = 6,
     VT_STRIDE = 8,
-    VT_KERNEL_SHAPE = 10,
-    VT_FUSE_CODE = 12
+    VT_KERNEL_SHAPE = 10
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -2148,9 +2075,6 @@ struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::KernelShape *kernel_shape() const {
     return GetStruct<const nn::KernelShape *>(VT_KERNEL_SHAPE);
   }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
@@ -2158,7 +2082,6 @@ struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<nn::KernelShape>(verifier, VT_KERNEL_SHAPE, 4) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
 };
@@ -2179,9 +2102,6 @@ struct MAX_POOL_2DBuilder {
   void add_kernel_shape(const nn::KernelShape *kernel_shape) {
     fbb_.AddStruct(MAX_POOL_2D::VT_KERNEL_SHAPE, kernel_shape);
   }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(MAX_POOL_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
-  }
   explicit MAX_POOL_2DBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2199,14 +2119,12 @@ inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2D(
     flatbuffers::Offset<nn::Link> link = 0,
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
-    const nn::KernelShape *kernel_shape = nullptr,
-    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
+    const nn::KernelShape *kernel_shape = nullptr) {
   MAX_POOL_2DBuilder builder_(_fbb);
   builder_.add_kernel_shape(kernel_shape);
   builder_.add_stride(stride);
   builder_.add_padding(padding);
   builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
@@ -2328,8 +2246,7 @@ struct FULLY_CONNECTED FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_BIAS = 6,
-    VT_FUSE_CODE = 8
+    VT_BIAS = 6
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -2337,15 +2254,11 @@ struct FULLY_CONNECTED FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   float bias() const {
     return GetField<float>(VT_BIAS, 0.0f);
   }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
            VerifyField<float>(verifier, VT_BIAS, 4) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
 };
@@ -2359,9 +2272,6 @@ struct FULLY_CONNECTEDBuilder {
   }
   void add_bias(float bias) {
     fbb_.AddElement<float>(FULLY_CONNECTED::VT_BIAS, bias, 0.0f);
-  }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(FULLY_CONNECTED::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
   }
   explicit FULLY_CONNECTEDBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2378,12 +2288,10 @@ struct FULLY_CONNECTEDBuilder {
 inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTED(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
-    float bias = 0.0f,
-    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
+    float bias = 0.0f) {
   FULLY_CONNECTEDBuilder builder_(_fbb);
   builder_.add_bias(bias);
   builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
@@ -2396,20 +2304,15 @@ struct ADD FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ADDBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_LINK = 4,
-    VT_FUSE_CODE = 6
+    VT_LINK = 4
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
-  }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
 };
@@ -2420,9 +2323,6 @@ struct ADDBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(ADD::VT_LINK, link);
-  }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(ADD::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
   }
   explicit ADDBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2438,11 +2338,9 @@ struct ADDBuilder {
 
 inline flatbuffers::Offset<ADD> CreateADD(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   ADDBuilder builder_(_fbb);
   builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
@@ -2455,20 +2353,15 @@ struct SUB FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SUBBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_LINK = 4,
-    VT_FUSE_CODE = 6
+    VT_LINK = 4
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
-  }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
 };
@@ -2479,9 +2372,6 @@ struct SUBBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(SUB::VT_LINK, link);
-  }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(SUB::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
   }
   explicit SUBBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2497,11 +2387,9 @@ struct SUBBuilder {
 
 inline flatbuffers::Offset<SUB> CreateSUB(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   SUBBuilder builder_(_fbb);
   builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
@@ -2514,20 +2402,15 @@ struct MUL FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MULBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_LINK = 4,
-    VT_FUSE_CODE = 6
+    VT_LINK = 4
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
-  }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
 };
@@ -2538,9 +2421,6 @@ struct MULBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(MUL::VT_LINK, link);
-  }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(MUL::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
   }
   explicit MULBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2556,11 +2436,9 @@ struct MULBuilder {
 
 inline flatbuffers::Offset<MUL> CreateMUL(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0,
-    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
+    flatbuffers::Offset<nn::Link> link = 0) {
   MULBuilder builder_(_fbb);
   builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
@@ -2635,8 +2513,7 @@ struct DEPTHWISE_CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LINK = 4,
     VT_PADDING = 6,
     VT_STRIDE = 8,
-    VT_DEPTH_MULTIPLIER = 10,
-    VT_FUSE_CODE = 12
+    VT_DEPTH_MULTIPLIER = 10
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -2650,9 +2527,6 @@ struct DEPTHWISE_CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t depth_multiplier() const {
     return GetField<int32_t>(VT_DEPTH_MULTIPLIER, 0);
   }
-  nn::FuseCode fuse_code() const {
-    return static_cast<nn::FuseCode>(GetField<int8_t>(VT_FUSE_CODE, 0));
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
@@ -2660,7 +2534,6 @@ struct DEPTHWISE_CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<int32_t>(verifier, VT_DEPTH_MULTIPLIER, 4) &&
-           VerifyField<int8_t>(verifier, VT_FUSE_CODE, 1) &&
            verifier.EndTable();
   }
 };
@@ -2681,9 +2554,6 @@ struct DEPTHWISE_CONV_2DBuilder {
   void add_depth_multiplier(int32_t depth_multiplier) {
     fbb_.AddElement<int32_t>(DEPTHWISE_CONV_2D::VT_DEPTH_MULTIPLIER, depth_multiplier, 0);
   }
-  void add_fuse_code(nn::FuseCode fuse_code) {
-    fbb_.AddElement<int8_t>(DEPTHWISE_CONV_2D::VT_FUSE_CODE, static_cast<int8_t>(fuse_code), 0);
-  }
   explicit DEPTHWISE_CONV_2DBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2701,14 +2571,12 @@ inline flatbuffers::Offset<DEPTHWISE_CONV_2D> CreateDEPTHWISE_CONV_2D(
     flatbuffers::Offset<nn::Link> link = 0,
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
-    int32_t depth_multiplier = 0,
-    nn::FuseCode fuse_code = nn::FuseCode::Relu) {
+    int32_t depth_multiplier = 0) {
   DEPTHWISE_CONV_2DBuilder builder_(_fbb);
   builder_.add_depth_multiplier(depth_multiplier);
   builder_.add_stride(stride);
   builder_.add_padding(padding);
   builder_.add_link(link);
-  builder_.add_fuse_code(fuse_code);
   return builder_.Finish();
 }
 
@@ -4185,40 +4053,41 @@ inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer 
     case Layer::NONE: {
       return true;
     }
+    case Layer::FuseNode: {
+      return verifier.VerifyField<nn::FuseNode>(static_cast<const uint8_t *>(obj), 0, 1);
+    }
     case Layer::InputTensor: {
       auto ptr = reinterpret_cast<const nn::InputTensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::rawTensor: {
-      auto ptr = reinterpret_cast<const nn::rawTensor *>(obj);
+    case Layer::RawTensor: {
+      auto ptr = reinterpret_cast<const nn::RawTensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::i8Tensor: {
-      auto ptr = reinterpret_cast<const nn::i8Tensor *>(obj);
+    case Layer::I32Scalar: {
+      return verifier.VerifyField<nn::I32Scalar>(static_cast<const uint8_t *>(obj), 0, 4);
+    }
+    case Layer::U32Scalar: {
+      return verifier.VerifyField<nn::U32Scalar>(static_cast<const uint8_t *>(obj), 0, 4);
+    }
+    case Layer::I32Tensor: {
+      auto ptr = reinterpret_cast<const nn::I32Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::i16Tensor: {
-      auto ptr = reinterpret_cast<const nn::i16Tensor *>(obj);
+    case Layer::U32Tensor: {
+      auto ptr = reinterpret_cast<const nn::U32Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::i32Tensor: {
-      auto ptr = reinterpret_cast<const nn::i32Tensor *>(obj);
+    case Layer::F16Tensor: {
+      auto ptr = reinterpret_cast<const nn::F16Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::i64Tensor: {
-      auto ptr = reinterpret_cast<const nn::i64Tensor *>(obj);
+    case Layer::F32Tensor: {
+      auto ptr = reinterpret_cast<const nn::F32Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case Layer::f16Tensor: {
-      auto ptr = reinterpret_cast<const nn::f16Tensor *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case Layer::f32Tensor: {
-      auto ptr = reinterpret_cast<const nn::f32Tensor *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case Layer::f64Tensor: {
-      auto ptr = reinterpret_cast<const nn::f64Tensor *>(obj);
+    case Layer::F64Tensor: {
+      auto ptr = reinterpret_cast<const nn::F64Tensor *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case Layer::CONV_2D: {

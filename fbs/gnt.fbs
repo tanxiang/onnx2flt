@@ -6,53 +6,52 @@ struct versionInfo{
 }
 
 enum DataType:byte { Float16,Float32,Float64, Int8,Int16,Int32,Int64, QuantAsymm, QuantSymm, QuantSymmPerChannel,Unknown}
-enum FuseCode:byte { Relu, Relu1, Relu6 }
+enum FuseCode:byte { None ,Relu, Relu1, Relu6 }
 
 table TensorInfo{
     name:string;
-    data_fuse:FuseCode;
     dim: [ushort];
 }
 
-table rawTensor{
+table RawTensor{
     info:TensorInfo;
     type: DataType;
     data :string;
 }
 
-
-table i8Tensor{
-    info:TensorInfo;
-    data :[byte];
+struct I32Scalar{
+    data:int;
 }
 
-table i16Tensor{
-    info:TensorInfo;
-    data :[short];
+struct U32Scalar{
+    data:uint;
 }
 
+struct F32Scalar{
+    data:float;
+}
 
-table i32Tensor{
+table I32Tensor{
     info:TensorInfo;
     data :[int];
 }
 
-table i64Tensor{
+table U32Tensor{
     info:TensorInfo;
-    data :[long];
+    data :[uint];
 }
 
-table f16Tensor{
+table F16Tensor{
     info:TensorInfo;
     data :[ushort];
 }
 
-table f32Tensor{
+table F32Tensor{
     info:TensorInfo;
     data :[float];
 }
 
-table f64Tensor{
+table F64Tensor{
     info:TensorInfo;
     data :[double];
 }
@@ -136,7 +135,6 @@ table CONV_2D {
     stride:Stride;
     dilation:Dilation;
     group:Group;
-    fuse_code: FuseCode;
 }
 
 table AVERAGE_POOL_2D {
@@ -144,7 +142,6 @@ table AVERAGE_POOL_2D {
     padding: Pads;
     stride:Stride;
     kernel_shape:KernelShape;
-    fuse_code: FuseCode;
 }
 
 
@@ -153,7 +150,6 @@ table MAX_POOL_2D {
     padding: Pads;
     stride:Stride;
     kernel_shape:KernelShape;
-    fuse_code: FuseCode;
 }
 
 table RELU {
@@ -168,22 +164,18 @@ table SOFTMAX {
 table FULLY_CONNECTED {
     link:Link (required);
     bias: float;
-    fuse_code: FuseCode;
 }
 
 table ADD {
     link:Link (required);
-    fuse_code: FuseCode;
 }
 
 table SUB {
     link:Link (required);
-    fuse_code: FuseCode;
 }
 
 table MUL {
     link:Link (required);
-    fuse_code: FuseCode;
 }
 
 table CONCATENATION {
@@ -196,7 +188,6 @@ table DEPTHWISE_CONV_2D {
     padding: Pads;
     stride:Stride;
     depth_multiplier: int;
-    fuse_code: FuseCode;
 }
 
 table BATCH_TO_SPACE_ND {
@@ -300,12 +291,15 @@ table Configure {
     concat:[int];
 }
 
+struct FuseNode{
+    code:FuseCode;
+}
 
 union Layer {
-    InputTensor,rawTensor,
-
-    i8Tensor,i16Tensor,i32Tensor,i64Tensor,f16Tensor,f32Tensor,f64Tensor,
-
+    FuseNode,
+    InputTensor,RawTensor,
+    I32Scalar,U32Scalar,
+    I32Tensor,U32Tensor,F16Tensor,F32Tensor,F64Tensor,
     
 CONV_2D,AVERAGE_POOL_2D,MAX_POOL_2D,RELU,SOFTMAX,FULLY_CONNECTED,
 ADD,CONCATENATION,DEPTHWISE_CONV_2D,BATCH_TO_SPACE_ND,SPACE_TO_BATCH_ND,

@@ -31,7 +31,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
 template <typename NodeTypeBuilder>
 auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flBuilder,
                        flatbuffers::Offset<nn::Link> link,
-                       const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
+                       const onnx::NodeProto &node) {
   NodeTypeBuilder builder{flBuilder};
   if constexpr (requires(NodeTypeBuilder & builder,
                          flatbuffers::Offset<nn::Link> link) {
@@ -154,13 +154,7 @@ auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flBuilder,
     }
     std::cout << nodeID(node) << " attr " << attribute.DebugString();
   }
-  if constexpr (requires(NodeTypeBuilder & builder, nn::FuseCode & fuseCode) {
-                  builder.add_fuse_code(fuseCode);
-                }) {
-    // std::cout << nodes[1]->DebugString();
-    if (fuseCode)
-      builder.add_fuse_code(*fuseCode);
-  }
+
   return builder.Finish();
 }
 
@@ -180,92 +174,90 @@ struct OpToLayerBuilderMap
           std::string,
           std::function<std::pair<nn::Layer, flatbuffers::Offset<void>>(
               flatbuffers::FlatBufferBuilder &, flatbuffers::Offset<nn::Link>,
-              const onnx::NodeProto &, nn::FuseCode *)>> {
+              const onnx::NodeProto &)>> {
   OpToLayerBuilderMap() {
 
     emplace("Clip", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                        flatbuffers::Offset<nn::Link> link,
-                       const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
-      return UnionPair(writeFlNodeFinish<nn::RELUBuilder>(flatbuffers, link,
-                                                          node, fuseCode));
+                       const onnx::NodeProto &node) {
+      return UnionPair(
+          writeFlNodeFinish<nn::RELUBuilder>(flatbuffers, link, node));
     });
 
     emplace("Relu", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                        flatbuffers::Offset<nn::Link> link,
-                       const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
-      return UnionPair(writeFlNodeFinish<nn::RELUBuilder>(flatbuffers, link,
-                                                          node, fuseCode));
+                       const onnx::NodeProto &node) {
+      return UnionPair(
+          writeFlNodeFinish<nn::RELUBuilder>(flatbuffers, link, node));
     });
 
     emplace("Conv", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                        flatbuffers::Offset<nn::Link> link,
-                       const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
-      return UnionPair(writeFlNodeFinish<nn::CONV_2DBuilder>(flatbuffers, link,
-                                                             node, fuseCode));
+                       const onnx::NodeProto &node) {
+      return UnionPair(
+          writeFlNodeFinish<nn::CONV_2DBuilder>(flatbuffers, link, node));
     });
 
     emplace("Concat", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                          flatbuffers::Offset<nn::Link> link,
-                         const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
-      return UnionPair(writeFlNodeFinish<nn::CONCATENATIONBuilder>(
-          flatbuffers, link, node, fuseCode));
+                         const onnx::NodeProto &node) {
+      return UnionPair(
+          writeFlNodeFinish<nn::CONCATENATIONBuilder>(flatbuffers, link, node));
     });
 
     emplace("MaxPool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                           flatbuffers::Offset<nn::Link> link,
-                          const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
-      return UnionPair(writeFlNodeFinish<nn::MAX_POOL_2DBuilder>(
-          flatbuffers, link, node, fuseCode));
+                          const onnx::NodeProto &node) {
+      return UnionPair(
+          writeFlNodeFinish<nn::MAX_POOL_2DBuilder>(flatbuffers, link, node));
     });
 
     emplace("Softmax", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                           flatbuffers::Offset<nn::Link> link,
-                          const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
-      return UnionPair(writeFlNodeFinish<nn::SOFTMAXBuilder>(flatbuffers, link,
-                                                             node, fuseCode));
+                          const onnx::NodeProto &node) {
+      return UnionPair(
+          writeFlNodeFinish<nn::SOFTMAXBuilder>(flatbuffers, link, node));
     });
 
     emplace("Add", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                       flatbuffers::Offset<nn::Link> link,
-                      const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
+                      const onnx::NodeProto &node) {
       return UnionPair(
-          writeFlNodeFinish<nn::ADDBuilder>(flatbuffers, link, node, fuseCode));
+          writeFlNodeFinish<nn::ADDBuilder>(flatbuffers, link, node));
     });
 
-    emplace("GlobalAveragePool",
-            [](flatbuffers::FlatBufferBuilder &flatbuffers,
-               flatbuffers::Offset<nn::Link> link, const onnx::NodeProto &node,
-               nn::FuseCode *fuseCode) {
-              return UnionPair(writeFlNodeFinish<nn::AVERAGE_POOL_2DBuilder>(
-                  flatbuffers, link, node, fuseCode));
-            });
+    emplace("GlobalAveragePool", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                                    flatbuffers::Offset<nn::Link> link,
+                                    const onnx::NodeProto &node) {
+      return UnionPair(writeFlNodeFinish<nn::AVERAGE_POOL_2DBuilder>(
+          flatbuffers, link, node));
+    });
 
     emplace("Unsqueeze", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                             flatbuffers::Offset<nn::Link> link,
-                            const onnx::NodeProto &node,
-                            nn::FuseCode *fuseCode) {
-      return UnionPair(writeFlNodeFinish<nn::RESHAPEBuilder>(flatbuffers, link,
-                                                             node, fuseCode));
+                            const onnx::NodeProto &node) {
+      return UnionPair(
+          writeFlNodeFinish<nn::RESHAPEBuilder>(flatbuffers, link, node));
     });
 
     emplace("Reshape", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                           flatbuffers::Offset<nn::Link> link,
-                          const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
-      return UnionPair(writeFlNodeFinish<nn::RESHAPEBuilder>(flatbuffers, link,
-                                                             node, fuseCode));
+                          const onnx::NodeProto &node) {
+      return UnionPair(
+          writeFlNodeFinish<nn::RESHAPEBuilder>(flatbuffers, link, node));
     });
     emplace("Gather", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                          flatbuffers::Offset<nn::Link> link,
-                         const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
-      return UnionPair(writeFlNodeFinish<nn::GATHERBuilder>(flatbuffers, link,
-                                                            node, fuseCode));
+                         const onnx::NodeProto &node) {
+      return UnionPair(
+          writeFlNodeFinish<nn::GATHERBuilder>(flatbuffers, link, node));
     });
 
     emplace("Gemm", [](flatbuffers::FlatBufferBuilder &flatbuffers,
                        flatbuffers::Offset<nn::Link> link,
-                       const onnx::NodeProto &node, nn::FuseCode *fuseCode) {
+                       const onnx::NodeProto &node) {
       return UnionPair(writeFlNodeFinish<nn::FULLY_CONNECTEDBuilder>(
-          flatbuffers, link, node, fuseCode));
+          flatbuffers, link, node));
     });
   }
 };
@@ -337,13 +329,32 @@ auto fuseSGUC(flatbuffers::FlatBufferBuilder &flatbuffers, mapContext &context,
 
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::set<kLayerData, std::less<>> &nodesData,
+                     mapContext &context, const nn::FuseCode code,
+                     std::map<std::string, int> &symbols) {
+  std::string output = nn::EnumNameFuseCode(code);
+  output += "__helper_node__";
+  if (auto itr = symbols.find(output); itr != symbols.end()) {
+    return itr->second;
+  }
+
+  auto tensorIndex = symbols.size();
+  symbols.emplace(output, tensorIndex);
+  nodesData.emplace(tensorIndex, nn::Layer::FuseNode,
+                    builder.CreateStruct<nn::FuseNode>(code).Union());
+
+  return tensorIndex;
+}
+
+uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+                     std::set<kLayerData, std::less<>> &nodesData,
                      mapContext &context, const onnx::NodeProto &node,
                      std::map<std::string, int> &symbols) {
 
   // builder.
+  static OpToLayerBuilderMap opMap{};
+
   const onnx::NodeProto *nodeP = &node;
-  nn::FuseCode *fuseCodeP{nullptr};
-  nn::FuseCode fuseCode;
+  nn::FuseCode fuseCode = nn::FuseCode::None;
   if (nodeP->op_type() == "Clip") { // relu clip to tensor fuse
     if (nodeP->input_size() != 3) {
       std::cerr << "error: " << nodeP->op_type() << " mult input\n"
@@ -361,8 +372,39 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
       }
     }
     auto nodeItr = context.outputNodeMap.find(nodeP->input()[0]);
-    if (nodeItr != context.outputNodeMap.end()) {
+    static std::set<std::string> fusedOpCode{"Conv"};
+
+    if (nodeItr != context.outputNodeMap.end() &&
+        fusedOpCode.contains(nodeItr->second.op_type())) {
       nodeP = &(nodeItr->second);
+      auto link = nn::CreateLink(
+          builder, builder.CreateVector(
+                       nodeP->input_size() + 1,
+                       std::function<uint32_t(size_t)>{[&](size_t i) {
+                         if (nodeP->input_size() > i)
+                           return writeFlNode(builder, nodesData, context,
+                                              nodeP->input()[i], symbols);
+                         else
+                           return writeFlNode(builder, nodesData, context,
+                                              fuseCode, symbols);
+                       }}));
+      auto tensorIndex = symbols.size();
+      symbols.emplace(node.output()[0], tensorIndex);
+
+      auto opItr = opMap.find(nodeP->op_type());
+      if (opItr != opMap.end()) {
+        auto ftnode = opItr->second(builder, link, *nodeP);
+        nodesData.emplace(tensorIndex, ftnode.first, ftnode.second);
+      } else {
+        std::cerr << "error: " << nodeP->op_type() << " is not support!\n"
+                  << nodeP->DebugString();
+      }
+      std::cout << "node idx:" << tensorIndex << " id " << nodeID(*nodeP)
+                << std::endl;
+      return tensorIndex;
+    } else {
+      std::cerr << "::::::::::::::::::" << nodeID(*nodeP) << " can not fused\n";
+      exit(-1);
     }
   }
 
@@ -412,11 +454,9 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
 
   auto tensorIndex = symbols.size();
   symbols.emplace(node.output()[0], tensorIndex);
-
-  static OpToLayerBuilderMap opMap{};
   auto opItr = opMap.find(nodeP->op_type());
   if (opItr != opMap.end()) {
-    auto ftnode = opItr->second(builder, link, *nodeP, fuseCodeP);
+    auto ftnode = opItr->second(builder, link, *nodeP);
     nodesData.emplace(tensorIndex, ftnode.first, ftnode.second);
   } else {
     std::cerr << "error: " << nodeP->op_type() << " is not support!\n"
@@ -462,7 +502,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                               [&](size_t i) { return tensor.dims(i); }}));
 
   if (tensor.has_raw_data()) {
-    nn::rawTensorBuilder builder{flbuilder};
+    nn::RawTensorBuilder builder{flbuilder};
     builder.add_info(info.Finish());
     builder.add_data(flbuilder.CreateString(tensor.raw_data()));
     builder.add_type(onnxDataTypeTonn(tensor.data_type()));
@@ -472,7 +512,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
     std::cout << tensor.DebugString();
     switch (tensor.data_type()) {
     case onnx::TensorProto_DataType_FLOAT16: {
-      nn::f16TensorBuilder builder{flbuilder};
+      nn::F16TensorBuilder builder{flbuilder};
       builder.add_info(info.Finish());
       builder.add_data(
           flbuilder.CreateVector(tensor.int32_data_size(),
@@ -484,7 +524,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
     } break;
     case onnx::TensorProto_DataType_FLOAT: {
 
-      nn::f32TensorBuilder builder{flbuilder};
+      nn::F32TensorBuilder builder{flbuilder};
       builder.add_info(info.Finish());
       builder.add_data(flbuilder.CreateVector(
           tensor.float_data_size(), std::function<float(size_t)>{[&](size_t i) {
@@ -496,7 +536,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
 
     } break;
     case onnx::TensorProto_DataType_DOUBLE: {
-      nn::f64TensorBuilder builder{flbuilder};
+      nn::F64TensorBuilder builder{flbuilder};
       builder.add_info(info.Finish());
       builder.add_data(
           flbuilder.CreateVector(tensor.double_data_size(),
@@ -506,30 +546,9 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
     } break;
-    case onnx::TensorProto_DataType_INT8: {
-      nn::i8TensorBuilder builder{flbuilder};
-      builder.add_info(info.Finish());
-      builder.add_data(
-          flbuilder.CreateVector(tensor.int32_data_size(),
-                                 std::function<int8_t(size_t)>{[&](size_t i) {
-                                   return tensor.int32_data(i);
-                                 }}));
-      auto flnode = builder.Finish();
-      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-    } break;
-    case onnx::TensorProto_DataType_INT16: {
-      nn::i16TensorBuilder builder{flbuilder};
-      builder.add_info(info.Finish());
-      builder.add_data(
-          flbuilder.CreateVector(tensor.int32_data_size(),
-                                 std::function<int16_t(size_t)>{[&](size_t i) {
-                                   return tensor.int32_data(i);
-                                 }}));
-      auto flnode = builder.Finish();
-      nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-    } break;
+
     case onnx::TensorProto_DataType_INT32: {
-      nn::i32TensorBuilder builder{flbuilder};
+      nn::I32TensorBuilder builder{flbuilder};
       builder.add_info(info.Finish());
       builder.add_data(
           flbuilder.CreateVector(tensor.int32_data_size(),
@@ -539,17 +558,17 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
     } break;
-    case onnx::TensorProto_DataType_INT64: {
-      nn::i64TensorBuilder builder{flbuilder};
+    /*case onnx::TensorProto_DataType_UINT32: {
+      nn::U32TensorBuilder builder{flbuilder};
       builder.add_info(info.Finish());
       builder.add_data(
-          flbuilder.CreateVector(tensor.int64_data_size(),
-                                 std::function<int64_t(size_t)>{[&](size_t i) {
-                                   return tensor.int64_data(i);
+          flbuilder.CreateVector(tensor.uint32_data_size(),
+                                 std::function<uint32_t(size_t)>{[&](size_t i) {
+                                   return tensor.uint32_data(i);
                                  }}));
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
-    } break;
+    } break;*/
     default:
       std::cerr << "onnx::TensorProto_DataType " << tensor.data_type()
                 << " not support\n";
@@ -617,7 +636,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
       nn::CreateInputTensor(flbuilder, TensorShapeHelper(flbuilder, valueInfo));
 
   nodesData.emplace(tensorIndex, UnionType(flNode), flNode.Union());
-    std::cout << "input idx:" << tensorIndex << " id " << valueInfo.name()
+  std::cout << "input idx:" << tensorIndex << " id " << valueInfo.name()
             << std::endl;
   return tensorIndex;
 }
