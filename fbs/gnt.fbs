@@ -296,9 +296,8 @@ struct FuseNode{
 }
 
 union Layer {
-    FuseNode,
     InputTensor,RawTensor,
-    I32Scalar,U32Scalar,
+    I32Scalar,U32Scalar,FuseNode,
     I32Tensor,U32Tensor,F16Tensor,F32Tensor,F64Tensor,
     
 CONV_2D,AVERAGE_POOL_2D,MAX_POOL_2D,RELU,SOFTMAX,FULLY_CONNECTED,

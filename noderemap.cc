@@ -28,6 +28,17 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      mapContext &context, const std::string output,
                      std::map<std::string, int> &symbols);
 
+
+
+template <typename NodeTypeBuilder>
+auto writeFlNodeFinish2(flatbuffers::FlatBufferBuilder &flBuilder,
+                       const onnx::NodeProto &node,const nn::FuseCode code) {
+  NodeTypeBuilder builder{flBuilder};
+
+  return builder.Finish();
+
+}
+
 template <typename NodeTypeBuilder>
 auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flBuilder,
                        flatbuffers::Offset<nn::Link> link,
@@ -168,6 +179,16 @@ inline auto UnionPair(flatbuffers::Offset<Layer> layer) {
   return std::pair<nn::Layer, flatbuffers::Offset<void>>{UnionType(layer),
                                                          layer.Union()};
 }
+
+
+struct OpToFusedLayerBuilderMap
+    : public std::map<
+          std::string,
+          std::function<std::pair<nn::Layer, flatbuffers::Offset<void>>(
+              flatbuffers::FlatBufferBuilder &,const nn::FuseCode code,
+              const onnx::NodeProto &)>> {
+
+              };
 
 struct OpToLayerBuilderMap
     : public std::map<
@@ -327,9 +348,28 @@ auto fuseSGUC(flatbuffers::FlatBufferBuilder &flatbuffers, mapContext &context,
   return builder.Finish();
 }
 
+template<typename ScalaType>
+uint32_t writeFlScalaNode(flatbuffers::FlatBufferBuilder &builder,
+                     std::set<kLayerData, std::less<>> &nodesData,
+                     const ScalaType val,
+                     std::map<std::string, int> &symbols) {
+  std::string output = std::to_string( val.data());
+  output += "__helper_node__";
+  if (auto itr = symbols.find(output); itr != symbols.end()) {
+    return itr->second;
+  }
+
+  auto tensorIndex = symbols.size();
+  symbols.emplace(output, tensorIndex);
+  nodesData.emplace(tensorIndex, nn::Layer::I32Scalar,
+                    builder.CreateStruct<ScalaType>(val).Union());
+
+  return tensorIndex;
+}
+
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::set<kLayerData, std::less<>> &nodesData,
-                     mapContext &context, const nn::FuseCode code,
+                     const nn::FuseCode code,
                      std::map<std::string, int> &symbols) {
   std::string output = nn::EnumNameFuseCode(code);
   output += "__helper_node__";
@@ -385,7 +425,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                            return writeFlNode(builder, nodesData, context,
                                               nodeP->input()[i], symbols);
                          else
-                           return writeFlNode(builder, nodesData, context,
+                           return writeFlNode(builder, nodesData,
                                               fuseCode, symbols);
                        }}));
       auto tensorIndex = symbols.size();
@@ -491,7 +531,7 @@ auto onnxDataTypeTonn(int32_t onnxType) {
 
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                      std::set<kLayerData, std::less<>> &nodesData,
-                     mapContext &context, const onnx::TensorProto &tensor,
+                     const onnx::TensorProto &tensor,
                      std::map<std::string, int> &symbols) {
 
   auto tensorIndex = symbols.size();
@@ -628,7 +668,7 @@ auto TensorShapeHelper(flatbuffers::FlatBufferBuilder &flbuilder,
 
 uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                      std::set<kLayerData, std::less<>> &nodesData,
-                     mapContext &context, const onnx::ValueInfoProto &valueInfo,
+                     const onnx::ValueInfoProto &valueInfo,
                      std::map<std::string, int> &symbols) {
   auto tensorIndex = symbols.size();
   symbols.emplace(valueInfo.name(), tensorIndex);
@@ -656,14 +696,14 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   } else if (auto dataItrByOP = context.tensorMap.find(output);
              dataItrByOP != context.tensorMap.end()) {
     // std::cerr << __func__ << " tensor " << output << std::endl;
-    return writeFlNode(builder, nodesData, context, dataItrByOP->second,
+    return writeFlNode(builder, nodesData,  dataItrByOP->second,
                        symbols);
 
   } else if (auto inpouItrByName = context.graphsInputs.find(output);
              inpouItrByName != context.graphsInputs.end()) {
     // std::cerr << __func__ << " input " << output << " : "
     //           << inpouItrByName->second.name() << std::endl;
-    return writeFlNode(builder, nodesData, context, inpouItrByName->second,
+    return writeFlNode(builder, nodesData,  inpouItrByName->second,
                        symbols);
   }
   throw std::logic_error{"need output not found!"};
