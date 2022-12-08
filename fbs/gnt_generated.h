@@ -315,11 +315,11 @@ bool VerifyDimVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<
 
 enum class Layer : uint8_t {
   NONE = 0,
-  FuseNode = 1,
-  InputTensor = 2,
-  RawTensor = 3,
-  I32Scalar = 4,
-  U32Scalar = 5,
+  InputTensor = 1,
+  RawTensor = 2,
+  I32Scalar = 3,
+  U32Scalar = 4,
+  FuseNode = 5,
   I32Tensor = 6,
   U32Tensor = 7,
   F16Tensor = 8,
@@ -362,11 +362,11 @@ enum class Layer : uint8_t {
 inline const Layer (&EnumValuesLayer())[41] {
   static const Layer values[] = {
     Layer::NONE,
-    Layer::FuseNode,
     Layer::InputTensor,
     Layer::RawTensor,
     Layer::I32Scalar,
     Layer::U32Scalar,
+    Layer::FuseNode,
     Layer::I32Tensor,
     Layer::U32Tensor,
     Layer::F16Tensor,
@@ -409,11 +409,11 @@ inline const Layer (&EnumValuesLayer())[41] {
 inline const char * const *EnumNamesLayer() {
   static const char * const names[42] = {
     "NONE",
-    "FuseNode",
     "InputTensor",
     "RawTensor",
     "I32Scalar",
     "U32Scalar",
+    "FuseNode",
     "I32Tensor",
     "U32Tensor",
     "F16Tensor",
@@ -464,10 +464,6 @@ template<typename T> struct LayerTraits {
   static const Layer enum_value = Layer::NONE;
 };
 
-template<> struct LayerTraits<nn::FuseNode> {
-  static const Layer enum_value = Layer::FuseNode;
-};
-
 template<> struct LayerTraits<nn::InputTensor> {
   static const Layer enum_value = Layer::InputTensor;
 };
@@ -482,6 +478,10 @@ template<> struct LayerTraits<nn::I32Scalar> {
 
 template<> struct LayerTraits<nn::U32Scalar> {
   static const Layer enum_value = Layer::U32Scalar;
+};
+
+template<> struct LayerTraits<nn::FuseNode> {
+  static const Layer enum_value = Layer::FuseNode;
 };
 
 template<> struct LayerTraits<nn::I32Tensor> {
@@ -1808,8 +1808,8 @@ struct Link FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_EXT_OUTPUT = 6,
     VT_NAME = 8
   };
-  const flatbuffers::Vector<uint32_t> *input() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_INPUT);
+  const flatbuffers::Vector<int32_t> *input() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_INPUT);
   }
   const flatbuffers::Vector<uint32_t> *ext_output() const {
     return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_EXT_OUTPUT);
@@ -1833,7 +1833,7 @@ struct LinkBuilder {
   typedef Link Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_input(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> input) {
+  void add_input(flatbuffers::Offset<flatbuffers::Vector<int32_t>> input) {
     fbb_.AddOffset(Link::VT_INPUT, input);
   }
   void add_ext_output(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> ext_output) {
@@ -1856,7 +1856,7 @@ struct LinkBuilder {
 
 inline flatbuffers::Offset<Link> CreateLink(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> input = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> input = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> ext_output = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0) {
   LinkBuilder builder_(_fbb);
@@ -1873,10 +1873,10 @@ struct Link::Traits {
 
 inline flatbuffers::Offset<Link> CreateLinkDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<uint32_t> *input = nullptr,
+    const std::vector<int32_t> *input = nullptr,
     const std::vector<uint32_t> *ext_output = nullptr,
     const char *name = nullptr) {
-  auto input__ = input ? _fbb.CreateVector<uint32_t>(*input) : 0;
+  auto input__ = input ? _fbb.CreateVector<int32_t>(*input) : 0;
   auto ext_output__ = ext_output ? _fbb.CreateVector<uint32_t>(*ext_output) : 0;
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return nn::CreateLink(
@@ -1891,13 +1891,17 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_PADDING = 6,
-    VT_STRIDE = 8,
-    VT_DILATION = 10,
-    VT_GROUP = 12
+    VT_FUSE_NODE = 6,
+    VT_PADDING = 8,
+    VT_STRIDE = 10,
+    VT_DILATION = 12,
+    VT_GROUP = 14
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  int32_t fuse_node() const {
+    return GetField<int32_t>(VT_FUSE_NODE, 0);
   }
   const nn::Pads *padding() const {
     return GetStruct<const nn::Pads *>(VT_PADDING);
@@ -1915,6 +1919,7 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
+           VerifyField<int32_t>(verifier, VT_FUSE_NODE, 4) &&
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<nn::Dilation>(verifier, VT_DILATION, 4) &&
@@ -1929,6 +1934,9 @@ struct CONV_2DBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(CONV_2D::VT_LINK, link);
+  }
+  void add_fuse_node(int32_t fuse_node) {
+    fbb_.AddElement<int32_t>(CONV_2D::VT_FUSE_NODE, fuse_node, 0);
   }
   void add_padding(const nn::Pads *padding) {
     fbb_.AddStruct(CONV_2D::VT_PADDING, padding);
@@ -1957,6 +1965,7 @@ struct CONV_2DBuilder {
 inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
+    int32_t fuse_node = 0,
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::Dilation *dilation = nullptr,
@@ -1966,6 +1975,7 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
   builder_.add_dilation(dilation);
   builder_.add_stride(stride);
   builder_.add_padding(padding);
+  builder_.add_fuse_node(fuse_node);
   builder_.add_link(link);
   return builder_.Finish();
 }
@@ -4053,9 +4063,6 @@ inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer 
     case Layer::NONE: {
       return true;
     }
-    case Layer::FuseNode: {
-      return verifier.VerifyField<nn::FuseNode>(static_cast<const uint8_t *>(obj), 0, 1);
-    }
     case Layer::InputTensor: {
       auto ptr = reinterpret_cast<const nn::InputTensor *>(obj);
       return verifier.VerifyTable(ptr);
@@ -4069,6 +4076,9 @@ inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer 
     }
     case Layer::U32Scalar: {
       return verifier.VerifyField<nn::U32Scalar>(static_cast<const uint8_t *>(obj), 0, 4);
+    }
+    case Layer::FuseNode: {
+      return verifier.VerifyField<nn::FuseNode>(static_cast<const uint8_t *>(obj), 0, 1);
     }
     case Layer::I32Tensor: {
       auto ptr = reinterpret_cast<const nn::I32Tensor *>(obj);

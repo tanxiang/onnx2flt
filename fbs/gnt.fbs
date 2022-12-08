@@ -92,7 +92,7 @@ table LinkOd{
 }
 
 table Link{
-    input: [uint](required);
+    input: [int](required);
     ext_output: [uint];
     name: string;
 }
@@ -131,6 +131,7 @@ struct Group{
 
 table CONV_2D {
     link:Link (required);
+    fuse_node:int;
     padding: Pads;
     stride:Stride;
     dilation:Dilation;

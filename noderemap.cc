@@ -23,21 +23,10 @@ std::string tensorID(const onnx::TensorProto &tensor) {
   return id.str();
 }
 
-uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+int32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::set<kLayerData, std::less<>> &nodesData,
                      mapContext &context, const std::string output,
                      std::map<std::string, int> &symbols);
-
-
-
-template <typename NodeTypeBuilder>
-auto writeFlNodeFinish2(flatbuffers::FlatBufferBuilder &flBuilder,
-                       const onnx::NodeProto &node,const nn::FuseCode code) {
-  NodeTypeBuilder builder{flBuilder};
-
-  return builder.Finish();
-
-}
 
 template <typename NodeTypeBuilder>
 auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flBuilder,
@@ -180,15 +169,248 @@ inline auto UnionPair(flatbuffers::Offset<Layer> layer) {
                                                          layer.Union()};
 }
 
+int32_t writeFlFuseNode(flatbuffers::FlatBufferBuilder &builder,
+                         std::set<kLayerData, std::less<>> &nodesData,
+                         const nn::FuseCode code,
+                         std::map<std::string, int> &symbols) {
+  std::string output = nn::EnumNameFuseCode(code);
+  output += "__helper_node__";
+  if (auto itr = symbols.find(output); itr != symbols.end()) {
+    return itr->second;
+  }
+
+  auto tensorIndex = symbols.size();
+  symbols.emplace(output, tensorIndex);
+  nodesData.emplace(tensorIndex, nn::Layer::FuseNode,
+                    builder.CreateStruct<nn::FuseNode>(code).Union());
+
+  return tensorIndex;
+}
+
+template <typename ScalaType>
+int32_t writeFlScalaNode(flatbuffers::FlatBufferBuilder &builder,
+                         std::set<kLayerData, std::less<>> &nodesData,
+                         const ScalaType val,
+                         std::map<std::string, int> &symbols) {
+  std::string output = std::to_string(val.data());
+  output += "__helper_node__";
+  output += nn::EnumNameLayer(nn::LayerTraits<ScalaType>::enum_value);
+  if (auto itr = symbols.find(output); itr != symbols.end()) {
+    return itr->second;
+  }
+
+  auto tensorIndex = symbols.size();
+  symbols.emplace(output, tensorIndex);
+  nodesData.emplace(tensorIndex, nn::LayerTraits<ScalaType>::enum_value,
+                    builder.CreateStruct<ScalaType>(val).Union());
+
+  return tensorIndex;
+}
+
+template <typename NodeTypeBuilder>
+auto writeFlNodeFinish2(flatbuffers::FlatBufferBuilder &flatbuffers,
+                        mapContext &context, const nn::FuseCode fuseCode,
+                        std::string output, const onnx::NodeProto &node,
+                        std::set<kLayerData, std::less<>> &nodesData,
+                        std::map<std::string, int> &symbols) {
+  NodeTypeBuilder builder{flatbuffers};
+  if constexpr (requires(NodeTypeBuilder & builder,
+                         flatbuffers::Offset<nn::Link> link) {
+                  builder.add_link(link);
+                }) {
+    builder.add_link(nn::CreateLink(
+        flatbuffers,
+        flatbuffers.CreateVector(
+            node.input_size(), std::function<int32_t(size_t)>{[&](size_t i) {
+              return writeFlNode(flatbuffers, nodesData, context,
+                                 node.input()[i], symbols);
+            }})));
+  }
+
+  if constexpr (requires(NodeTypeBuilder & builder, int32_t fuseNode) {
+                  builder.add_fuse_node(fuseNode);
+                }) {
+                    builder.add_fuse_node(writeFlFuseNode(flatbuffers, nodesData,fuseCode,symbols));
+  }
+
+  for (const auto &attribute : node.attribute()) {
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Pads & pads) {
+                    builder.add_padding(&pads);
+                  }) {
+      if (attribute.name() == "pads" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 4) {
+        nn::Pads pads{
+            writeFlScalaNode(
+                flatbuffers, nodesData,
+                nn::I32Scalar{static_cast<int32_t>(attribute.ints()[0])},
+                symbols),
+            writeFlScalaNode(
+                flatbuffers, nodesData,
+                nn::I32Scalar{static_cast<int32_t>(attribute.ints()[1])},
+                symbols),
+            writeFlScalaNode(
+                flatbuffers, nodesData,
+                nn::I32Scalar{static_cast<int32_t>(attribute.ints()[2])},
+                symbols),
+            writeFlScalaNode(
+                flatbuffers, nodesData,
+                nn::I32Scalar{static_cast<int32_t>(attribute.ints()[3])},
+                symbols),
+        };
+        builder.add_padding(&pads);
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Stride & strides) {
+                    builder.add_stride(&strides);
+                  }) {
+      if (attribute.name() == "strides" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 2) {
+        nn::Stride strides{
+            writeFlScalaNode(
+                flatbuffers, nodesData,
+                nn::I32Scalar{static_cast<int32_t>(attribute.ints()[0])},
+                symbols),
+            writeFlScalaNode(
+                flatbuffers, nodesData,
+                nn::I32Scalar{static_cast<int32_t>(attribute.ints()[1])},
+                symbols),
+        };
+        builder.add_stride(&strides);
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Group & group) {
+                    builder.add_group(&group);
+                  }) {
+      if (attribute.name() == "group" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+        nn::Group group{
+            writeFlScalaNode(flatbuffers, nodesData,
+                             nn::I32Scalar{static_cast<int32_t>(attribute.i())},
+                             symbols),
+        };
+        builder.add_group(&group);
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, nn::Dilation & dilation) {
+                    builder.add_dilation(&dilation);
+                  }) {
+      if (attribute.name() == "dilations" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+          attribute.ints().size() == 2) {
+        nn::Dilation dilation{
+            writeFlScalaNode(
+                flatbuffers, nodesData,
+                nn::I32Scalar{static_cast<int32_t>(attribute.ints()[0])},
+                symbols),
+            writeFlScalaNode(
+                flatbuffers, nodesData,
+                nn::I32Scalar{static_cast<int32_t>(attribute.ints()[1])},
+                symbols),
+        };
+        builder.add_dilation(&dilation);
+        continue;
+      }
+    }
+    if constexpr (requires(
+                      NodeTypeBuilder & builder,
+                      flatbuffers::Offset<flatbuffers::Vector<int32_t>> axes) {
+                    builder.add_axes(axes);
+                  }) {
+      if (attribute.name() == "axes" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INTS) {
+        std::vector<int32_t> axesv(attribute.ints().begin(),
+                                   attribute.ints().end());
+        builder.add_axes(builder.fbb_.CreateVector(
+            attribute.ints().size(),
+            std::function<int32_t(size_t i)>{[&](size_t i) {
+              return writeFlScalaNode(
+                  flatbuffers, nodesData,
+                  nn::I32Scalar{static_cast<int32_t>(attribute.ints()[i])},
+                  symbols);
+            }}));
+        continue;
+      }
+    }
+
+    if constexpr (requires(NodeTypeBuilder & builder, int32_t & axis) {
+                    builder.add_axis(axis);
+                  }) {
+      if (attribute.name() == "axis" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+
+        builder.add_axis(writeFlScalaNode(
+            flatbuffers, nodesData,
+            nn::I32Scalar{static_cast<int32_t>(attribute.i())}, symbols));
+        continue;
+      }
+    }
+
+    if constexpr (std::same_as<NodeTypeBuilder, nn::FULLY_CONNECTEDBuilder>) {
+      if (attribute.name() == "alpha" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT &&
+          attribute.f() == 1.f) {
+
+        // builder.add_bias(attribute.f());
+        continue;
+      }
+      if (attribute.name() == "beta" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_FLOAT &&
+          attribute.f() == 1.f) {
+
+        // builder.add_bias(attribute.f());
+        continue;
+      }
+      if (attribute.name() == "transB" &&
+          attribute.type() == onnx::AttributeProto_AttributeType_INT) {
+
+        // builder.add_bias(attribute.f());
+        continue;
+      }
+    }
+
+    if (attribute.name() == "kernel_shape") {
+      continue;
+    }
+    std::cout << nodeID(node) << " attr " << attribute.DebugString();
+  }
+
+  auto flNode = builder.Finish();
+
+  auto tensorIndex = symbols.size();
+  symbols.emplace(output, tensorIndex);
+  nodesData.emplace(tensorIndex,UnionType(flNode),flNode.Union());
+  return tensorIndex; // builder.Finish();
+}
 
 struct OpToFusedLayerBuilderMap
-    : public std::map<
-          std::string,
-          std::function<std::pair<nn::Layer, flatbuffers::Offset<void>>(
-              flatbuffers::FlatBufferBuilder &,const nn::FuseCode code,
-              const onnx::NodeProto &)>> {
+    : public std::map<std::string,
+                      std::function<int(flatbuffers::FlatBufferBuilder &,
+                                        mapContext &, const nn::FuseCode,
+                                        std::string, const onnx::NodeProto &,
+                                        std::set<kLayerData, std::less<>> &,
+                                        std::map<std::string, int> &symbols)>> {
 
-              };
+  OpToFusedLayerBuilderMap() {
+
+    emplace("Conv", [](flatbuffers::FlatBufferBuilder &flatbuffers,
+                       mapContext &context, const nn::FuseCode fuseCode,
+                       std::string output, const onnx::NodeProto &node,
+                       std::set<kLayerData, std::less<>> &nodesData,
+                       std::map<std::string, int> &symbols) {
+      return writeFlNodeFinish2<nn::CONV_2DBuilder>(
+          flatbuffers, context, fuseCode, output, node, nodesData, symbols);
+    });
+  }
+};
 
 struct OpToLayerBuilderMap
     : public std::map<
@@ -348,44 +570,7 @@ auto fuseSGUC(flatbuffers::FlatBufferBuilder &flatbuffers, mapContext &context,
   return builder.Finish();
 }
 
-template<typename ScalaType>
-uint32_t writeFlScalaNode(flatbuffers::FlatBufferBuilder &builder,
-                     std::set<kLayerData, std::less<>> &nodesData,
-                     const ScalaType val,
-                     std::map<std::string, int> &symbols) {
-  std::string output = std::to_string( val.data());
-  output += "__helper_node__";
-  if (auto itr = symbols.find(output); itr != symbols.end()) {
-    return itr->second;
-  }
-
-  auto tensorIndex = symbols.size();
-  symbols.emplace(output, tensorIndex);
-  nodesData.emplace(tensorIndex, nn::Layer::I32Scalar,
-                    builder.CreateStruct<ScalaType>(val).Union());
-
-  return tensorIndex;
-}
-
-uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
-                     std::set<kLayerData, std::less<>> &nodesData,
-                     const nn::FuseCode code,
-                     std::map<std::string, int> &symbols) {
-  std::string output = nn::EnumNameFuseCode(code);
-  output += "__helper_node__";
-  if (auto itr = symbols.find(output); itr != symbols.end()) {
-    return itr->second;
-  }
-
-  auto tensorIndex = symbols.size();
-  symbols.emplace(output, tensorIndex);
-  nodesData.emplace(tensorIndex, nn::Layer::FuseNode,
-                    builder.CreateStruct<nn::FuseNode>(code).Union());
-
-  return tensorIndex;
-}
-
-uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+int32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::set<kLayerData, std::less<>> &nodesData,
                      mapContext &context, const onnx::NodeProto &node,
                      std::map<std::string, int> &symbols) {
@@ -393,6 +578,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   // builder.
   static OpToLayerBuilderMap opMap{};
 
+  static OpToFusedLayerBuilderMap opMapBuilder;
   const onnx::NodeProto *nodeP = &node;
   nn::FuseCode fuseCode = nn::FuseCode::None;
   if (nodeP->op_type() == "Clip") { // relu clip to tensor fuse
@@ -420,13 +606,13 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
       auto link = nn::CreateLink(
           builder, builder.CreateVector(
                        nodeP->input_size() + 1,
-                       std::function<uint32_t(size_t)>{[&](size_t i) {
+                       std::function<int32_t(size_t)>{[&](size_t i) {
                          if (nodeP->input_size() > i)
                            return writeFlNode(builder, nodesData, context,
                                               nodeP->input()[i], symbols);
                          else
-                           return writeFlNode(builder, nodesData,
-                                              fuseCode, symbols);
+                           return writeFlFuseNode(builder, nodesData, fuseCode,
+                                                  symbols);
                        }}));
       auto tensorIndex = symbols.size();
       symbols.emplace(node.output()[0], tensorIndex);
@@ -465,7 +651,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
           auto link = nn::CreateLink(
               builder, builder.CreateVector(
                            nodeShape.input_size(),
-                           std::function<uint32_t(size_t)>{[&](size_t i) {
+                           std::function<int32_t(size_t)>{[&](size_t i) {
                              return writeFlNode(builder, nodesData, context,
                                                 nodeShape.input()[i], symbols);
                            }}));
@@ -487,7 +673,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   auto link = nn::CreateLink(
       builder,
       builder.CreateVector(nodeP->input_size(),
-                           std::function<uint32_t(size_t)>{[&](size_t i) {
+                           std::function<int32_t(size_t)>{[&](size_t i) {
                              return writeFlNode(builder, nodesData, context,
                                                 nodeP->input()[i], symbols);
                            }}));
@@ -529,7 +715,7 @@ auto onnxDataTypeTonn(int32_t onnxType) {
   }
 }
 
-uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
+int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                      std::set<kLayerData, std::less<>> &nodesData,
                      const onnx::TensorProto &tensor,
                      std::map<std::string, int> &symbols) {
@@ -666,7 +852,7 @@ auto TensorShapeHelper(flatbuffers::FlatBufferBuilder &flbuilder,
   return builder.Finish();
 }
 
-uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
+int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                      std::set<kLayerData, std::less<>> &nodesData,
                      const onnx::ValueInfoProto &valueInfo,
                      std::map<std::string, int> &symbols) {
@@ -681,7 +867,7 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
   return tensorIndex;
 }
 
-uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
+int32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
                      std::set<kLayerData, std::less<>> &nodesData,
                      mapContext &context, const std::string output,
                      std::map<std::string, int> &symbols) {
@@ -696,15 +882,13 @@ uint32_t writeFlNode(flatbuffers::FlatBufferBuilder &builder,
   } else if (auto dataItrByOP = context.tensorMap.find(output);
              dataItrByOP != context.tensorMap.end()) {
     // std::cerr << __func__ << " tensor " << output << std::endl;
-    return writeFlNode(builder, nodesData,  dataItrByOP->second,
-                       symbols);
+    return writeFlNode(builder, nodesData, dataItrByOP->second, symbols);
 
   } else if (auto inpouItrByName = context.graphsInputs.find(output);
              inpouItrByName != context.graphsInputs.end()) {
     // std::cerr << __func__ << " input " << output << " : "
     //           << inpouItrByName->second.name() << std::endl;
-    return writeFlNode(builder, nodesData,  inpouItrByName->second,
-                       symbols);
+    return writeFlNode(builder, nodesData, inpouItrByName->second, symbols);
   }
   throw std::logic_error{"need output not found!"};
 }
