@@ -93,7 +93,7 @@ table LinkOd{
 
 table Link{
     input: [int](required);
-    ext_output: [uint];
+    ext_output: [int];
     name: string;
 }
 
@@ -140,6 +140,7 @@ table CONV_2D {
 
 table AVERAGE_POOL_2D {
     link:Link (required);
+    fuse_node:int;
     padding: Pads;
     stride:Stride;
     kernel_shape:KernelShape;
@@ -148,6 +149,7 @@ table AVERAGE_POOL_2D {
 
 table MAX_POOL_2D {
     link:Link (required);
+    fuse_node:int;
     padding: Pads;
     stride:Stride;
     kernel_shape:KernelShape;
@@ -164,15 +166,18 @@ table SOFTMAX {
 
 table FULLY_CONNECTED {
     link:Link (required);
+    fuse_node:int;
     bias: float;
 }
 
 table ADD {
     link:Link (required);
+    fuse_node:int;
 }
 
 table SUB {
     link:Link (required);
+    fuse_node:int;
 }
 
 table MUL {
@@ -274,7 +279,7 @@ table EXP {
 
 table GATHER {
     link:Link (required);
-        axis: int;
+    axis: int;
 }
 
 table RESHAPE {

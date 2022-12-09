@@ -1811,8 +1811,8 @@ struct Link FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<int32_t> *input() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_INPUT);
   }
-  const flatbuffers::Vector<uint32_t> *ext_output() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_EXT_OUTPUT);
+  const flatbuffers::Vector<int32_t> *ext_output() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_EXT_OUTPUT);
   }
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -1836,7 +1836,7 @@ struct LinkBuilder {
   void add_input(flatbuffers::Offset<flatbuffers::Vector<int32_t>> input) {
     fbb_.AddOffset(Link::VT_INPUT, input);
   }
-  void add_ext_output(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> ext_output) {
+  void add_ext_output(flatbuffers::Offset<flatbuffers::Vector<int32_t>> ext_output) {
     fbb_.AddOffset(Link::VT_EXT_OUTPUT, ext_output);
   }
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
@@ -1857,7 +1857,7 @@ struct LinkBuilder {
 inline flatbuffers::Offset<Link> CreateLink(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> input = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> ext_output = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> ext_output = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0) {
   LinkBuilder builder_(_fbb);
   builder_.add_name(name);
@@ -1874,10 +1874,10 @@ struct Link::Traits {
 inline flatbuffers::Offset<Link> CreateLinkDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<int32_t> *input = nullptr,
-    const std::vector<uint32_t> *ext_output = nullptr,
+    const std::vector<int32_t> *ext_output = nullptr,
     const char *name = nullptr) {
   auto input__ = input ? _fbb.CreateVector<int32_t>(*input) : 0;
-  auto ext_output__ = ext_output ? _fbb.CreateVector<uint32_t>(*ext_output) : 0;
+  auto ext_output__ = ext_output ? _fbb.CreateVector<int32_t>(*ext_output) : 0;
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return nn::CreateLink(
       _fbb,
@@ -1990,12 +1990,16 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_PADDING = 6,
-    VT_STRIDE = 8,
-    VT_KERNEL_SHAPE = 10
+    VT_FUSE_NODE = 6,
+    VT_PADDING = 8,
+    VT_STRIDE = 10,
+    VT_KERNEL_SHAPE = 12
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  int32_t fuse_node() const {
+    return GetField<int32_t>(VT_FUSE_NODE, 0);
   }
   const nn::Pads *padding() const {
     return GetStruct<const nn::Pads *>(VT_PADDING);
@@ -2010,6 +2014,7 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
+           VerifyField<int32_t>(verifier, VT_FUSE_NODE, 4) &&
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<nn::KernelShape>(verifier, VT_KERNEL_SHAPE, 4) &&
@@ -2023,6 +2028,9 @@ struct AVERAGE_POOL_2DBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(AVERAGE_POOL_2D::VT_LINK, link);
+  }
+  void add_fuse_node(int32_t fuse_node) {
+    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_FUSE_NODE, fuse_node, 0);
   }
   void add_padding(const nn::Pads *padding) {
     fbb_.AddStruct(AVERAGE_POOL_2D::VT_PADDING, padding);
@@ -2048,6 +2056,7 @@ struct AVERAGE_POOL_2DBuilder {
 inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
+    int32_t fuse_node = 0,
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::KernelShape *kernel_shape = nullptr) {
@@ -2055,6 +2064,7 @@ inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
   builder_.add_kernel_shape(kernel_shape);
   builder_.add_stride(stride);
   builder_.add_padding(padding);
+  builder_.add_fuse_node(fuse_node);
   builder_.add_link(link);
   return builder_.Finish();
 }
@@ -2069,12 +2079,16 @@ struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_PADDING = 6,
-    VT_STRIDE = 8,
-    VT_KERNEL_SHAPE = 10
+    VT_FUSE_NODE = 6,
+    VT_PADDING = 8,
+    VT_STRIDE = 10,
+    VT_KERNEL_SHAPE = 12
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  int32_t fuse_node() const {
+    return GetField<int32_t>(VT_FUSE_NODE, 0);
   }
   const nn::Pads *padding() const {
     return GetStruct<const nn::Pads *>(VT_PADDING);
@@ -2089,6 +2103,7 @@ struct MAX_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
+           VerifyField<int32_t>(verifier, VT_FUSE_NODE, 4) &&
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<nn::KernelShape>(verifier, VT_KERNEL_SHAPE, 4) &&
@@ -2102,6 +2117,9 @@ struct MAX_POOL_2DBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(MAX_POOL_2D::VT_LINK, link);
+  }
+  void add_fuse_node(int32_t fuse_node) {
+    fbb_.AddElement<int32_t>(MAX_POOL_2D::VT_FUSE_NODE, fuse_node, 0);
   }
   void add_padding(const nn::Pads *padding) {
     fbb_.AddStruct(MAX_POOL_2D::VT_PADDING, padding);
@@ -2127,6 +2145,7 @@ struct MAX_POOL_2DBuilder {
 inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2D(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
+    int32_t fuse_node = 0,
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::KernelShape *kernel_shape = nullptr) {
@@ -2134,6 +2153,7 @@ inline flatbuffers::Offset<MAX_POOL_2D> CreateMAX_POOL_2D(
   builder_.add_kernel_shape(kernel_shape);
   builder_.add_stride(stride);
   builder_.add_padding(padding);
+  builder_.add_fuse_node(fuse_node);
   builder_.add_link(link);
   return builder_.Finish();
 }
@@ -2256,10 +2276,14 @@ struct FULLY_CONNECTED FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LINK = 4,
-    VT_BIAS = 6
+    VT_FUSE_NODE = 6,
+    VT_BIAS = 8
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  int32_t fuse_node() const {
+    return GetField<int32_t>(VT_FUSE_NODE, 0);
   }
   float bias() const {
     return GetField<float>(VT_BIAS, 0.0f);
@@ -2268,6 +2292,7 @@ struct FULLY_CONNECTED FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
+           VerifyField<int32_t>(verifier, VT_FUSE_NODE, 4) &&
            VerifyField<float>(verifier, VT_BIAS, 4) &&
            verifier.EndTable();
   }
@@ -2279,6 +2304,9 @@ struct FULLY_CONNECTEDBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(FULLY_CONNECTED::VT_LINK, link);
+  }
+  void add_fuse_node(int32_t fuse_node) {
+    fbb_.AddElement<int32_t>(FULLY_CONNECTED::VT_FUSE_NODE, fuse_node, 0);
   }
   void add_bias(float bias) {
     fbb_.AddElement<float>(FULLY_CONNECTED::VT_BIAS, bias, 0.0f);
@@ -2298,9 +2326,11 @@ struct FULLY_CONNECTEDBuilder {
 inline flatbuffers::Offset<FULLY_CONNECTED> CreateFULLY_CONNECTED(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::Link> link = 0,
+    int32_t fuse_node = 0,
     float bias = 0.0f) {
   FULLY_CONNECTEDBuilder builder_(_fbb);
   builder_.add_bias(bias);
+  builder_.add_fuse_node(fuse_node);
   builder_.add_link(link);
   return builder_.Finish();
 }
@@ -2314,15 +2344,20 @@ struct ADD FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ADDBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_LINK = 4
+    VT_LINK = 4,
+    VT_FUSE_NODE = 6
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  int32_t fuse_node() const {
+    return GetField<int32_t>(VT_FUSE_NODE, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
+           VerifyField<int32_t>(verifier, VT_FUSE_NODE, 4) &&
            verifier.EndTable();
   }
 };
@@ -2333,6 +2368,9 @@ struct ADDBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(ADD::VT_LINK, link);
+  }
+  void add_fuse_node(int32_t fuse_node) {
+    fbb_.AddElement<int32_t>(ADD::VT_FUSE_NODE, fuse_node, 0);
   }
   explicit ADDBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2348,8 +2386,10 @@ struct ADDBuilder {
 
 inline flatbuffers::Offset<ADD> CreateADD(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0) {
+    flatbuffers::Offset<nn::Link> link = 0,
+    int32_t fuse_node = 0) {
   ADDBuilder builder_(_fbb);
+  builder_.add_fuse_node(fuse_node);
   builder_.add_link(link);
   return builder_.Finish();
 }
@@ -2363,15 +2403,20 @@ struct SUB FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SUBBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_LINK = 4
+    VT_LINK = 4,
+    VT_FUSE_NODE = 6
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
+  }
+  int32_t fuse_node() const {
+    return GetField<int32_t>(VT_FUSE_NODE, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
            verifier.VerifyTable(link()) &&
+           VerifyField<int32_t>(verifier, VT_FUSE_NODE, 4) &&
            verifier.EndTable();
   }
 };
@@ -2382,6 +2427,9 @@ struct SUBBuilder {
   flatbuffers::uoffset_t start_;
   void add_link(flatbuffers::Offset<nn::Link> link) {
     fbb_.AddOffset(SUB::VT_LINK, link);
+  }
+  void add_fuse_node(int32_t fuse_node) {
+    fbb_.AddElement<int32_t>(SUB::VT_FUSE_NODE, fuse_node, 0);
   }
   explicit SUBBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2397,8 +2445,10 @@ struct SUBBuilder {
 
 inline flatbuffers::Offset<SUB> CreateSUB(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<nn::Link> link = 0) {
+    flatbuffers::Offset<nn::Link> link = 0,
+    int32_t fuse_node = 0) {
   SUBBuilder builder_(_fbb);
+  builder_.add_fuse_node(fuse_node);
   builder_.add_link(link);
   return builder_.Finish();
 }
