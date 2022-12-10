@@ -766,36 +766,38 @@ int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
   info.add_dim(flbuilder.CreateVector(
       tensor.dims_size(), std::function<uint16_t(size_t)>{
                               [&](size_t i) { return tensor.dims(i); }}));
+  info.add_name(0);
 
   if (tensor.has_raw_data()) {
     nn::RawTensorBuilder builder{flbuilder};
-    builder.add_info(info.Finish());
-    builder.add_data(flbuilder.CreateString(tensor.raw_data()));
-    builder.add_type(onnxDataTypeTonn(tensor.data_type()));
-    auto flnode = builder.Finish();
+
+    auto flnode = nn::CreateRawTensor(
+        flbuilder, info.Finish(), onnxDataTypeTonn(tensor.data_type()),
+        flbuilder.CreateString(tensor.raw_data()));
     nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
   } else {
     std::cout << tensor.DebugString();
     switch (tensor.data_type()) {
     case onnx::TensorProto_DataType_FLOAT16: {
       nn::F16TensorBuilder builder{flbuilder};
-      builder.add_info(info.Finish());
       builder.add_data(
           flbuilder.CreateVector(tensor.int32_data_size(),
                                  std::function<uint16_t(size_t)>{[&](size_t i) {
                                    return tensor.int32_data(i);
                                  }}));
+      builder.add_info(info.Finish());
+
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
     } break;
     case onnx::TensorProto_DataType_FLOAT: {
 
       nn::F32TensorBuilder builder{flbuilder};
-      builder.add_info(info.Finish());
       builder.add_data(flbuilder.CreateVector(
           tensor.float_data_size(), std::function<float(size_t)>{[&](size_t i) {
             return tensor.float_data(i);
           }}));
+      builder.add_info(info.Finish());
 
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
@@ -803,24 +805,26 @@ int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
     } break;
     case onnx::TensorProto_DataType_DOUBLE: {
       nn::F64TensorBuilder builder{flbuilder};
-      builder.add_info(info.Finish());
       builder.add_data(
           flbuilder.CreateVector(tensor.double_data_size(),
                                  std::function<double(size_t)>{[&](size_t i) {
                                    return tensor.double_data(i);
                                  }}));
+                                       builder.add_info(info.Finish());
+
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
     } break;
 
     case onnx::TensorProto_DataType_INT32: {
       nn::I32TensorBuilder builder{flbuilder};
-      builder.add_info(info.Finish());
       builder.add_data(
           flbuilder.CreateVector(tensor.int32_data_size(),
                                  std::function<int32_t(size_t)>{[&](size_t i) {
                                    return tensor.int32_data(i);
                                  }}));
+                                       builder.add_info(info.Finish());
+
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
     } break;
@@ -851,22 +855,6 @@ int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
 auto TensorShapeHelper(flatbuffers::FlatBufferBuilder &flbuilder,
                        const onnx::ValueInfoProto &valueInfo) {
   nn::TensorShapeBuilder builder{flbuilder};
-
-  builder.add_type(
-      onnxDataTypeTonn(valueInfo.type().tensor_type().elem_type()));
-
-  builder.add_dims_type(flbuilder.CreateVector(
-      valueInfo.type().tensor_type().shape().dim_size(),
-      std::function<nn::Dim(size_t)>{[&](size_t i) {
-        switch (valueInfo.type().tensor_type().shape().dim(i).value_case()) {
-        case onnx::TensorShapeProto_Dimension::ValueCase::kDimParam:
-          return nn::Dim::DimParam;
-        case onnx::TensorShapeProto_Dimension::ValueCase::kDimValue:
-          return nn::Dim::DimValue;
-        default:
-          return nn::Dim::NONE;
-        }
-      }}));
   builder.add_dims(flbuilder.CreateVector(
       valueInfo.type().tensor_type().shape().dim_size(),
       std::function<flatbuffers::Offset<void>(size_t)>{[&](size_t i) {
@@ -888,6 +876,24 @@ auto TensorShapeHelper(flatbuffers::FlatBufferBuilder &flbuilder,
           return flbuilder.CreateStruct<nn::DimValue>(-1).Union();
         }
       }}));
+
+  builder.add_dims_type(flbuilder.CreateVector(
+      valueInfo.type().tensor_type().shape().dim_size(),
+      std::function<nn::Dim(size_t)>{[&](size_t i) {
+        switch (valueInfo.type().tensor_type().shape().dim(i).value_case()) {
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimParam:
+          // std::cerr << "DimParam\n";
+          return nn::Dim::DimParam;
+        case onnx::TensorShapeProto_Dimension::ValueCase::kDimValue:
+          // std::cerr << "DimValue\n";
+          return nn::Dim::DimValue;
+        default:
+          return nn::Dim::NONE;
+        }
+      }}));
+
+  builder.add_type(
+      onnxDataTypeTonn(valueInfo.type().tensor_type().elem_type()));
 
   return builder.Finish();
 }
