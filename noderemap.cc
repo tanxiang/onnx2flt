@@ -762,20 +762,31 @@ int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
 
   auto tensorIndex = symbols.size();
   symbols.emplace(tensor.name(), tensorIndex);
-  nn::TensorInfoBuilder info{flbuilder};
-  info.add_dim(flbuilder.CreateVector(
-      tensor.dims_size(), std::function<uint16_t(size_t)>{
-                              [&](size_t i) { return tensor.dims(i); }}));
-  info.add_name(0);
 
   if (tensor.has_raw_data()) {
     nn::RawTensorBuilder builder{flbuilder};
-
     auto flnode = nn::CreateRawTensor(
-        flbuilder, info.Finish(), onnxDataTypeTonn(tensor.data_type()),
-        flbuilder.CreateString(tensor.raw_data()));
+        flbuilder,
+        nn::CreateTensorInfo(flbuilder, 0,
+                             flbuilder.CreateVector(
+                                 tensor.dims_size(),
+                                 std::function<uint16_t(size_t)>{[&](size_t i) {
+                                   return tensor.dims(i);
+                                 }})),
+        onnxDataTypeTonn(tensor.data_type()),
+        flbuilder.CreateVector(tensor.raw_data().size(),
+                               std::function<int8_t(size_t)>{[&](size_t i) {
+                                 return tensor.raw_data()[i];
+                               }}));
+
     nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
   } else {
+
+    nn::TensorInfoBuilder info{flbuilder};
+    info.add_dim(flbuilder.CreateVector(
+        tensor.dims_size(), std::function<uint16_t(size_t)>{
+                                [&](size_t i) { return tensor.dims(i); }}));
+    info.add_name(0);
     std::cout << tensor.DebugString();
     switch (tensor.data_type()) {
     case onnx::TensorProto_DataType_FLOAT16: {
@@ -810,7 +821,7 @@ int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                                  std::function<double(size_t)>{[&](size_t i) {
                                    return tensor.double_data(i);
                                  }}));
-                                       builder.add_info(info.Finish());
+      builder.add_info(info.Finish());
 
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());
@@ -823,7 +834,7 @@ int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
                                  std::function<int32_t(size_t)>{[&](size_t i) {
                                    return tensor.int32_data(i);
                                  }}));
-                                       builder.add_info(info.Finish());
+      builder.add_info(info.Finish());
 
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());

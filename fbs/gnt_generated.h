@@ -996,8 +996,8 @@ struct RawTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   nn::DataType type() const {
     return static_cast<nn::DataType>(GetField<int8_t>(VT_TYPE, 0));
   }
-  const flatbuffers::String *data() const {
-    return GetPointer<const flatbuffers::String *>(VT_DATA);
+  const flatbuffers::Vector<int8_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<int8_t> *>(VT_DATA);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1005,7 +1005,7 @@ struct RawTensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyTable(info()) &&
            VerifyField<int8_t>(verifier, VT_TYPE, 1) &&
            VerifyOffset(verifier, VT_DATA) &&
-           verifier.VerifyString(data()) &&
+           verifier.VerifyVector(data()) &&
            verifier.EndTable();
   }
 };
@@ -1020,7 +1020,7 @@ struct RawTensorBuilder {
   void add_type(nn::DataType type) {
     fbb_.AddElement<int8_t>(RawTensor::VT_TYPE, static_cast<int8_t>(type), 0);
   }
-  void add_data(flatbuffers::Offset<flatbuffers::String> data) {
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<int8_t>> data) {
     fbb_.AddOffset(RawTensor::VT_DATA, data);
   }
   explicit RawTensorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -1038,7 +1038,7 @@ inline flatbuffers::Offset<RawTensor> CreateRawTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     nn::DataType type = nn::DataType::Float16,
-    flatbuffers::Offset<flatbuffers::String> data = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<int8_t>> data = 0) {
   RawTensorBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_info(info);
@@ -1055,8 +1055,8 @@ inline flatbuffers::Offset<RawTensor> CreateRawTensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<nn::TensorInfo> info = 0,
     nn::DataType type = nn::DataType::Float16,
-    const char *data = nullptr) {
-  auto data__ = data ? _fbb.CreateString(data) : 0;
+    const std::vector<int8_t> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<int8_t>(*data) : 0;
   return nn::CreateRawTensor(
       _fbb,
       info,

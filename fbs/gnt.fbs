@@ -16,7 +16,7 @@ table TensorInfo{
 table RawTensor{
     info:TensorInfo;
     type: DataType;
-    data :string;
+    data :[byte];
 }
 
 struct I32Scalar{
