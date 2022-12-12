@@ -764,7 +764,6 @@ int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
   symbols.emplace(tensor.name(), tensorIndex);
 
   if (tensor.has_raw_data()) {
-    nn::RawTensorBuilder builder{flbuilder};
     auto flnode = nn::CreateRawTensor(
         flbuilder,
         nn::CreateTensorInfo(flbuilder, 0,

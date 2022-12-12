@@ -116,7 +116,13 @@ int main(int argc, char *argv[]) {
       outputfile.write(reinterpret_cast<char *>(flatbuffers.GetBufferPointer()),
                        flatbuffers.GetSize());
     }
+    //flatbuffers::Verifier verifier{flatbuffers.GetBufferPointer(),
+    //                   flatbuffers.GetSize()};
+    //if(  nn::VerifyGraphBuffer(verifier)){
+    //}
+
   }
+
 
   return 0;
 }
