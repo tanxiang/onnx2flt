@@ -23,6 +23,8 @@ struct TensorInfoBuilder;
 struct RawTensor;
 struct RawTensorBuilder;
 
+struct BoolScalar;
+
 struct I32Scalar;
 
 struct U32Scalar;
@@ -317,53 +319,55 @@ enum class Layer : uint8_t {
   NONE = 0,
   InputTensor = 1,
   RawTensor = 2,
-  I32Scalar = 3,
-  U32Scalar = 4,
-  FuseNode = 5,
-  I32Tensor = 6,
-  U32Tensor = 7,
-  F16Tensor = 8,
-  F32Tensor = 9,
-  F64Tensor = 10,
-  CONV_2D = 11,
-  AVERAGE_POOL_2D = 12,
-  MAX_POOL_2D = 13,
-  RELU = 14,
-  SOFTMAX = 15,
-  FULLY_CONNECTED = 16,
-  ADD = 17,
-  CONCATENATION = 18,
-  DEPTHWISE_CONV_2D = 19,
-  BATCH_TO_SPACE_ND = 20,
-  SPACE_TO_BATCH_ND = 21,
-  STRIDED_SLICE = 22,
-  MUL = 23,
-  DEQUANTIZE = 24,
-  LOCAL_RESPONSE_NORMALIZATION = 25,
-  TANH = 26,
-  FLOOR = 27,
-  LOGISTIC = 28,
-  PRELU = 29,
-  POW = 30,
-  NEG = 31,
-  MINIMUM = 32,
-  MAXIMUM = 33,
-  LOG = 34,
-  ABS = 35,
-  EXP = 36,
-  SUB = 37,
-  GATHER = 38,
-  RESHAPE = 39,
-  Configure = 40,
+  BoolScalar = 3,
+  I32Scalar = 4,
+  U32Scalar = 5,
+  FuseNode = 6,
+  I32Tensor = 7,
+  U32Tensor = 8,
+  F16Tensor = 9,
+  F32Tensor = 10,
+  F64Tensor = 11,
+  CONV_2D = 12,
+  AVERAGE_POOL_2D = 13,
+  MAX_POOL_2D = 14,
+  RELU = 15,
+  SOFTMAX = 16,
+  FULLY_CONNECTED = 17,
+  ADD = 18,
+  CONCATENATION = 19,
+  DEPTHWISE_CONV_2D = 20,
+  BATCH_TO_SPACE_ND = 21,
+  SPACE_TO_BATCH_ND = 22,
+  STRIDED_SLICE = 23,
+  MUL = 24,
+  DEQUANTIZE = 25,
+  LOCAL_RESPONSE_NORMALIZATION = 26,
+  TANH = 27,
+  FLOOR = 28,
+  LOGISTIC = 29,
+  PRELU = 30,
+  POW = 31,
+  NEG = 32,
+  MINIMUM = 33,
+  MAXIMUM = 34,
+  LOG = 35,
+  ABS = 36,
+  EXP = 37,
+  SUB = 38,
+  GATHER = 39,
+  RESHAPE = 40,
+  Configure = 41,
   MIN = NONE,
   MAX = Configure
 };
 
-inline const Layer (&EnumValuesLayer())[41] {
+inline const Layer (&EnumValuesLayer())[42] {
   static const Layer values[] = {
     Layer::NONE,
     Layer::InputTensor,
     Layer::RawTensor,
+    Layer::BoolScalar,
     Layer::I32Scalar,
     Layer::U32Scalar,
     Layer::FuseNode,
@@ -407,10 +411,11 @@ inline const Layer (&EnumValuesLayer())[41] {
 }
 
 inline const char * const *EnumNamesLayer() {
-  static const char * const names[42] = {
+  static const char * const names[43] = {
     "NONE",
     "InputTensor",
     "RawTensor",
+    "BoolScalar",
     "I32Scalar",
     "U32Scalar",
     "FuseNode",
@@ -470,6 +475,10 @@ template<> struct LayerTraits<nn::InputTensor> {
 
 template<> struct LayerTraits<nn::RawTensor> {
   static const Layer enum_value = Layer::RawTensor;
+};
+
+template<> struct LayerTraits<nn::BoolScalar> {
+  static const Layer enum_value = Layer::BoolScalar;
 };
 
 template<> struct LayerTraits<nn::I32Scalar> {
@@ -653,6 +662,28 @@ FLATBUFFERS_STRUCT_END(versionInfo, 16);
 
 struct versionInfo::Traits {
   using type = versionInfo;
+};
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(1) BoolScalar FLATBUFFERS_FINAL_CLASS {
+ private:
+  uint8_t data_;
+
+ public:
+  struct Traits;
+  BoolScalar()
+      : data_(0) {
+  }
+  BoolScalar(bool _data)
+      : data_(flatbuffers::EndianScalar(static_cast<uint8_t>(_data))) {
+  }
+  bool data() const {
+    return flatbuffers::EndianScalar(data_) != 0;
+  }
+};
+FLATBUFFERS_STRUCT_END(BoolScalar, 1);
+
+struct BoolScalar::Traits {
+  using type = BoolScalar;
 };
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) I32Scalar FLATBUFFERS_FINAL_CLASS {
@@ -4120,6 +4151,9 @@ inline bool VerifyLayer(flatbuffers::Verifier &verifier, const void *obj, Layer 
     case Layer::RawTensor: {
       auto ptr = reinterpret_cast<const nn::RawTensor *>(obj);
       return verifier.VerifyTable(ptr);
+    }
+    case Layer::BoolScalar: {
+      return verifier.VerifyField<nn::BoolScalar>(static_cast<const uint8_t *>(obj), 0, 1);
     }
     case Layer::I32Scalar: {
       return verifier.VerifyField<nn::I32Scalar>(static_cast<const uint8_t *>(obj), 0, 4);

@@ -19,6 +19,10 @@ table RawTensor{
     data :[byte];
 }
 
+struct BoolScalar{
+    data:bool;
+}
+
 struct I32Scalar{
     data:int;
 }
@@ -304,7 +308,7 @@ struct FuseNode{
 
 union Layer {
     InputTensor,RawTensor,
-    I32Scalar,U32Scalar,FuseNode,
+   BoolScalar, I32Scalar,U32Scalar,FuseNode,
     I32Tensor,U32Tensor,F16Tensor,F32Tensor,F64Tensor,
     
 CONV_2D,AVERAGE_POOL_2D,MAX_POOL_2D,RELU,SOFTMAX,FULLY_CONNECTED,
