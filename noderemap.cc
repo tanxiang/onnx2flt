@@ -72,6 +72,142 @@ int32_t writeFlScalaNode(flatbuffers::FlatBufferBuilder &builder,
   return tensorIndex;
 }
 
+struct shape2d {
+  int32_t width;
+  int32_t height;
+};
+
+shape2d dumpNodeOutputXY(mapContext &context, std::string output) {
+  if (auto pNode = context.outputNodeMap.find(output);
+      pNode != context.outputNodeMap.end()) {
+    if (pNode->second.op_type() == "Conv") {
+      auto &conv = pNode->second;
+      int32_t strideX = 1, strideY = 1;
+      int32_t kh = 3, kw = 3;
+      int32_t ph = 0, pw = 0;
+      int32_t dh = 1, dw = 1;
+
+      auto wh = dumpNodeOutputXY(context, conv.input(0));
+      std::cout << "##############################" << wh.height
+                << "@@@@@@@@@@@@@@@@@@" << wh.width << std::endl;
+
+      for (const auto &attribute : conv.attribute()) {
+        if (attribute.name() == "pads" &&
+            attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+            attribute.ints().size() == 4) {
+          ph = static_cast<int32_t>(attribute.ints()[0]) +
+               static_cast<int32_t>(attribute.ints()[2]);
+
+          pw = static_cast<int32_t>(attribute.ints()[1]) +
+               static_cast<int32_t>(attribute.ints()[3]);
+          continue;
+        }
+
+        if (attribute.name() == "strides" &&
+            attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+            attribute.ints().size() == 2) {
+          strideX = static_cast<int32_t>(attribute.ints()[1]);
+          strideY = static_cast<int32_t>(attribute.ints()[0]);
+          continue;
+        }
+
+        if (attribute.name() == "dilations" &&
+            attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+            attribute.ints().size() == 2) {
+          dw = static_cast<int32_t>(attribute.ints()[1]);
+          dh = static_cast<int32_t>(attribute.ints()[0]);
+          continue;
+        }
+
+        if (attribute.name() == "kernel_shape" &&
+            attribute.type() == onnx::AttributeProto_AttributeType_INTS &&
+            attribute.ints().size() == 2) {
+
+          kw = static_cast<int32_t>(attribute.ints()[1]);
+          kh = static_cast<int32_t>(attribute.ints()[0]);
+          continue;
+        }
+      }
+      kw = (kw - 1) * dw + 1;
+      kh = (kh - 1) * dh + 1;
+      std::cout << pNode->second.name() << "llllllllllllllllllllllllllll" << kw
+                << "@@@@@@@@@@@@@@@@@@" << strideX << std::endl;
+
+      return {(wh.width + pw - kw) / strideX + 1,
+              (wh.height + ph - kh) / strideY + 1};
+    }
+    return dumpNodeOutputXY(context, pNode->second.input(0));
+  }
+  if (auto pInput = context.graphsInputs.find(output);
+      pInput != context.graphsInputs.end()) {
+    return {
+        static_cast<int32_t>(
+            pInput->second.type().tensor_type().shape().dim(2).dim_value()),
+        static_cast<int32_t>(
+            pInput->second.type().tensor_type().shape().dim(3).dim_value())};
+  }
+  if (auto pTensor = context.tensorMap.find(output);
+      pTensor != context.tensorMap.end()) {
+    return {static_cast<int32_t>(pTensor->second.dims(2)),
+            static_cast<int32_t>(pTensor->second.dims(3))};
+  }
+  throw std::logic_error{"symbol lost!"};
+}
+
+auto writeFlGapNodeFinish(flatbuffers::FlatBufferBuilder &flatbuffers,
+                          mapContext &context, const nn::FuseCode fuseCode,
+                          std::string output, const onnx::NodeProto &node,
+                          std::set<kLayerData, std::less<>> &nodesData,
+                          std::map<std::string, int> &symbols) {
+  nn::AVERAGE_POOL_2DBuilder builder{flatbuffers};
+  auto ksXY = dumpNodeOutputXY(context, node.input(0));
+  // std::cout<<"##############################"<<ksXY.height<<"@@@@@@@@@@@@@@@@@@"<<ksXY.width<<std::endl;
+
+  builder.add_nchw(
+      writeFlScalaNode(flatbuffers, nodesData, nn::I32Scalar{1}, symbols));
+
+  nn::KernelShape kernelShape{
+      writeFlScalaNode(flatbuffers, nodesData, nn::I32Scalar{ksXY.width},
+                       symbols),
+      writeFlScalaNode(flatbuffers, nodesData, nn::I32Scalar{ksXY.height},
+                       symbols)};
+  builder.add_kernel_shape(&kernelShape);
+  nn::Stride strides{
+      writeFlScalaNode(flatbuffers, nodesData,
+                       nn::I32Scalar{static_cast<int32_t>(1)}, symbols),
+      writeFlScalaNode(flatbuffers, nodesData,
+                       nn::I32Scalar{static_cast<int32_t>(1)}, symbols),
+  };
+  builder.add_stride(&strides);
+  nn::Pads pads{
+      writeFlScalaNode(flatbuffers, nodesData,
+                       nn::I32Scalar{static_cast<int32_t>(0)}, symbols),
+      writeFlScalaNode(flatbuffers, nodesData,
+                       nn::I32Scalar{static_cast<int32_t>(0)}, symbols),
+      writeFlScalaNode(flatbuffers, nodesData,
+                       nn::I32Scalar{static_cast<int32_t>(0)}, symbols),
+      writeFlScalaNode(flatbuffers, nodesData,
+                       nn::I32Scalar{static_cast<int32_t>(0)}, symbols),
+  };
+  builder.add_padding(&pads);
+
+  builder.add_fuse_node(
+      writeFlFuseNode(flatbuffers, nodesData, fuseCode, symbols));
+
+  builder.add_link(nn::CreateLink(
+      flatbuffers,
+      flatbuffers.CreateVector(
+          node.input_size(), std::function<int32_t(size_t)>{[&](size_t i) {
+            return writeFlNode(flatbuffers, nodesData, context, node.input()[i],
+                               symbols);
+          }})));
+  auto flNode = builder.Finish();
+  auto tensorIndex = symbols.size();
+  symbols.emplace(output, tensorIndex);
+  nodesData.emplace(tensorIndex, UnionType(flNode), flNode.Union());
+  return tensorIndex;
+}
+
 template <typename NodeTypeBuilder>
 auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flatbuffers,
                        mapContext &context, const nn::FuseCode fuseCode,
@@ -79,6 +215,13 @@ auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flatbuffers,
                        std::set<kLayerData, std::less<>> &nodesData,
                        std::map<std::string, int> &symbols) {
   NodeTypeBuilder builder{flatbuffers};
+  if constexpr (requires(NodeTypeBuilder & builder, int32_t nchw) {
+                  builder.add_nchw(nchw);
+                }) {
+    builder.add_nchw(
+        writeFlScalaNode(flatbuffers, nodesData, nn::I32Scalar{1}, symbols));
+  }
+
   if constexpr (requires(NodeTypeBuilder & builder,
                          flatbuffers::Offset<nn::Link> link) {
                   builder.add_link(link);
@@ -100,7 +243,6 @@ auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flatbuffers,
   }
 
   for (const auto &attribute : node.attribute()) {
-
     if constexpr (requires(NodeTypeBuilder & builder, nn::Pads & pads) {
                     builder.add_padding(&pads);
                   }) {
@@ -247,10 +389,10 @@ auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flatbuffers,
       continue;
     }
     std::cout << nodeID(node) << " attr " << attribute.DebugString();
+    exit(0);
   }
 
   auto flNode = builder.Finish();
-
   auto tensorIndex = symbols.size();
   symbols.emplace(output, tensorIndex);
   nodesData.emplace(tensorIndex, UnionType(flNode), flNode.Union());
@@ -294,9 +436,8 @@ struct OpToFusedNodeBuilderMap
                const onnx::NodeProto &node,
                std::set<kLayerData, std::less<>> &nodesData,
                std::map<std::string, int> &symbols) {
-              return writeFlNodeFinish<nn::AVERAGE_POOL_2DBuilder>(
-                  flatbuffers, context, fuseCode, output, node, nodesData,
-                  symbols);
+              return writeFlGapNodeFinish(flatbuffers, context, fuseCode,
+                                          output, node, nodesData, symbols);
             });
 
     emplace("Gemm", [](flatbuffers::FlatBufferBuilder &flatbuffers,
@@ -351,7 +492,6 @@ struct OpToNodeBuilderMap
     });
   }
 };
-
 
 auto fuseSGUC(flatbuffers::FlatBufferBuilder &flatbuffers, mapContext &context,
               flatbuffers::Offset<nn::Link> link, const onnx::NodeProto &Shape,
@@ -621,8 +761,8 @@ int32_t writeFlNode(flatbuffers::FlatBufferBuilder &flbuilder,
       builder.add_info(info.Finish());
       builder.add_data(
           flbuilder.CreateVector(tensor.uint32_data_size(),
-                                 std::function<uint32_t(size_t)>{[&](size_t i) {
-                                   return tensor.uint32_data(i);
+                                 std::function<uint32_t(size_t)>{[&](size_t i)
+    { return tensor.uint32_data(i);
                                  }}));
       auto flnode = builder.Finish();
       nodesData.emplace(tensorIndex, UnionType(flnode), flnode.Union());

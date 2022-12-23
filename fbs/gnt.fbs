@@ -141,6 +141,7 @@ table CONV_2D {
     stride:Stride;
     dilation:Dilation;
     group:Group;
+    nchw:int;
 }
 
 table AVERAGE_POOL_2D {
@@ -149,6 +150,8 @@ table AVERAGE_POOL_2D {
     padding: Pads;
     stride:Stride;
     kernel_shape:KernelShape;
+    nchw:int;
+
 }
 
 

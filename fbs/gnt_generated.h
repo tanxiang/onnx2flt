@@ -1926,7 +1926,8 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_PADDING = 8,
     VT_STRIDE = 10,
     VT_DILATION = 12,
-    VT_GROUP = 14
+    VT_GROUP = 14,
+    VT_NCHW = 16
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -1946,6 +1947,9 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::Group *group() const {
     return GetStruct<const nn::Group *>(VT_GROUP);
   }
+  int32_t nchw() const {
+    return GetField<int32_t>(VT_NCHW, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
@@ -1955,6 +1959,7 @@ struct CONV_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<nn::Dilation>(verifier, VT_DILATION, 4) &&
            VerifyField<nn::Group>(verifier, VT_GROUP, 4) &&
+           VerifyField<int32_t>(verifier, VT_NCHW, 4) &&
            verifier.EndTable();
   }
 };
@@ -1981,6 +1986,9 @@ struct CONV_2DBuilder {
   void add_group(const nn::Group *group) {
     fbb_.AddStruct(CONV_2D::VT_GROUP, group);
   }
+  void add_nchw(int32_t nchw) {
+    fbb_.AddElement<int32_t>(CONV_2D::VT_NCHW, nchw, 0);
+  }
   explicit CONV_2DBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2000,8 +2008,10 @@ inline flatbuffers::Offset<CONV_2D> CreateCONV_2D(
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
     const nn::Dilation *dilation = nullptr,
-    const nn::Group *group = nullptr) {
+    const nn::Group *group = nullptr,
+    int32_t nchw = 0) {
   CONV_2DBuilder builder_(_fbb);
+  builder_.add_nchw(nchw);
   builder_.add_group(group);
   builder_.add_dilation(dilation);
   builder_.add_stride(stride);
@@ -2024,7 +2034,8 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_FUSE_NODE = 6,
     VT_PADDING = 8,
     VT_STRIDE = 10,
-    VT_KERNEL_SHAPE = 12
+    VT_KERNEL_SHAPE = 12,
+    VT_NCHW = 14
   };
   const nn::Link *link() const {
     return GetPointer<const nn::Link *>(VT_LINK);
@@ -2041,6 +2052,9 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const nn::KernelShape *kernel_shape() const {
     return GetStruct<const nn::KernelShape *>(VT_KERNEL_SHAPE);
   }
+  int32_t nchw() const {
+    return GetField<int32_t>(VT_NCHW, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_LINK) &&
@@ -2049,6 +2063,7 @@ struct AVERAGE_POOL_2D FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<nn::Pads>(verifier, VT_PADDING, 4) &&
            VerifyField<nn::Stride>(verifier, VT_STRIDE, 4) &&
            VerifyField<nn::KernelShape>(verifier, VT_KERNEL_SHAPE, 4) &&
+           VerifyField<int32_t>(verifier, VT_NCHW, 4) &&
            verifier.EndTable();
   }
 };
@@ -2072,6 +2087,9 @@ struct AVERAGE_POOL_2DBuilder {
   void add_kernel_shape(const nn::KernelShape *kernel_shape) {
     fbb_.AddStruct(AVERAGE_POOL_2D::VT_KERNEL_SHAPE, kernel_shape);
   }
+  void add_nchw(int32_t nchw) {
+    fbb_.AddElement<int32_t>(AVERAGE_POOL_2D::VT_NCHW, nchw, 0);
+  }
   explicit AVERAGE_POOL_2DBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2090,8 +2108,10 @@ inline flatbuffers::Offset<AVERAGE_POOL_2D> CreateAVERAGE_POOL_2D(
     int32_t fuse_node = 0,
     const nn::Pads *padding = nullptr,
     const nn::Stride *stride = nullptr,
-    const nn::KernelShape *kernel_shape = nullptr) {
+    const nn::KernelShape *kernel_shape = nullptr,
+    int32_t nchw = 0) {
   AVERAGE_POOL_2DBuilder builder_(_fbb);
+  builder_.add_nchw(nchw);
   builder_.add_kernel_shape(kernel_shape);
   builder_.add_stride(stride);
   builder_.add_padding(padding);
