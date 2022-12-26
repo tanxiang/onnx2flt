@@ -72,6 +72,26 @@ int32_t writeFlScalaNode(flatbuffers::FlatBufferBuilder &builder,
   return tensorIndex;
 }
 
+int32_t writeFlBoolNode(flatbuffers::FlatBufferBuilder &builder,
+                        std::set<kLayerData, std::less<>> &nodesData,
+                        const nn::BoolScalar val,
+                        std::map<std::string, int> &symbols) {
+  std::string output = std::to_string(val.data());
+  output += "__helper_node__";
+  output += nn::EnumNameLayer(nn::LayerTraits<nn::BoolScalar>::enum_value);
+
+  if (auto itr = symbols.find(output); itr != symbols.end()) {
+    return itr->second;
+  }
+  auto tensorIndex = symbols.size();
+  symbols.emplace(output, tensorIndex);
+  nodesData.emplace(tensorIndex, nn::Layer::BoolScalar,
+                    builder.CreateStruct<nn::BoolScalar>(val).Union());
+
+  std::cout << "Scala idx:" << tensorIndex << " id " << output << std::endl;
+  return tensorIndex;
+}
+
 struct shape2d {
   int32_t width;
   int32_t height;
@@ -162,9 +182,16 @@ auto writeFlGapNodeFinish(flatbuffers::FlatBufferBuilder &flatbuffers,
   nn::AVERAGE_POOL_2DBuilder builder{flatbuffers};
   auto ksXY = dumpNodeOutputXY(context, node.input(0));
   // std::cout<<"##############################"<<ksXY.height<<"@@@@@@@@@@@@@@@@@@"<<ksXY.width<<std::endl;
-
-  builder.add_nchw(
-      writeFlScalaNode(flatbuffers, nodesData, nn::I32Scalar{1}, symbols));
+  builder.add_link(nn::CreateLink(
+      flatbuffers,
+      flatbuffers.CreateVector(
+          node.input_size(), std::function<int32_t(size_t)>{[&](size_t i) {
+            return writeFlNode(flatbuffers, nodesData, context, node.input()[i],
+                               symbols);
+          }})));
+          
+   builder.add_nchw(
+       writeFlBoolNode(flatbuffers, nodesData, nn::BoolScalar{true}, symbols));
 
   nn::KernelShape kernelShape{
       writeFlScalaNode(flatbuffers, nodesData, nn::I32Scalar{ksXY.width},
@@ -194,13 +221,6 @@ auto writeFlGapNodeFinish(flatbuffers::FlatBufferBuilder &flatbuffers,
   builder.add_fuse_node(
       writeFlFuseNode(flatbuffers, nodesData, fuseCode, symbols));
 
-  builder.add_link(nn::CreateLink(
-      flatbuffers,
-      flatbuffers.CreateVector(
-          node.input_size(), std::function<int32_t(size_t)>{[&](size_t i) {
-            return writeFlNode(flatbuffers, nodesData, context, node.input()[i],
-                               symbols);
-          }})));
   auto flNode = builder.Finish();
   auto tensorIndex = symbols.size();
   symbols.emplace(output, tensorIndex);
@@ -219,7 +239,7 @@ auto writeFlNodeFinish(flatbuffers::FlatBufferBuilder &flatbuffers,
                   builder.add_nchw(nchw);
                 }) {
     builder.add_nchw(
-        writeFlScalaNode(flatbuffers, nodesData, nn::I32Scalar{1}, symbols));
+        writeFlBoolNode(flatbuffers, nodesData, nn::BoolScalar{true}, symbols));
   }
 
   if constexpr (requires(NodeTypeBuilder & builder,
